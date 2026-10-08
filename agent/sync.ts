@@ -4,7 +4,7 @@
  */
 
 import { config } from './config.ts';
-import { fetchAssignedCards } from './sources/github.ts';
+import { fetchAssignedCards, type BoardSummary } from './sources/github.ts';
 import * as store from './store.ts';
 
 const SYNC_EVERY_MS = 10 * 60_000;
@@ -15,6 +15,8 @@ export type SyncResult = {
   cards: number;
   added: number;
   cleared: number;
+  /** The boards as last read successfully. */
+  boards: BoardSummary[];
   error?: string;
 };
 
@@ -33,7 +35,7 @@ export function syncBoards(): Promise<SyncResult> {
       if (!config.github.token || !config.github.username) {
         throw new Error('GITHUB_TOKEN and GITHUB_USERNAME are both needed to read the boards');
       }
-      const cards = await fetchAssignedCards(
+      const { cards, boards } = await fetchAssignedCards(
         config.github.token,
         config.github.username,
         config.github.projects,
@@ -41,11 +43,13 @@ export function syncBoards(): Promise<SyncResult> {
       // Only after a full read: clearing what is missing from a partial one
       // would empty the plate on every GitHub hiccup.
       const { added, cleared } = await store.syncBoard(cards);
-      last = { at, ok: true, cards: cards.length, added, cleared };
+      last = { at, ok: true, cards: cards.length, added, cleared, boards };
       console.log(`[sync] ${cards.length} cards assigned — ${added} new, ${cleared} cleared`);
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
-      last = { at, ok: false, cards: 0, added: 0, cleared: 0, error };
+      // Keep the last good board names, so a failed read can still say which
+      // boards it failed on.
+      last = { at, ok: false, cards: 0, added: 0, cleared: 0, boards: last?.boards ?? [], error };
       console.error('[sync] board read failed:', error);
     }
     return last;

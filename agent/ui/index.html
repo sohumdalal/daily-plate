@@ -15,7 +15,16 @@
   <body>
     <nav class="topnav">
       <span class="wordmark"><span class="tick" aria-hidden="true"></span>Daily Plate</span>
-      <button class="sync" id="sync" type="button" title="Re-read the boards (R)">Refresh</button>
+      <div class="nav-right">
+        <!-- Two ways to read the same plate. The thumb slides between them. -->
+        <div class="views" id="views" role="group" aria-label="View">
+          <span class="views-thumb" aria-hidden="true"></span>
+          <button type="button" data-view="split" title="By source (V)">Split</button>
+          <button type="button" data-view="all" title="Everything in one list (V)">All</button>
+        </div>
+        <span class="label read-at" id="read-at"></span>
+        <button class="sync" id="sync" type="button" title="Re-read the boards (R)">Refresh</button>
+      </div>
       <div class="progress" id="progress" aria-hidden="true"></div>
     </nav>
 
@@ -28,27 +37,12 @@
           <div class="spec-cell"><span class="spec-value" id="n-slack" data-i="2"></span><span class="label">From Slack</span></div>
           <div class="spec-cell"><span class="spec-value" id="n-done" data-i="3"></span><span class="label">Cleared today</span></div>
         </div>
-        <p class="note" id="provenance" data-flip="note"></p>
+        <p class="note warn" id="provenance" hidden></p>
       </header>
 
-      <section class="group" id="board-group">
-        <h2 class="label" data-flip="h-board">Boards</h2>
-        <ul class="items" id="board-list"></ul>
-        <p class="empty" id="board-empty" data-flip="e-board" hidden>Nothing assigned to you is open on the boards.</p>
-      </section>
-
-      <section class="group" id="slack-group">
-        <h2 class="label" data-flip="h-slack">Slack</h2>
-        <ul class="items" id="slack-list"></ul>
-        <p class="empty" id="slack-empty" data-flip="e-slack" hidden>
-          Nothing from Slack. React <span class="kbd">:knife_fork_plate:</span> to a message to put it here.
-        </p>
-      </section>
-
-      <section class="group" id="done-group" hidden>
-        <h2 class="label" data-flip="h-done">Cleared today</h2>
-        <ul class="items" id="done-list"></ul>
-      </section>
+      <!-- Sections are built per view: one per board and one for Slack when
+           split, a single list when not. Cleared today closes both. -->
+      <div id="lists"></div>
     </main>
 
     <script src="/app.js"></script>

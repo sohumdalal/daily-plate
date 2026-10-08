@@ -118,19 +118,33 @@ async function readPage(
   return project;
 }
 
+/** One board as the screen names and links it. */
+export type BoardSummary = {
+  owner: string;
+  number: number;
+  title: string;
+  url: string;
+};
+
 /** Every non-archived card on the boards that is assigned to `username`. */
 export async function fetchAssignedCards(
   token: string,
   username: string,
   projects: ProjectRef[],
-): Promise<BoardCard[]> {
+): Promise<{ cards: BoardCard[]; boards: BoardSummary[] }> {
   const login = username.toLowerCase();
   const byId = new Map<string, BoardCard & { doneOn: boolean[] }>();
+  const boards: BoardSummary[] = [];
 
   for (const ref of projects) {
     let cursor: string | null = null;
+    let summary: BoardSummary | null = null;
     for (let page = 0; page < MAX_PAGES; page++) {
       const project = await readPage(token, ref, cursor);
+      if (!summary) {
+        summary = { ...ref, title: project.title, url: project.url };
+        boards.push(summary);
+      }
 
       for (const node of project.items.nodes) {
         const content = node.content;
@@ -168,8 +182,9 @@ export async function fetchAssignedCards(
   }
 
   // On two boards, a card is done only when both say so.
-  return [...byId.values()].map(({ doneOn, ...card }) => ({
+  const cards = [...byId.values()].map(({ doneOn, ...card }) => ({
     ...card,
     done: doneOn.every(Boolean),
   }));
+  return { cards, boards };
 }

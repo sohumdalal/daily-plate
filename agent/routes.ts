@@ -10,6 +10,7 @@
 import { Hono } from 'hono';
 import { config, readiness } from './config.ts';
 import * as store from './store.ts';
+import { slackConnected } from './slack.ts';
 import { lastSync, syncBoards } from './sync.ts';
 import { dayOf } from './time.ts';
 
@@ -21,7 +22,7 @@ async function plateBody() {
   const today = dayOf(new Date(), config.timezone);
   return {
     today,
-    state: readiness(),
+    state: { ...readiness(), slackConnected: slackConnected() },
     sync: lastSync(),
     items: await store.plate(today, config.timezone),
   };

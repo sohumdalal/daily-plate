@@ -28,6 +28,20 @@ Tick an item to clear it. What you cleared today stays visible beneath the
 plate until the day ends. A card you clear yourself stays cleared, even if the
 board still has it open.
 
+## Two views
+
+The toggle in the nav (or `V`) switches between them, and the choice is
+remembered in this browser.
+
+- **Split**: a section per source. Each board gets its own section, headed
+  by its name (a link to the board), `owner · #number`, and how many of your
+  cards are open on it. Slack follows, and its header is where the connection
+  shows: live or not, and whether mentions are on. A card on both boards
+  appears under each.
+- **All**: one list of every task, whatever the source. Active board work
+  (In progress, In review) comes first, then Slack asks newest first, then
+  the rest of the boards' queue. Each row leads with its source.
+
 ## The boards
 
 `GITHUB_PROJECTS` lists `owner/number` pairs, `astropods/1,astropods/4` by
@@ -109,6 +123,10 @@ Wrap is the dark half, this is the light one. Same Inter, sharp corners,
 hairlines and spacing. The counts across the top use the system's `spec-cell`
 treatment.
 
+The GitHub and Slack marks are Lucide's, vendored into `agent/ui/icons/` from
+`lucide-static@1.0.0`. Later releases dropped brand icons, so that version is
+pinned. They are drawn as CSS masks, so they take the ink colour.
+
 The accent is Rosso Corsa, the system's own red, where Daily Wrap's is
 yellow: yellow on near-black there, red on white here. It appears twice: the
 wordmark rule and the tick on a cleared item. Warnings share that red; here a
@@ -121,5 +139,6 @@ when they grow and downward when they shrink. Ticking an item plays the mark
 in place first (the box fills, the tick draws, a line runs through the
 title), then the row glides into Cleared today while the rows around it close
 the gap. Unticking runs it back. A new Slack arrival fades in with a brief
-highlight, and Refresh runs a red line along the nav. All of it is off under
-`prefers-reduced-motion`.
+highlight, and Refresh runs a red line along the nav. Switching views moves
+every row from its place in one layout to its place in the other. All of it
+is off under `prefers-reduced-motion`.

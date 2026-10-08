@@ -29,6 +29,13 @@ import * as store from './store.ts';
  */
 const SIDECAR = process.env.GRPC_SERVER_ADDR || process.env.MESSAGING_ADDRESS || '';
 
+/** Whether the sidecar stream is up, for the screen's Slack tile. */
+let connected = false;
+
+export function slackConnected(): boolean {
+  return connected;
+}
+
 /** Longest text kept as a plate item's title. The link has the rest. */
 const MAX_TITLE = 280;
 
@@ -108,13 +115,17 @@ export async function startSlackIngestion(): Promise<void> {
     tools: [],
   });
 
+  connected = true;
   const me = config.slack.userId;
   console.log(
     `[slack] registered with the sidecar via ${SIDECAR} — ` +
       (me ? `capturing reactions and mentions of <@${me}>` : 'capturing reactions; set SLACK_USER_ID for mentions'),
   );
 
-  conversation.on('error', (err: Error) => console.error('[slack] stream gave up:', err.message));
+  conversation.on('error', (err: Error) => {
+    connected = false;
+    console.error('[slack] stream gave up:', err.message);
+  });
 
   conversation.on('response', (resp: AgentResponse) => {
     const message = resp.incomingMessage;

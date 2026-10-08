@@ -109,6 +109,63 @@ body {
   background: var(--primary);
 }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+}
+
+.read-at:empty {
+  display: none;
+}
+
+/* Two buttons over one ink thumb. The thumb slides; the labels swap colour
+   as it passes, so the change reads as one motion. */
+.views {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 32px;
+  border: 1px solid var(--ink);
+}
+
+/* Laid over the border rather than inside it, so it meets the frame flush on
+   both sides instead of leaving a subpixel sliver of white. Its own width is
+   exactly the distance to travel, so translateX(100%) lands it. */
+.views-thumb {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: -1px;
+  width: calc(50% + 1px);
+  background: var(--ink);
+  transition: transform 420ms var(--ease);
+}
+
+.views[data-view='all'] .views-thumb {
+  transform: translateX(100%);
+}
+
+.views button {
+  position: relative;
+  min-width: 64px;
+  padding: 0 var(--xs);
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+  transition: color 300ms var(--ease);
+}
+
+.views button[aria-pressed='true'] {
+  color: var(--canvas);
+}
+
 .sync {
   height: 32px;
   padding: 0 var(--xs);
@@ -272,8 +329,157 @@ body:not(.ready) .shell {
   padding-bottom: var(--lg);
 }
 
-.group > .label {
+/* ── Section headers: the source, named ───────────────────────────────── */
+
+.group-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--xs);
   padding-bottom: var(--xs);
+}
+
+/* A head with no icon (Everything, Cleared today) still lines its title up
+   with the rows beneath. */
+.group-head > .group-titles:first-child {
+  grid-column: 1 / 3;
+}
+
+.group-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.group-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  width: fit-content;
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.1px;
+  text-decoration: none;
+}
+
+/* The board's name is the link to it; the arrow says so on hover. */
+.go {
+  color: var(--muted);
+  font-size: 12px;
+  opacity: 0;
+  transform: translate(-4px, 4px);
+  transition:
+    opacity 200ms var(--ease),
+    transform 260ms var(--ease);
+}
+
+a.group-name:hover .go {
+  opacity: 1;
+  transform: none;
+}
+
+a.group-name:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.group-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.group-head.warn .group-sub {
+  color: var(--semantic-warning);
+}
+
+.group-stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--xxxs);
+}
+
+/* The hero's rolling window, at header size. */
+.group-count {
+  position: relative;
+  display: block;
+  height: 1.1em;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Slack's connection: a square in the accent that breathes while live. */
+.live {
+  position: relative;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+}
+
+.live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--primary);
+  animation: breathe 1800ms var(--ease) infinite;
+}
+
+@keyframes breathe {
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+/* ── Icons ────────────────────────────────────────────────────────────── */
+
+/* Lucide's SVGs as masks over the current colour, so a mark is ink like the
+   text around it and needs no copy per colour. */
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  color: var(--ink);
+  -webkit-mask: var(--glyph) center / contain no-repeat;
+  mask: var(--glyph) center / contain no-repeat;
+}
+
+.icon-github {
+  --glyph: url('/icons/github.svg');
+}
+
+.icon-slack {
+  --glyph: url('/icons/slack.svg');
+}
+
+/* In a row's meta line, the source leads at text size. */
+.meta .from {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}
+
+.meta .icon {
+  width: 13px;
+  height: 13px;
 }
 
 .items {
@@ -440,6 +646,14 @@ a.title:hover {
 @media (max-width: 640px) {
   .topnav {
     padding: 0 var(--xs);
+  }
+
+  .nav-right {
+    gap: var(--xs);
+  }
+
+  .read-at {
+    display: none;
   }
 
   .shell {
