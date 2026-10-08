@@ -104,7 +104,12 @@ Then deploy **from the dashboard**, the same way as Daily Wrap:
 ## Design
 
 The screen uses the shared Ferrari design system in `../DESIGN.md` (linked
-here as `DESIGN.md`), with Daily Wrap's tokens: near-black canvas, Inter,
-sharp corners, hairlines. The counts across the top use the system's
-`spec-cell` treatment. Yellow appears twice: the wordmark rule and the tick on
-a cleared item.
+here as `DESIGN.md`), on its light bands, so it pairs with Daily Wrap: Daily
+Wrap is the dark half, this is the light one. Same Inter, sharp corners,
+hairlines and spacing. The counts across the top use the system's `spec-cell`
+treatment.
+
+Yellow stays the shared accent and appears twice: the wordmark rule and the
+tick on a cleared item. On white it is 1.3:1, so both carry an ink edge. The
+info blue and warning red are the system's hues one step darker, since the
+documented values fail AA for an 11px label on white.

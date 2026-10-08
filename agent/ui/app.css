@@ -1,24 +1,24 @@
 /*
- * Daily Plate — Ferrari design system (see DESIGN.md), with Daily Wrap's
- * tokens so the two read as one family. Yellow is the accent, as in Daily
- * Wrap, and appears twice: the wordmark rule and the tick on a cleared item.
- * Red is left to warnings.
+ * Daily Plate — Ferrari design system (see DESIGN.md), on its light bands:
+ * canvas-light, body-on-light, hairline-on-light. Daily Wrap is the dark half
+ * of the pair, so this one is light, with the same spacing, type and accent.
+ *
+ * Yellow on white is 1.3:1, too faint to carry a shape on its own, so each
+ * yellow mark gets an ink edge: the wordmark rule and the tick on a cleared
+ * item. The blue and red are the system's hues taken one step darker, since
+ * the documented values fail AA for an 11px label on white.
  */
 
 :root {
   --primary: #f6e500;
-  --primary-active: #d6c800;
-  --ink: #ffffff;
-  --body: #969696;
+  --ink: #181818;          /* body-on-light */
+  --body: #666666;         /* 5.7:1 on white; #969696 is 3:1 */
   --muted: #666666;
-  --muted-soft: #8f8f8f;
-  --hairline: #303030;
-  --canvas: #181818;
-  --canvas-elevated: #303030;
-  --on-primary: #181818;
-  --semantic-warning: #f13a2c;
-  --semantic-info: #4c98b9;
-  --focus: #ffffff;
+  --hairline: #d2d2d2;     /* hairline-on-light */
+  --canvas: #ffffff;       /* canvas-light */
+  --semantic-warning: #da291c; /* 4.9:1; #f13a2c is 3.9:1 */
+  --semantic-info: #2f7a99;    /* 4.8:1; #4c98b9 is 3.2:1 */
+  --focus: #181818;
 
   --xxxs: 4px;
   --xxs: 8px;
@@ -34,7 +34,7 @@
 
   --sans: 'Inter', -apple-system, system-ui, sans-serif;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 *,
@@ -95,9 +95,10 @@ body {
 }
 
 .wordmark .tick {
-  width: 3px;
+  width: 5px;
   height: 14px;
   background: var(--primary);
+  border: 1px solid var(--ink);
 }
 
 .sync {
@@ -221,7 +222,7 @@ body {
 
 .done .check {
   background: var(--primary);
-  border-color: var(--primary);
+  border-color: var(--ink);
 }
 
 .meta {
@@ -258,7 +259,7 @@ a.title:hover {
 }
 
 .done .title {
-  color: var(--muted-soft);
+  color: var(--muted);
   text-decoration: line-through;
 }
 
