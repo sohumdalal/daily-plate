@@ -38,6 +38,10 @@
 
   --sans: 'Inter', -apple-system, system-ui, sans-serif;
 
+  /* One curve for everything: quick off the mark, long settle. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --surface-soft: #f7f7f7; /* surface-soft-light */
+
   color-scheme: light;
 }
 
@@ -79,6 +83,7 @@ body {
 /* ── Chrome ─────────────────────────────────────────────────────────────── */
 
 .topnav {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -129,6 +134,43 @@ body {
   cursor: default;
 }
 
+/* A red hairline that runs along the nav's bottom rule while the boards are
+   read. Off, it is simply not there. */
+.progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+
+.progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  background: var(--primary);
+  transform: translateX(-100%);
+}
+
+.progress.on {
+  opacity: 1;
+}
+
+.progress.on::after {
+  animation: sweep 1100ms var(--ease) infinite;
+}
+
+@keyframes sweep {
+  to {
+    transform: translateX(340%);
+  }
+}
+
 /* ── The plate ──────────────────────────────────────────────────────────── */
 
 .shell {
@@ -161,13 +203,57 @@ body {
   border-left: 1px solid var(--hairline);
 }
 
+/* The digits roll inside a fixed window, so the old figure and the new can
+   share it while one floats out and the other in. */
 .spec-value {
+  position: relative;
+  display: block;
+  height: 1.1em;
+  overflow: hidden;
   color: var(--ink);
   font-size: 36px;
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.36px;
   font-variant-numeric: tabular-nums;
+}
+
+.digit {
+  display: block;
+}
+
+.digit.leaving {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Nothing is shown until the first plate arrives, then it all rises in. */
+body:not(.ready) .shell {
+  visibility: hidden;
+}
+
+.ready .spec-cell {
+  animation: rise 560ms var(--ease) backwards;
+}
+
+.ready .spec-cell:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.ready .spec-cell:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.ready .spec-cell:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 
 .note {
@@ -197,6 +283,8 @@ body {
 }
 
 .item {
+  position: relative;
+  background: var(--canvas);
   display: grid;
   grid-template-columns: 20px 1fr;
   gap: var(--xs);
@@ -208,24 +296,89 @@ body {
   border-bottom: 1px solid var(--hairline);
 }
 
+/* A row on its way to the other list rides above the rows making room. */
+.item.flying {
+  z-index: 2;
+}
+
+.item.ghost {
+  z-index: 1;
+  list-style: none;
+}
+
+/* A new arrival holds a soft band long enough to be noticed, then lets go. */
+.item.arrived {
+  animation: arrived 2400ms var(--ease);
+}
+
+@keyframes arrived {
+  0%,
+  40% {
+    background: var(--surface-soft);
+  }
+}
+
 .check {
+  display: grid;
+  place-items: center;
   width: 20px;
   height: 20px;
   margin-top: 2px;
   padding: 0;
-  background: none;
+  background: transparent;
   border: 1px solid var(--muted);
   border-radius: var(--r-none);
   cursor: pointer;
+  transition:
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease),
+    transform 160ms var(--ease);
 }
 
 .check:hover {
   border-color: var(--ink);
+  transform: scale(1.08);
+}
+
+.check:active {
+  transform: scale(0.92);
+}
+
+.check svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--canvas);
+  stroke-width: 2;
+  stroke-linecap: square;
+}
+
+/* The tick draws itself once the box has filled. */
+.check path {
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
+  transition: stroke-dashoffset 240ms var(--ease);
 }
 
 .done .check {
   background: var(--primary);
   border-color: var(--primary);
+}
+
+.done .check path {
+  stroke-dashoffset: 0;
+  transition-delay: 90ms;
+}
+
+/* Only on a click, never on a render: a row born done should just be done. */
+.popping .check {
+  animation: pop 320ms var(--ease);
+}
+
+@keyframes pop {
+  40% {
+    transform: scale(1.25);
+  }
 }
 
 .meta {
@@ -248,12 +401,18 @@ body {
   color: var(--ink);
 }
 
+/* The strike-through is a background line rather than text-decoration, so
+   it can be drawn left to right instead of appearing at once. */
 .title {
   color: var(--ink);
   font-size: 16px;
   line-height: 1.5;
   text-decoration: none;
   overflow-wrap: anywhere;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1px;
+  transition:
+    background-size 380ms var(--ease),
+    color 380ms var(--ease);
 }
 
 a.title:hover {
@@ -263,7 +422,7 @@ a.title:hover {
 
 .done .title {
   color: var(--muted);
-  text-decoration: line-through;
+  background-size: 100% 1px;
 }
 
 .empty {
@@ -299,5 +458,14 @@ a.title:hover {
 
   .spec-cell:nth-child(4) {
     border-top: 1px solid var(--hairline);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

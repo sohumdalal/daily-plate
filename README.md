@@ -115,3 +115,11 @@ wordmark rule and the tick on a cleared item. Warnings share that red; here a
 warning is one line of text, which no mark can be mistaken for. The info blue
 is the system's hue one step darker, since the documented one fails AA for an
 11px label on white.
+
+Motion is FLIP, in plain CSS and the Web Animations API. Counts roll, upward
+when they grow and downward when they shrink. Ticking an item plays the mark
+in place first (the box fills, the tick draws, a line runs through the
+title), then the row glides into Cleared today while the rows around it close
+the gap. Unticking runs it back. A new Slack arrival fades in with a brief
+highlight, and Refresh runs a red line along the nav. All of it is off under
+`prefers-reduced-motion`.

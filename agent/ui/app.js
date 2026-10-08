@@ -1,5 +1,11 @@
 /**
  * Daily Plate — the whole client. No framework, no build step.
+ *
+ * Motion is FLIP: before a render, every element carrying `data-flip` has its
+ * position recorded by key; after, each one is animated from where it was to
+ * where it is. Rows are rebuilt on every render, so the key, not the element,
+ * is what carries identity across one, and a row that changes lists simply
+ * glides from one to the other.
  */
 
 const $ = (id) => document.getElementById(id);
@@ -9,7 +15,18 @@ const COLUMN_ORDER = ['In progress', 'In review', 'Ready', 'On hold', 'Backlog']
 
 const SOURCE_LABEL = { mention: 'Mention', reaction: 'Reacted' };
 
+const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+const MOVE_MS = 620;
+/** How long a tick and its strike-through play before the row moves. */
+const MARK_MS = 360;
+
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let data = null;
 let busy = false;
+/** Set while a completion plays, so a poll cannot re-render under it. */
+let animating = 0;
+let first = true;
 
 function rank(status) {
   const i = COLUMN_ORDER.indexOf(status);
@@ -24,6 +41,10 @@ function ago(iso) {
   return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, reduced ? 0 : ms));
+}
+
 function span(className, text) {
   const node = document.createElement('span');
   node.className = className;
@@ -31,16 +52,163 @@ function span(className, text) {
   return node;
 }
 
+// ── Motion ───────────────────────────────────────────────────────────────
+
+/** Where every keyed element is now, and which list it is in. */
+function snapshot() {
+  const out = new Map();
+  for (const node of document.querySelectorAll('[data-flip]')) {
+    if (node.closest('[hidden]')) continue;
+    out.set(node.dataset.flip, {
+      rect: node.getBoundingClientRect(),
+      list: node.parentElement?.id ?? '',
+      node,
+    });
+  }
+  return out;
+}
+
+/** Animate every keyed element from where `before` saw it to where it is. */
+function play(before) {
+  if (reduced) return;
+  const seen = new Set();
+  let entering = 0;
+
+  for (const node of document.querySelectorAll('[data-flip]')) {
+    if (node.closest('[hidden]')) continue;
+    const key = node.dataset.flip;
+    seen.add(key);
+    const was = before.get(key);
+    const now = node.getBoundingClientRect();
+
+    if (!was) {
+      // On the first render everything rises in turn; after that, a new
+      // arrival fades in and holds a highlight long enough to be noticed.
+      node.animate(
+        [
+          { opacity: 0, transform: 'translateY(12px)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 520, easing: EASE, delay: first ? 160 + entering++ * 45 : 0, fill: 'backwards' },
+      );
+      if (!first && node.classList.contains('item')) node.classList.add('arrived');
+      continue;
+    }
+
+    const dx = was.rect.left - now.left;
+    const dy = was.rect.top - now.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+
+    const changedList = was.list !== (node.parentElement?.id ?? '');
+    if (changedList) {
+      // The row that is travelling rides above the rows making room for it.
+      node.classList.add('flying');
+      node
+        .animate(
+          [
+            { transform: `translate(${dx}px, ${dy}px)` },
+            { transform: `translate(${dx * 0.5}px, ${dy * 0.5}px) scale(1.015)`, offset: 0.5 },
+            { transform: 'none' },
+          ],
+          { duration: MOVE_MS + 80, easing: EASE },
+        )
+        .finished.then(() => node.classList.remove('flying'), () => {});
+    } else {
+      node.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], {
+        duration: MOVE_MS,
+        easing: EASE,
+      });
+    }
+  }
+
+  // Whatever left the page fades out where it stood, as a ghost.
+  for (const [key, was] of before) {
+    if (seen.has(key) || !was.node.classList.contains('item')) continue;
+    const ghost = was.node.cloneNode(true);
+    Object.assign(ghost.style, {
+      position: 'fixed',
+      left: `${was.rect.left}px`,
+      top: `${was.rect.top}px`,
+      width: `${was.rect.width}px`,
+      margin: '0',
+      pointerEvents: 'none',
+    });
+    ghost.classList.add('ghost');
+    document.body.append(ghost);
+    ghost
+      .animate([{ opacity: 1 }, { opacity: 0, transform: 'translateX(-16px)' }], {
+        duration: 360,
+        easing: EASE,
+      })
+      .finished.then(() => ghost.remove(), () => ghost.remove());
+  }
+}
+
+/**
+ * A count changes by rolling: the old figure floats out and the new one in,
+ * upward when it grew and downward when it shrank.
+ */
+function setCount(node, value) {
+  const text = String(value);
+  if (node.dataset.value === text) return;
+  const prev = node.dataset.value;
+  node.dataset.value = text;
+
+  const next = span('digit', text);
+  const old = node.querySelector('.digit');
+  if (reduced || prev === undefined || !old) {
+    node.replaceChildren(next);
+    if (!reduced) {
+      const i = Number(node.dataset.i ?? 0);
+      next.animate(
+        [
+          { opacity: 0, transform: 'translateY(60%)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 640, easing: EASE, delay: 80 + i * 70, fill: 'backwards' },
+      );
+    }
+    return;
+  }
+
+  const up = Number(text) > Number(prev);
+  old.classList.add('leaving');
+  node.append(next);
+  old
+    .animate(
+      [
+        { opacity: 1, transform: 'none' },
+        { opacity: 0, transform: `translateY(${up ? -70 : 70}%)` },
+      ],
+      { duration: 420, easing: EASE, fill: 'forwards' },
+    )
+    .finished.then(() => old.remove(), () => old.remove());
+  next.animate(
+    [
+      { opacity: 0, transform: `translateY(${up ? 70 : -70}%)` },
+      { opacity: 1, transform: 'none' },
+    ],
+    { duration: 520, easing: EASE, delay: 60, fill: 'backwards' },
+  );
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────
+
+const CHECK_SVG =
+  '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 10.5l3 3 6-6.5" /></svg>';
+
 function row(item) {
   const li = document.createElement('li');
   li.className = item.doneAt ? 'item done' : 'item';
+  li.dataset.flip = `item-${item.id}`;
 
   const check = document.createElement('button');
   check.className = 'check';
   check.type = 'button';
+  check.innerHTML = CHECK_SVG;
   check.setAttribute('aria-pressed', String(Boolean(item.doneAt)));
   check.title = item.doneAt ? 'Put it back on the plate' : 'Clear it';
-  check.addEventListener('click', () => toggle(item));
+  check.addEventListener('click', () => toggle(item.id, li));
 
   const body = document.createElement('div');
   const meta = document.createElement('div');
@@ -68,35 +236,44 @@ function row(item) {
   return li;
 }
 
-function fill(list, items) {
-  list.replaceChildren(...items.map(row));
-}
+function render() {
+  const before = snapshot();
 
-function render(data) {
   const open = data.items.filter((i) => !i.doneAt);
   const board = open
     .filter((i) => i.source === 'board')
     .sort((a, b) => rank(a.status) - rank(b.status));
   const slack = open.filter((i) => i.source !== 'board');
-  const done = data.items.filter((i) => i.doneAt);
+  // Most recently cleared first, so a row you just ticked lands on top.
+  const done = data.items
+    .filter((i) => i.doneAt)
+    .sort((a, b) => b.doneAt.localeCompare(a.doneAt));
 
   $('date').textContent = new Date(`${data.today}T12:00:00`).toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
-  $('n-open').textContent = open.length;
-  $('n-board').textContent = board.length;
-  $('n-slack').textContent = slack.length;
-  $('n-done').textContent = done.length;
+  setCount($('n-open'), open.length);
+  setCount($('n-board'), board.length);
+  setCount($('n-slack'), slack.length);
+  setCount($('n-done'), done.length);
 
-  fill($('board-list'), board);
+  $('board-list').replaceChildren(...board.map(row));
   $('board-empty').hidden = board.length > 0;
-  fill($('slack-list'), slack);
+  $('slack-list').replaceChildren(...slack.map(row));
   $('slack-empty').hidden = slack.length > 0;
-  fill($('done-list'), done);
+  $('done-list').replaceChildren(...done.map(row));
   $('done-group').hidden = done.length === 0;
 
+  renderNote();
+  play(before);
+
+  if (first) document.body.classList.add('ready');
+  first = false;
+}
+
+function renderNote() {
   const note = $('provenance');
   const sync = data.sync;
   note.className = sync && !sync.ok ? 'note warn' : 'note';
@@ -113,6 +290,13 @@ function render(data) {
   }
 }
 
+function warn(message) {
+  $('provenance').className = 'note warn';
+  $('provenance').textContent = message;
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────
+
 async function request(path, init) {
   const res = await fetch(path, init);
   const body = await res.json();
@@ -121,11 +305,12 @@ async function request(path, init) {
 }
 
 async function load() {
+  if (animating) return;
   try {
-    render(await request('/api/plate'));
+    data = await request('/api/plate');
+    render();
   } catch (err) {
-    $('provenance').className = 'note warn';
-    $('provenance').textContent = `Could not load the plate: ${err.message}`;
+    warn(`Could not load the plate: ${err.message}`);
   }
 }
 
@@ -134,29 +319,56 @@ async function sync() {
   busy = true;
   $('sync').disabled = true;
   $('sync').textContent = 'Reading…';
+  $('progress').classList.add('on');
   try {
-    render(await request('/api/sync', { method: 'POST' }));
+    data = await request('/api/sync', { method: 'POST' });
+    render();
   } catch (err) {
-    $('provenance').className = 'note warn';
-    $('provenance').textContent = `Could not refresh: ${err.message}`;
+    warn(`Could not refresh: ${err.message}`);
   } finally {
     busy = false;
     $('sync').disabled = false;
     $('sync').textContent = 'Refresh';
+    $('progress').classList.remove('on');
   }
 }
 
-async function toggle(item) {
+/**
+ * Clear an item, or put it back. The mark plays in place first — the box
+ * fills, the tick draws, a line runs through the title — and only then does
+ * the row travel to its new list. The request runs alongside, and a failure
+ * sends the row back where it came from.
+ */
+async function toggle(id, li) {
+  const item = data.items.find((i) => i.id === id);
+  if (!item) return;
+  const done = !item.doneAt;
+  const previous = item.doneAt;
+
+  animating++;
+  li.classList.toggle('done', done);
+  if (done) li.classList.add('popping');
+
+  const saved = request(`/api/items/${id}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ done }),
+  });
+
+  await wait(MARK_MS);
+  item.doneAt = done ? new Date().toISOString() : null;
+  render();
+
   try {
-    await request(`/api/items/${item.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ done: !item.doneAt }),
-    });
-    await load();
+    const fresh = await saved;
+    Object.assign(item, fresh);
   } catch (err) {
-    $('provenance').className = 'note warn';
-    $('provenance').textContent = `Could not update that item: ${err.message}`;
+    item.doneAt = previous;
+    render();
+    warn(`Could not update that item: ${err.message}`);
+  } finally {
+    await wait(MOVE_MS);
+    animating--;
   }
 }
 

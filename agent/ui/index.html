@@ -16,37 +16,38 @@
     <nav class="topnav">
       <span class="wordmark"><span class="tick" aria-hidden="true"></span>Daily Plate</span>
       <button class="sync" id="sync" type="button" title="Re-read the boards (R)">Refresh</button>
+      <div class="progress" id="progress" aria-hidden="true"></div>
     </nav>
 
     <main class="shell">
       <header class="hero">
-        <p class="label" id="date">—</p>
+        <p class="label" id="date" data-flip="date">—</p>
         <div class="specs">
-          <div class="spec-cell"><span class="spec-value" id="n-open">—</span><span class="label">On the plate</span></div>
-          <div class="spec-cell"><span class="spec-value" id="n-board">—</span><span class="label">From the boards</span></div>
-          <div class="spec-cell"><span class="spec-value" id="n-slack">—</span><span class="label">From Slack</span></div>
-          <div class="spec-cell"><span class="spec-value" id="n-done">—</span><span class="label">Cleared today</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-open" data-i="0"></span><span class="label">On the plate</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-board" data-i="1"></span><span class="label">From the boards</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-slack" data-i="2"></span><span class="label">From Slack</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-done" data-i="3"></span><span class="label">Cleared today</span></div>
         </div>
-        <p class="note" id="provenance"></p>
+        <p class="note" id="provenance" data-flip="note"></p>
       </header>
 
       <section class="group" id="board-group">
-        <h2 class="label">Boards</h2>
+        <h2 class="label" data-flip="h-board">Boards</h2>
         <ul class="items" id="board-list"></ul>
-        <p class="empty" id="board-empty" hidden>Nothing assigned to you is open on the boards.</p>
+        <p class="empty" id="board-empty" data-flip="e-board" hidden>Nothing assigned to you is open on the boards.</p>
       </section>
 
       <section class="group" id="slack-group">
-        <h2 class="label">Slack</h2>
+        <h2 class="label" data-flip="h-slack">Slack</h2>
         <ul class="items" id="slack-list"></ul>
-        <p class="empty" id="slack-empty" hidden>
+        <p class="empty" id="slack-empty" data-flip="e-slack" hidden>
           Nothing from Slack. React <span class="kbd">:knife_fork_plate:</span> to a message to put it here.
         </p>
       </section>
 
       <section class="group" id="done-group" hidden>
-        <h2 class="label">Cleared today</h2>
-        <ul class="items done" id="done-list"></ul>
+        <h2 class="label" data-flip="h-done">Cleared today</h2>
+        <ul class="items" id="done-list"></ul>
       </section>
     </main>
 
