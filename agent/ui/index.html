@@ -30,7 +30,16 @@
 
     <main class="shell">
       <header class="hero">
-        <p class="label" id="date" data-flip="date">—</p>
+        <!-- The day on the left, whose plate it is on the right: every card
+             below is one assigned to this person. -->
+        <div class="hero-top" data-flip="date">
+          <p class="label" id="date">—</p>
+          <a class="assignee" id="assignee" target="_blank" rel="noopener" hidden>
+            <img class="avatar" id="assignee-avatar" alt="" width="20" height="20" />
+            <span class="label">Assigned to me</span>
+            <span class="assignee-name" id="assignee-name"></span>
+          </a>
+        </div>
         <div class="specs">
           <div class="spec-cell"><span class="spec-value" id="n-open" data-i="0"></span><span class="label">On the plate</span></div>
           <div class="spec-cell"><span class="spec-value" id="n-board" data-i="1"></span><span class="label">From the boards</span></div>

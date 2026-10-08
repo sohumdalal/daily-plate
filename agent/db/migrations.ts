@@ -42,6 +42,15 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS items_open ON items(user_id, done_at);
     `,
   },
+  {
+    // Where a card is in its life (open … merged), and the PR or branch
+    // tackling it. Both are recomputed on every board read.
+    id: '0003_ticket_state',
+    sql: `
+      ALTER TABLE items ADD COLUMN IF NOT EXISTS state TEXT NOT NULL DEFAULT '';
+      ALTER TABLE items ADD COLUMN IF NOT EXISTS work JSONB;
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

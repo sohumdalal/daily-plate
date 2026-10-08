@@ -12,6 +12,7 @@
 import { Octokit } from '@octokit/rest';
 import type { ProjectRef } from '../config.ts';
 import type { BoardCard } from '../store.ts';
+import { deriveState, prRef, resolveWork } from './work.ts';
 
 const PAGE = 100;
 const MAX_PAGES = 20;
@@ -33,11 +34,24 @@ type ItemNode = {
   status: { name: string } | null;
   content:
     | {
-        __typename: 'Issue' | 'PullRequest';
+        __typename: 'Issue';
+        id: string;
         number: number;
         title: string;
         url: string;
         state: string;
+        repository: { nameWithOwner: string };
+        assignees: Assignees;
+      }
+    | {
+        __typename: 'PullRequest';
+        number: number;
+        title: string;
+        url: string;
+        state: 'OPEN' | 'MERGED' | 'CLOSED';
+        isDraft: boolean;
+        reviewDecision: string | null;
+        headRefName: string;
         repository: { nameWithOwner: string };
         assignees: Assignees;
       }
@@ -64,12 +78,12 @@ const ITEMS = `
       content {
         __typename
         ... on Issue {
-          number title url state
+          id number title url state
           repository { nameWithOwner }
           assignees(first: 10) { nodes { login } }
         }
         ... on PullRequest {
-          number title url state
+          number title url state isDraft reviewDecision headRefName
           repository { nameWithOwner }
           assignees(first: 10) { nodes { login } }
         }
@@ -118,6 +132,20 @@ async function readPage(
   return project;
 }
 
+/** Whose plate this is, as GitHub names them. */
+export type Profile = { login: string; name: string; avatarUrl: string; url: string };
+
+export async function fetchProfile(token: string, username: string): Promise<Profile> {
+  const { data } = await gh(token).users.getByUsername({ username });
+  return {
+    login: data.login,
+    // Not everyone sets a display name; the handle stands in.
+    name: data.name || data.login,
+    avatarUrl: data.avatar_url,
+    url: data.html_url,
+  };
+}
+
 /** One board as the screen names and links it. */
 export type BoardSummary = {
   owner: string;
@@ -133,7 +161,11 @@ export async function fetchAssignedCards(
   projects: ProjectRef[],
 ): Promise<{ cards: BoardCard[]; boards: BoardSummary[] }> {
   const login = username.toLowerCase();
-  const byId = new Map<string, BoardCard & { doneOn: boolean[] }>();
+  type Pending = Omit<BoardCard, 'state' | 'work'> & {
+    doneOn: boolean[];
+    content: NonNullable<ItemNode['content']>;
+  };
+  const byId = new Map<string, Pending>();
   const boards: BoardSummary[] = [];
 
   for (const ref of projects) {
@@ -173,6 +205,7 @@ export async function fetchAssignedCards(
           boards: [project.title],
           done,
           doneOn: [done],
+          content,
         });
       }
 
@@ -181,10 +214,34 @@ export async function fetchAssignedCards(
     }
   }
 
-  // On two boards, a card is done only when both say so.
-  const cards = [...byId.values()].map(({ doneOn, ...card }) => ({
-    ...card,
-    done: doneOn.every(Boolean),
-  }));
+  // What is being done about each issue, in one lookup for all of them.
+  const pending = [...byId.values()];
+  const work = await resolveWork(
+    gh(token),
+    pending.flatMap((p) => (p.content.__typename === 'Issue' ? [p.content.id] : [])),
+  );
+
+  const cards = pending.map(({ doneOn, content, ...card }): BoardCard => {
+    let found = null;
+    let closed = false;
+    let notPlanned = false;
+    if (content.__typename === 'Issue') {
+      const issue = work.get(content.id);
+      found = issue?.work ?? null;
+      closed = issue?.closed ?? content.state !== 'OPEN';
+      notPlanned = issue?.notPlanned ?? false;
+    } else if (content.__typename === 'PullRequest') {
+      // The card is the PR itself.
+      found = prRef(content, 'self');
+      closed = content.state === 'CLOSED';
+    }
+    return {
+      ...card,
+      // On two boards, a card is done only when both say so.
+      done: doneOn.every(Boolean),
+      state: deriveState({ column: card.status, closed, notPlanned, work: found }),
+      work: found,
+    };
+  });
   return { cards, boards };
 }

@@ -55,6 +55,40 @@ The token needs `read:project` on top of `repo`. Locally that means
 A card first seen in Done was never on the plate, so it is not stored. That
 keeps the first sync from reporting a backlog of old work as cleared today.
 
+## Ticket state
+
+Every board card carries one state, worked out from its column, the issue,
+and the PR or branch tackling it:
+
+| State | When |
+|---|---|
+| Open | Not started (the column, Backlog or Ready, shows beside it) |
+| In progress | In progress column, no branch or PR yet |
+| Branch | A branch exists, no PR yet |
+| Draft PR | A draft PR is open |
+| In PR | A PR is open, waiting on review |
+| Changes requested | The PR's review asked for changes |
+| Approved | The PR is approved and can merge |
+| Merged | The PR merged |
+| Closed / Not planned | The issue closed without a merged PR |
+
+The PR or branch shows beside the card, linked. `sources/work.ts` finds it
+from three kinds of evidence, strongest first:
+
+1. **Linked**: a PR set to close the issue, or a branch made from its
+   Development sidebar
+2. **Branch name**: a branch in the issue's repo whose name carries its
+   number, like `sohum/1377-invite-link`
+3. **Mentioned**: an open or merged PR that references the issue
+
+A mention is shown, quieter, but never sets the state: "related to #1377" in
+another PR does not put #1377 in review. Closed, unmerged PRs are abandoned
+attempts and never chosen. The board read stays light; this lookup runs once
+per sync for your cards only.
+
+The card's header line also says whose plate it is: your GitHub name and
+avatar, read once from `GITHUB_USERNAME`'s profile.
+
 ## Slack
 
 Both paths ride the Astro messaging sidecar. The agent needs no Slack token of

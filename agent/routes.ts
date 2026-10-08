@@ -11,7 +11,7 @@ import { Hono } from 'hono';
 import { config, readiness } from './config.ts';
 import * as store from './store.ts';
 import { slackConnected } from './slack.ts';
-import { lastSync, syncBoards } from './sync.ts';
+import { assignee, lastSync, syncBoards } from './sync.ts';
 import { dayOf } from './time.ts';
 
 export const routes = new Hono();
@@ -24,6 +24,7 @@ async function plateBody() {
     today,
     state: { ...readiness(), slackConnected: slackConnected() },
     sync: lastSync(),
+    assignee: assignee(),
     items: await store.plate(today, config.timezone),
   };
 }

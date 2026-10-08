@@ -4,7 +4,12 @@
  */
 
 import { config } from './config.ts';
-import { fetchAssignedCards, type BoardSummary } from './sources/github.ts';
+import {
+  fetchAssignedCards,
+  fetchProfile,
+  type BoardSummary,
+  type Profile,
+} from './sources/github.ts';
 import * as store from './store.ts';
 
 const SYNC_EVERY_MS = 10 * 60_000;
@@ -22,9 +27,15 @@ export type SyncResult = {
 
 let last: SyncResult | null = null;
 let running: Promise<SyncResult> | null = null;
+/** Read once: a name and an avatar do not change between syncs. */
+let profile: Profile | null = null;
 
 export function lastSync(): SyncResult | null {
   return last;
+}
+
+export function assignee(): Profile | null {
+  return profile;
 }
 
 /** One sync at a time; a second caller waits on the first. */
@@ -40,6 +51,11 @@ export function syncBoards(): Promise<SyncResult> {
         config.github.username,
         config.github.projects,
       );
+      // A missing profile only costs the screen a name, never the sync.
+      profile ??= await fetchProfile(config.github.token, config.github.username).catch((err) => {
+        console.warn('[sync] could not read the GitHub profile:', err.message);
+        return null;
+      });
       // Only after a full read: clearing what is missing from a partial one
       // would empty the plate on every GitHub hiccup.
       const { added, cleared } = await store.syncBoard(cards);

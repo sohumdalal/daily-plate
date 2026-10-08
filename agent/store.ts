@@ -8,6 +8,33 @@ const USER = 'default';
 
 export type Source = 'board' | 'mention' | 'reaction';
 
+/** Where a card is in its life. Empty for Slack items, which are not tickets. */
+export type TicketState =
+  | 'open'
+  | 'in_progress'
+  | 'branch'
+  | 'draft'
+  | 'in_review'
+  | 'changes'
+  | 'approved'
+  | 'merged'
+  | 'closed'
+  | 'not_planned';
+
+/** The PR or branch tackling a card, and how it was found. */
+export type WorkRef = {
+  kind: 'pr' | 'branch';
+  repo: string;
+  url: string;
+  number?: number;
+  title?: string;
+  branch?: string;
+  prState?: 'OPEN' | 'MERGED' | 'CLOSED';
+  isDraft?: boolean;
+  review?: string | null;
+  via: 'self' | 'linked' | 'branch-name' | 'mentioned';
+};
+
 export type Item = {
   id: number;
   source: Source;
@@ -21,6 +48,8 @@ export type Item = {
   status: string;
   /** Which boards the card is on, by title. */
   boards: string[];
+  state: TicketState | '';
+  work: WorkRef | null;
   doneAt: string | null;
   doneBy: 'you' | 'board' | null;
   addedAt: string;
@@ -36,13 +65,16 @@ type ItemRow = {
   author: string;
   status: string;
   boards: string[];
+  state: TicketState | '';
+  work: WorkRef | null;
   done_at: Date | null;
   done_by: 'you' | 'board' | null;
   added_at: Date;
 };
 
 const COLUMNS =
-  'id, source, external_id, title, url, context, author, status, boards, done_at, done_by, added_at';
+  'id, source, external_id, title, url, context, author, status, boards, state, work, ' +
+  'done_at, done_by, added_at';
 
 function toItem(row: ItemRow): Item {
   return {
@@ -55,6 +87,8 @@ function toItem(row: ItemRow): Item {
     author: row.author,
     status: row.status,
     boards: row.boards,
+    state: row.state,
+    work: row.work,
     doneAt: row.done_at?.toISOString() ?? null,
     doneBy: row.done_by,
     addedAt: row.added_at.toISOString(),
@@ -82,6 +116,8 @@ export type BoardCard = {
   status: string;
   boards: string[];
   done: boolean;
+  state: TicketState;
+  work: WorkRef | null;
 };
 
 /**
@@ -102,7 +138,9 @@ export async function syncBoard(cards: BoardCard[]): Promise<{ added: number; cl
         await tx`
           UPDATE items
              SET title = ${card.title}, url = ${card.url}, context = ${card.context},
-                 status = ${card.status}, boards = ${tx.json(card.boards)}, updated_at = now(),
+                 status = ${card.status}, boards = ${tx.json(card.boards)},
+                 state = ${card.state}, work = ${card.work ? tx.json(card.work) : null},
+                 updated_at = now(),
                  done_at = coalesce(done_at, now()),
                  done_by = coalesce(done_by, 'board')
            WHERE user_id = ${USER} AND source = 'board' AND external_id = ${card.externalId}
@@ -111,15 +149,19 @@ export async function syncBoard(cards: BoardCard[]): Promise<{ added: number; cl
       }
       // Open on the boards: back on the plate, unless you cleared it yourself.
       const [row] = await tx<{ inserted: boolean }[]>`
-        INSERT INTO items (user_id, source, external_id, title, url, context, status, boards)
+        INSERT INTO items (user_id, source, external_id, title, url, context, status, boards,
+                           state, work)
         VALUES (${USER}, 'board', ${card.externalId}, ${card.title}, ${card.url},
-                ${card.context}, ${card.status}, ${tx.json(card.boards)})
+                ${card.context}, ${card.status}, ${tx.json(card.boards)},
+                ${card.state}, ${card.work ? tx.json(card.work) : null})
         ON CONFLICT (user_id, source, external_id) DO UPDATE
            SET title = EXCLUDED.title,
                url = EXCLUDED.url,
                context = EXCLUDED.context,
                status = EXCLUDED.status,
                boards = EXCLUDED.boards,
+               state = EXCLUDED.state,
+               work = EXCLUDED.work,
                updated_at = now(),
                done_at = CASE WHEN items.done_by = 'you' THEN items.done_at END,
                done_by = CASE WHEN items.done_by = 'you' THEN 'you' END

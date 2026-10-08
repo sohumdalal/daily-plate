@@ -15,6 +15,30 @@ const COLUMN_ORDER = ['In progress', 'In review', 'Ready', 'On hold', 'Backlog']
 
 const SOURCE_LABEL = { mention: 'Mention', reaction: 'Reacted' };
 
+/** A card's lifecycle, as the pill shows it. Icons are Lucide's. */
+const STATE = {
+  open: { label: 'Open', icon: 'circle-dot', hint: 'Not started' },
+  in_progress: { label: 'In progress', icon: 'circle-dashed', hint: 'In progress, no branch or PR yet' },
+  branch: { label: 'Branch', icon: 'git-branch', hint: 'A branch exists, no PR yet' },
+  draft: { label: 'Draft PR', icon: 'git-pull-request-draft', hint: 'A draft PR is open' },
+  in_review: { label: 'In PR', icon: 'git-pull-request', hint: 'A PR is open, waiting on review' },
+  changes: { label: 'Changes requested', icon: 'circle-alert', hint: 'Review asked for changes' },
+  approved: { label: 'Approved', icon: 'badge-check', hint: 'The PR is approved and can merge' },
+  merged: { label: 'Merged', icon: 'git-merge', hint: 'The PR merged' },
+  closed: { label: 'Closed', icon: 'circle-check-big', hint: 'Closed' },
+  not_planned: { label: 'Not planned', icon: 'circle-slash', hint: 'Closed as not planned' },
+};
+
+/** How a PR or branch was tied to a card, for its tooltip. */
+const VIA = {
+  linked: 'Linked to this issue',
+  'branch-name': 'Its branch name carries this issue’s number',
+  mentioned: 'Mentions this issue',
+};
+
+/** Longest branch name shown before it is cut; the tooltip has all of it. */
+const MAX_BRANCH = 34;
+
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const MOVE_MS = 620;
 /** How long a tick and its strike-through play before the row moves. */
@@ -31,6 +55,8 @@ let view = readView();
 /** Set while a completion plays, so a poll cannot re-render under it. */
 let animating = 0;
 let first = true;
+/** Each card's state at the last render, so a change can announce itself. */
+const lastStates = new Map();
 
 function rank(status) {
   const i = COLUMN_ORDER.indexOf(status);
@@ -246,7 +272,12 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     meta.append(from);
   }
   if (item.source === 'board') {
-    meta.append(span('status', item.status || 'No status'), span('where', item.context));
+    if (item.state) meta.append(statePill(item));
+    // The pill says where a card is; the column only adds to it while the
+    // card has not started, as Backlog against Ready.
+    if (!item.state || item.state === 'open') meta.append(span('status', item.status || 'No status'));
+    meta.append(span('where', item.context));
+    if (item.work && item.work.via !== 'self') meta.append(workLink(item.work));
     if (!withSource && item.boards.length > 1) meta.append(span('', 'Both boards'));
   } else {
     meta.append(span('status', SOURCE_LABEL[item.source]), span('where', item.context || 'Slack'));
@@ -266,6 +297,40 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   body.append(meta, title);
   li.append(check, body);
   return li;
+}
+
+function statePill(item) {
+  const meta = STATE[item.state] ?? STATE.open;
+  const pill = span(`state state-${item.state}`, '');
+  pill.append(icon(meta.icon), span('', meta.label));
+  pill.title = meta.hint;
+
+  // A state that moved since the last render says so, once.
+  const was = lastStates.get(item.id);
+  if (was !== undefined && was !== item.state) pill.classList.add('changed');
+  lastStates.set(item.id, item.state);
+  return pill;
+}
+
+/** The PR or branch tackling a card, as a link. */
+function workLink(work) {
+  const link = document.createElement('a');
+  link.className = `work work-${work.via}`;
+  link.href = work.url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+
+  const isPr = work.kind === 'pr';
+  const name = isPr
+    ? `${work.via === 'mentioned' ? 'Mentioned in ' : ''}PR #${work.number}`
+    : work.branch.length > MAX_BRANCH
+      ? `${work.branch.slice(0, MAX_BRANCH - 1)}…`
+      : work.branch;
+  link.append(icon(isPr ? 'git-pull-request' : 'git-branch'), span('', name));
+
+  const detail = isPr ? `${work.title} (${work.repo}#${work.number})` : `${work.repo} · ${work.branch}`;
+  link.title = `${detail}\n${VIA[work.via] ?? ''}`;
+  return link;
 }
 
 /** Each header's last count, so a rebuilt header can still roll from it. */
@@ -476,8 +541,17 @@ function render() {
   first = false;
 }
 
-/** The toggle, the read time, and a failed read's reason. */
+/** The toggle, the read time, whose plate it is, and a failed read's reason. */
 function renderChrome() {
+  const me = data.assignee;
+  $('assignee').hidden = !me;
+  if (me) {
+    $('assignee').href = me.url;
+    $('assignee').title = `Cards assigned to @${me.login}`;
+    $('assignee-name').textContent = me.name;
+    if ($('assignee-avatar').src !== me.avatarUrl) $('assignee-avatar').src = me.avatarUrl;
+  }
+
   $('views').dataset.view = view;
   for (const button of $('views').querySelectorAll('button')) {
     button.setAttribute('aria-pressed', String(button.dataset.view === view));

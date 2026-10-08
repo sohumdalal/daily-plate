@@ -22,6 +22,7 @@
   --canvas: #ffffff;       /* canvas-light */
   --semantic-warning: #da291c; /* the accent; #f13a2c is 3.9:1 on white */
   --semantic-info: #2f7a99;    /* 4.8:1; #4c98b9 is 3.2:1 */
+  --semantic-success: #037d40; /* 5.2:1; #03904a is 4.1:1 */
   --focus: #181818;
 
   --xxxs: 4px;
@@ -238,6 +239,41 @@ body {
 
 .hero {
   padding-bottom: var(--lg);
+}
+
+.hero-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xxs) var(--xs);
+}
+
+.assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--xxs);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/* Square, like everything else here: the system has no round corners
+   outside its one badge pill. */
+.avatar {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+}
+
+.assignee-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.assignee:hover .assignee-name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .specs {
@@ -469,6 +505,123 @@ a.group-name:hover {
   --glyph: url('/icons/slack.svg');
 }
 
+.icon-circle-dot { --glyph: url('/icons/circle-dot.svg'); }
+.icon-circle-dashed { --glyph: url('/icons/circle-dashed.svg'); }
+.icon-git-branch { --glyph: url('/icons/git-branch.svg'); }
+.icon-git-pull-request-draft { --glyph: url('/icons/git-pull-request-draft.svg'); }
+.icon-git-pull-request { --glyph: url('/icons/git-pull-request.svg'); }
+.icon-circle-alert { --glyph: url('/icons/circle-alert.svg'); }
+.icon-badge-check { --glyph: url('/icons/badge-check.svg'); }
+.icon-git-merge { --glyph: url('/icons/git-merge.svg'); }
+.icon-circle-check-big { --glyph: url('/icons/circle-check-big.svg'); }
+.icon-circle-slash { --glyph: url('/icons/circle-slash.svg'); }
+
+/* ── Ticket state ─────────────────────────────────────────────────────── */
+
+/* The system's one pill shape, which it keeps for badges. White with a
+   hairline rather than a tint: every state colour clears AA on white, and
+   the documented tints are not in the system. */
+.state {
+  --c: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px 0 6px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  color: var(--c);
+  font-size: 10px;
+  letter-spacing: 0.9px;
+  white-space: nowrap;
+}
+
+.meta .state .icon {
+  width: 12px;
+  height: 12px;
+  color: inherit;
+}
+
+.state-in_progress,
+.state-branch {
+  --c: var(--ink);
+}
+
+.state-in_review {
+  --c: var(--semantic-info);
+}
+
+.state-changes {
+  --c: var(--semantic-warning);
+}
+
+.state-approved {
+  --c: var(--semantic-success);
+  border-color: currentColor;
+}
+
+/* The end of the road gets the only filled pill. */
+.state-merged {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--canvas);
+}
+
+/* In progress turns, slowly: work is happening, nothing is stuck. */
+.meta .state-in_progress .icon {
+  animation: turn 6s linear infinite;
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A state that moved since the last read pulses once, so a PR going green
+   is noticed rather than discovered. */
+.state.changed {
+  animation: changed 900ms var(--ease);
+}
+
+@keyframes changed {
+  0% {
+    transform: scale(0.85);
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: none;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+/* The PR or branch on the case. A mention is context, so it reads quieter. */
+.meta .work {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.meta .work:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.meta .work-mentioned {
+  color: var(--muted);
+}
+
+.meta .work .icon {
+  color: inherit;
+}
+
 /* In a row's meta line, the source leads at text size. */
 .meta .from {
   display: inline-flex;
@@ -590,7 +743,8 @@ a.group-name:hover {
 .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--xs);
+  align-items: center;
+  gap: var(--xxs) var(--xs);
   padding-bottom: var(--xxxs);
   font-size: 11px;
   font-weight: 600;
