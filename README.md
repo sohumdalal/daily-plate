@@ -86,8 +86,8 @@ another PR does not put #1377 in review. Closed, unmerged PRs are abandoned
 attempts and never chosen. The board read stays light; this lookup runs once
 per sync for your cards only.
 
-The card's header line also says whose plate it is: your GitHub name and
-avatar, read once from `GITHUB_USERNAME`'s profile.
+The date line also says whose plate it is ("Assigned to me · Sohum Dalal"),
+with the name read once from `GITHUB_USERNAME`'s GitHub profile.
 
 ## Slack
 

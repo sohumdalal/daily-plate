@@ -249,32 +249,6 @@ body {
   gap: var(--xxs) var(--xs);
 }
 
-.assignee {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--xxs);
-  color: var(--ink);
-  text-decoration: none;
-}
-
-/* Square, like everything else here: the system has no round corners
-   outside its one badge pill. */
-.avatar {
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-none);
-}
-
-.assignee-name {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.assignee:hover .assignee-name {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 
 .specs {
   display: grid;

@@ -545,12 +545,7 @@ function render() {
 function renderChrome() {
   const me = data.assignee;
   $('assignee').hidden = !me;
-  if (me) {
-    $('assignee').href = me.url;
-    $('assignee').title = `Cards assigned to @${me.login}`;
-    $('assignee-name').textContent = me.name;
-    if ($('assignee-avatar').src !== me.avatarUrl) $('assignee-avatar').src = me.avatarUrl;
-  }
+  if (me) $('assignee').textContent = `Assigned to me · ${me.name}`;
 
   $('views').dataset.view = view;
   for (const button of $('views').querySelectorAll('button')) {

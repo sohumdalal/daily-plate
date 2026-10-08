@@ -133,17 +133,12 @@ async function readPage(
 }
 
 /** Whose plate this is, as GitHub names them. */
-export type Profile = { login: string; name: string; avatarUrl: string; url: string };
+export type Profile = { login: string; name: string };
 
 export async function fetchProfile(token: string, username: string): Promise<Profile> {
   const { data } = await gh(token).users.getByUsername({ username });
-  return {
-    login: data.login,
-    // Not everyone sets a display name; the handle stands in.
-    name: data.name || data.login,
-    avatarUrl: data.avatar_url,
-    url: data.html_url,
-  };
+  // Not everyone sets a display name; the handle stands in.
+  return { login: data.login, name: data.name || data.login };
 }
 
 /** One board as the screen names and links it. */
