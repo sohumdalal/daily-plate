@@ -1,21 +1,26 @@
 /*
  * Daily Plate — Ferrari design system (see DESIGN.md), on its light bands:
  * canvas-light, body-on-light, hairline-on-light. Daily Wrap is the dark half
- * of the pair, so this one is light, with the same spacing, type and accent.
+ * of the pair, so this one is light, with the same spacing and type.
  *
- * Yellow on white is 1.3:1, so the tick on a cleared item gets an ink edge to
- * hold its shape. The wordmark rule stays bare, as in Daily Wrap. The blue and red are the system's hues taken one step darker, since
- * the documented values fail AA for an 11px label on white.
+ * The accent is the system's own Rosso Corsa, where Daily Wrap's is yellow:
+ * yellow on near-black there, red on white here. It appears twice, the
+ * wordmark rule and the tick on a cleared item, and at 4.9:1 on white it holds
+ * its shape without an edge. A warning shares that red; here a warning is
+ * one line of text, which no mark can be mistaken for.
+ *
+ * The info blue is the system's hue one step darker: #4c98b9 is 3.2:1 on
+ * white and fails AA for an 11px label.
  */
 
 :root {
-  --primary: #f6e500;
+  --primary: #da291c;      /* Rosso Corsa */
   --ink: #181818;          /* body-on-light */
   --body: #666666;         /* 5.7:1 on white; #969696 is 3:1 */
   --muted: #666666;
   --hairline: #d2d2d2;     /* hairline-on-light */
   --canvas: #ffffff;       /* canvas-light */
-  --semantic-warning: #da291c; /* 4.9:1; #f13a2c is 3.9:1 */
+  --semantic-warning: #da291c; /* the accent; #f13a2c is 3.9:1 on white */
   --semantic-info: #2f7a99;    /* 4.8:1; #4c98b9 is 3.2:1 */
   --focus: #181818;
 
@@ -93,8 +98,6 @@ body {
   text-transform: uppercase;
 }
 
-/* Daily Wrap's mark, unchanged. Faint on white, and left that way: an outline
-   turned it into a battery icon, and the wordmark beside it carries the name. */
 .wordmark .tick {
   width: 3px;
   height: 14px;
@@ -222,7 +225,7 @@ body {
 
 .done .check {
   background: var(--primary);
-  border-color: var(--ink);
+  border-color: var(--primary);
 }
 
 .meta {

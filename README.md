@@ -109,8 +109,9 @@ Wrap is the dark half, this is the light one. Same Inter, sharp corners,
 hairlines and spacing. The counts across the top use the system's `spec-cell`
 treatment.
 
-Yellow stays the shared accent and appears twice: the wordmark rule and the
-tick on a cleared item. On white it is 1.3:1, so the cleared tick carries an
-ink edge; the wordmark rule stays bare, as in Daily Wrap. The
-info blue and warning red are the system's hues one step darker, since the
-documented values fail AA for an 11px label on white.
+The accent is Rosso Corsa, the system's own red, where Daily Wrap's is
+yellow: yellow on near-black there, red on white here. It appears twice: the
+wordmark rule and the tick on a cleared item. Warnings share that red; here a
+warning is one line of text, which no mark can be mistaken for. The info blue
+is the system's hue one step darker, since the documented one fails AA for an
+11px label on white.
