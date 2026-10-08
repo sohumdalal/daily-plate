@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://astropods.com/schema/package.json
+spec: blueprint/v1
+name: "@sohumdalal/daily-plate"
+
+agent:
+  build:
+    context: .
+    dockerfile: Dockerfile
+  # Daily Plate serves its own single-screen UI. Declaring `interfaces` at all
+  # flips messaging to false, so both are spelled out.
+  interfaces:
+    frontend: true
+    # The Slack adapter rides on the messaging sidecar. It forwards the
+    # :knife_fork_plate: reaction and messages in observed channels.
+    messaging: true
+  healthcheck:
+    path: /healthz
+  inputs:
+    - name: GITHUB_USERNAME
+      datatype: string
+      default: "sohumdalal"
+      description: GitHub handle whose assigned cards make up the plate.
+    - name: GITHUB_PROJECTS
+      datatype: string
+      default: "astropods/1,astropods/4"
+      description: >-
+        Comma-separated `owner/number` GitHub Projects to read assigned cards
+        from. Defaults to Astro Kanban and Astro Kanban (AI). Needs a token
+        with `read:project`.
+    - name: SLACK_USER_ID
+      datatype: string
+      optional: true
+      description: >-
+        Your Slack member id (U…). A message in an observed channel that
+        mentions it lands on the plate, and only your own reactions count.
+        Without it, mention capture is off and anyone's reaction counts.
+    - name: TIMEZONE
+      datatype: string
+      default: "America/New_York"
+      description: IANA timezone that decides what "cleared today" means.
+
+integrations:
+  # → GITHUB_TOKEN
+  github:
+    provider: github
+
+knowledge:
+  daily-plate-db:
+    provider: postgres
+
+dev:
+  interfaces:
+    frontend:
+      port: 3003
+    messaging:
+      adapters: [slack]
+      slack:
+        # Local only, and a pre-fill for the deploy form: SlackConfig() exists
+        # on Dev alone. At deploy, set "Actionable Reactions" to
+        # knife_fork_plate and "Observe Channels" to the channel ids to watch
+        # for mentions, under the Slack toggle.
+        actionable_reactions: [knife_fork_plate]
+        observe_channel_ids: []
+  command: bun --watch run start

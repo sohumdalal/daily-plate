@@ -1,0 +1,52 @@
+# Slack app manifest for Daily Plate.
+#
+# Create the app at api.slack.com/apps with "From a manifest" and paste this.
+# Socket Mode means no public request URL.
+#
+# Scope notes:
+#   reactions:read     receive the :knife_fork_plate: at all
+#   channels:history   read reacted and observed messages, in public channels
+#   groups:history     the same, in private channels
+#   chat:write         post the "On your plate" reply to a reaction
+#   channels:read      resolve C0… to #its-real-name
+#   groups:read        the same, in private channels
+#   users:read         resolve a message author's U… id to a display name
+#
+# message.channels / message.groups are what carry mentions of you: the
+# adapter forwards top-level messages only in channels listed under "Observe
+# Channels" at deploy. Slack delivers events only for channels the app is a
+# member of, so invite it where the asks happen: /invite @Daily Plate
+display_information:
+  name: Daily Plate
+  description: "Puts Slack messages aimed at you on your daily plate."
+  background_color: "#181818"
+features:
+  bot_user:
+    display_name: Daily Plate
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - reactions:read
+      - reactions:write
+      - channels:history
+      - groups:history
+      - chat:write
+      - im:history
+      - app_mentions:read
+      - channels:read
+      - groups:read
+      - users:read
+settings:
+  event_subscriptions:
+    bot_events:
+      - reaction_added
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+  interactivity:
+    is_enabled: true
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false

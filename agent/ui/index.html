@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Daily Plate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <nav class="topnav">
+      <span class="wordmark"><span class="tick" aria-hidden="true"></span>Daily Plate</span>
+      <button class="sync" id="sync" type="button" title="Re-read the boards (R)">Refresh</button>
+    </nav>
+
+    <main class="shell">
+      <header class="hero">
+        <p class="label" id="date">—</p>
+        <div class="specs">
+          <div class="spec-cell"><span class="spec-value" id="n-open">—</span><span class="label">On the plate</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-board">—</span><span class="label">From the boards</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-slack">—</span><span class="label">From Slack</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-done">—</span><span class="label">Cleared today</span></div>
+        </div>
+        <p class="note" id="provenance"></p>
+      </header>
+
+      <section class="group" id="board-group">
+        <h2 class="label">Boards</h2>
+        <ul class="items" id="board-list"></ul>
+        <p class="empty" id="board-empty" hidden>Nothing assigned to you is open on the boards.</p>
+      </section>
+
+      <section class="group" id="slack-group">
+        <h2 class="label">Slack</h2>
+        <ul class="items" id="slack-list"></ul>
+        <p class="empty" id="slack-empty" hidden>
+          Nothing from Slack. React <span class="kbd">:knife_fork_plate:</span> to a message to put it here.
+        </p>
+      </section>
+
+      <section class="group" id="done-group" hidden>
+        <h2 class="label">Cleared today</h2>
+        <ul class="items done" id="done-list"></ul>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

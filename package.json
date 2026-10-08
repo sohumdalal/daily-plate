@@ -1,0 +1,24 @@
+{
+  "name": "daily-plate",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Daily Plate — your assigned Kanban cards and every Slack ask aimed at you, on one plate.",
+  "scripts": {
+    "dev": "bun --watch scripts/dev.ts",
+    "start": "bun agent/index.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit"
+  },
+  "main": "./agent/index.ts",
+  "dependencies": {
+    "@astropods/messaging": "^0.2.0",
+    "@octokit/rest": "^21.0.2",
+    "hono": "^4.7.0",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14",
+    "typescript": "^5.9.3"
+  }
+}

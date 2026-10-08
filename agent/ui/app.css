@@ -1,0 +1,299 @@
+/*
+ * Daily Plate — Ferrari design system (see DESIGN.md), with Daily Wrap's
+ * tokens so the two read as one family. Yellow is the accent, as in Daily
+ * Wrap, and appears twice: the wordmark rule and the tick on a cleared item.
+ * Red is left to warnings.
+ */
+
+:root {
+  --primary: #f6e500;
+  --primary-active: #d6c800;
+  --ink: #ffffff;
+  --body: #969696;
+  --muted: #666666;
+  --muted-soft: #8f8f8f;
+  --hairline: #303030;
+  --canvas: #181818;
+  --canvas-elevated: #303030;
+  --on-primary: #181818;
+  --semantic-warning: #f13a2c;
+  --semantic-info: #4c98b9;
+  --focus: #ffffff;
+
+  --xxxs: 4px;
+  --xxs: 8px;
+  --xs: 16px;
+  --sm: 24px;
+  --md: 32px;
+  --lg: 48px;
+  --xl: 64px;
+  --super: 128px;
+
+  --r-none: 0px;
+  --r-full: 9999px;
+
+  --sans: 'Inter', -apple-system, system-ui, sans-serif;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--canvas);
+}
+
+body {
+  margin: 0;
+  color: var(--body);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Chrome ─────────────────────────────────────────────────────────────── */
+
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 var(--lg);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--xxs);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+
+.wordmark .tick {
+  width: 3px;
+  height: 14px;
+  background: var(--primary);
+}
+
+.sync {
+  height: 32px;
+  padding: 0 var(--xs);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  color: var(--body);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+
+.sync:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.sync:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* ── The plate ──────────────────────────────────────────────────────────── */
+
+.shell {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: var(--xl) var(--lg) var(--super);
+}
+
+.hero {
+  padding-bottom: var(--lg);
+}
+
+.specs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: var(--xs);
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.spec-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xxxs);
+  padding: var(--sm) var(--xs) var(--sm) 0;
+}
+
+.spec-cell + .spec-cell {
+  padding-left: var(--xs);
+  border-left: 1px solid var(--hairline);
+}
+
+.spec-value {
+  color: var(--ink);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin: 0;
+  padding-top: var(--xs);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.note.warn {
+  color: var(--semantic-warning);
+}
+
+.group {
+  padding-bottom: var(--lg);
+}
+
+.group > .label {
+  padding-bottom: var(--xs);
+}
+
+.items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: var(--xs);
+  padding: var(--xs) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.item:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.check {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--muted);
+  border-radius: var(--r-none);
+  cursor: pointer;
+}
+
+.check:hover {
+  border-color: var(--ink);
+}
+
+.done .check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--xs);
+  padding-bottom: var(--xxxs);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.meta .where {
+  color: var(--semantic-info);
+}
+
+.meta .status {
+  color: var(--ink);
+}
+
+.title {
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.5;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.title:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.done .title {
+  color: var(--muted-soft);
+  text-decoration: line-through;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--xs) 0;
+  border-top: 1px solid var(--hairline);
+  color: var(--muted);
+}
+
+.kbd {
+  color: var(--body);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .topnav {
+    padding: 0 var(--xs);
+  }
+
+  .shell {
+    padding: var(--md) var(--xs) var(--xl);
+  }
+
+  .specs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .spec-cell:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .spec-cell:nth-child(4) {
+    border-top: 1px solid var(--hairline);
+  }
+}

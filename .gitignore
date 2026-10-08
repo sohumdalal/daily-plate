@@ -1,0 +1,10 @@
+node_modules/
+scratch/
+.env
+.env.local
+.DS_Store
+*.log
+.cache/
+
+# shared design system lives one level up at apps/DESIGN.md
+DESIGN.md

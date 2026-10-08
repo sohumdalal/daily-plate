@@ -1,0 +1,14 @@
+node_modules
+.git
+.github
+.claude
+scratch
+data
+.env
+.env.local
+.DS_Store
+*.log
+DESIGN.md
+scripts
+README.md
+AGENT.md
