@@ -110,6 +110,7 @@ hairlines and spacing. The counts across the top use the system's `spec-cell`
 treatment.
 
 Yellow stays the shared accent and appears twice: the wordmark rule and the
-tick on a cleared item. On white it is 1.3:1, so both carry an ink edge. The
+tick on a cleared item. On white it is 1.3:1, so the cleared tick carries an
+ink edge; the wordmark rule stays bare, as in Daily Wrap. The
 info blue and warning red are the system's hues one step darker, since the
 documented values fail AA for an 11px label on white.

@@ -3,9 +3,8 @@
  * canvas-light, body-on-light, hairline-on-light. Daily Wrap is the dark half
  * of the pair, so this one is light, with the same spacing, type and accent.
  *
- * Yellow on white is 1.3:1, too faint to carry a shape on its own, so each
- * yellow mark gets an ink edge: the wordmark rule and the tick on a cleared
- * item. The blue and red are the system's hues taken one step darker, since
+ * Yellow on white is 1.3:1, so the tick on a cleared item gets an ink edge to
+ * hold its shape. The wordmark rule stays bare, as in Daily Wrap. The blue and red are the system's hues taken one step darker, since
  * the documented values fail AA for an 11px label on white.
  */
 
@@ -94,11 +93,12 @@ body {
   text-transform: uppercase;
 }
 
+/* Daily Wrap's mark, unchanged. Faint on white, and left that way: an outline
+   turned it into a battery icon, and the wordmark beside it carries the name. */
 .wordmark .tick {
-  width: 5px;
+  width: 3px;
   height: 14px;
   background: var(--primary);
-  border: 1px solid var(--ink);
 }
 
 .sync {
