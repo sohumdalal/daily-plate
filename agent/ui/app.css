@@ -895,7 +895,8 @@ a.state:hover span {
   color: inherit;
 }
 
-/* Who commented, shown at once on hover or focus. */
+/* Who commented, shown at once on hover or focus: the canvas, a hairline,
+   and the system's one soft drop, so it reads as a hovered card. */
 .comments {
   position: relative;
 }
@@ -903,21 +904,35 @@ a.state:hover span {
 .comments .tip {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
+  left: -1px;
   z-index: 5;
-  display: none;
-  min-width: 140px;
-  padding: var(--xxs) 10px;
-  background: var(--ink);
-  color: var(--canvas);
+  display: grid;
+  gap: 2px;
+  padding: 6px 10px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  color: var(--ink);
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition:
+    opacity 140ms var(--ease),
+    transform 140ms var(--ease),
+    visibility 0s 140ms;
 }
 
 .comments:hover .tip,
 .comments:focus-visible .tip {
-  display: block;
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 140ms var(--ease),
+    transform 140ms var(--ease);
 }
 
 .tip-line {
@@ -927,6 +942,7 @@ a.state:hover span {
 }
 
 .tip-count {
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
