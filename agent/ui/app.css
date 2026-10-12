@@ -248,6 +248,23 @@ body {
   padding-bottom: var(--lg);
 }
 
+#assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--xxs);
+}
+
+#assignee[hidden] {
+  display: none;
+}
+
+.assignee-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-full);
+  background: var(--surface-soft);
+}
+
 .hero-top {
   display: flex;
   flex-wrap: wrap;
@@ -927,8 +944,16 @@ a.state:hover span {
     visibility 0s 140ms;
 }
 
+/* Bridges the gap to the chip, so the pointer can cross into the bubble. */
+.comments .tip::before {
+  content: '';
+  position: absolute;
+  inset: auto 0 -6px 0;
+  height: 6px;
+}
+
 .comments:hover .tip,
-.comments:focus-visible .tip {
+.comments:focus-within .tip {
   opacity: 1;
   visibility: visible;
   transform: none;
@@ -941,6 +966,13 @@ a.state:hover span {
   display: flex;
   align-items: center;
   gap: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tip-line:hover .tip-login {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .tip-avatar {

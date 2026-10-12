@@ -503,6 +503,16 @@ function statePill(item, pr = null) {
   return pill;
 }
 
+/** A GitHub user's avatar, from the address GitHub serves it at for any login. */
+function avatar(login, className) {
+  const img = document.createElement('img');
+  img.className = className;
+  img.src = `https://github.com/${encodeURIComponent(login)}.png?size=40`;
+  img.alt = '';
+  img.loading = 'lazy';
+  return img;
+}
+
 /** How many comments a PR has, and on hover, who left them. */
 function commentChip(comments) {
   const total = comments.reduce((sum, c) => sum + c.count, 0);
@@ -513,13 +523,12 @@ function commentChip(comments) {
   const tip = span('tip', '');
   tip.setAttribute('role', 'tooltip');
   for (const c of comments) {
-    const line = span('tip-line', '');
-    const avatar = document.createElement('img');
-    avatar.className = 'tip-avatar';
-    avatar.src = `https://github.com/${encodeURIComponent(c.login)}.png?size=40`;
-    avatar.alt = '';
-    avatar.loading = 'lazy';
-    line.append(avatar, span('', c.login), span('tip-count', String(c.count)));
+    const line = document.createElement('a');
+    line.className = 'tip-line';
+    line.href = `https://github.com/${encodeURIComponent(c.login)}`;
+    line.target = '_blank';
+    line.rel = 'noopener';
+    line.append(avatar(c.login, 'tip-avatar'), span('tip-login', c.login), span('tip-count', String(c.count)));
     tip.append(line);
   }
   chip.append(icon('message-square'), span('', String(total)), tip);
@@ -901,7 +910,7 @@ function render() {
 function renderChrome() {
   const me = data.assignee;
   $('assignee').hidden = !me;
-  if (me) $('assignee').textContent = `Assigned to me · ${me.name}`;
+  if (me) $('assignee').replaceChildren(avatar(me.login, 'assignee-avatar'), span('', `Assigned to me · ${me.name}`));
 
   $('views').dataset.view = view;
   for (const button of $('views').querySelectorAll('button')) {
