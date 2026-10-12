@@ -514,7 +514,12 @@ function commentChip(comments) {
   tip.setAttribute('role', 'tooltip');
   for (const c of comments) {
     const line = span('tip-line', '');
-    line.append(span('', c.login), span('tip-count', String(c.count)));
+    const avatar = document.createElement('img');
+    avatar.className = 'tip-avatar';
+    avatar.src = `https://github.com/${encodeURIComponent(c.login)}.png?size=40`;
+    avatar.alt = '';
+    avatar.loading = 'lazy';
+    line.append(avatar, span('', c.login), span('tip-count', String(c.count)));
     tip.append(line);
   }
   chip.append(icon('message-square'), span('', String(total)), tip);
