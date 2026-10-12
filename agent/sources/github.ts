@@ -1,9 +1,9 @@
 /**
  * Reads the cards assigned to you off one or more GitHub Projects (v2).
  *
- * A board is small — the two Astro Kanbans hold a few hundred cards between
- * them — so each is read whole and filtered here. The GraphQL `items` filter
- * would save a few pages but is not on every Projects API version.
+ * A board is small — Astro Kanban holds a few hundred cards — so each is
+ * read whole and filtered here. The GraphQL `items` filter would save a few
+ * pages but is not on every Projects API version.
  *
  * Needs a token with `read:project`. A token without it gets a GraphQL error
  * naming the scope, which is passed through to the screen as-is.
@@ -12,7 +12,7 @@
 import { Octokit } from '@octokit/rest';
 import type { ProjectRef } from '../config.ts';
 import type { BoardCard } from '../store.ts';
-import { deriveState, prRef, resolveWork } from './work.ts';
+import { DISCUSSION_FIELDS, deriveState, prRef, resolveWork } from './work.ts';
 
 const PAGE = 100;
 const MAX_PAGES = 20;
@@ -83,7 +83,7 @@ const ITEMS = `
           assignees(first: 10) { nodes { login } }
         }
         ... on PullRequest {
-          number title url state isDraft reviewDecision headRefName
+          number title url state isDraft reviewDecision headRefName ${DISCUSSION_FIELDS}
           repository { nameWithOwner }
           assignees(first: 10) { nodes { login } }
         }

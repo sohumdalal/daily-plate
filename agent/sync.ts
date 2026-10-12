@@ -81,7 +81,7 @@ export function syncBoards(): Promise<SyncResult> {
         at,
         ok: true,
         cards: cards.length,
-        pulls: pulls.length,
+        pulls: pulls.filter((p) => !p.done).length,
         issues: issues.length,
         added,
         cleared,

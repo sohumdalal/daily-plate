@@ -28,7 +28,26 @@ type Pr = {
   reviewDecision: string | null;
   headRefName: string;
   repository: { nameWithOwner: string };
+} & Partial<Discussion>;
+
+type Author = { login: string; __typename: string } | null;
+
+/** Who has said what on a PR: the conversation, and the review threads. */
+type Discussion = {
+  author: Author;
+  comments: { nodes: { author: Author }[] };
+  reviewThreads: { nodes: { comments: { nodes: { author: Author }[] } }[] };
 };
+
+/**
+ * The comments on a PR, for the PRs that are your own rows. Kept off
+ * `PR_FIELDS`, which every linked and mentioned PR also asks for.
+ */
+export const DISCUSSION_FIELDS = `
+  author { login __typename }
+  comments(last: 30) { nodes { author { login __typename } } }
+  reviewThreads(last: 20) { nodes { comments(first: 10) { nodes { author { login __typename } } } } }
+`;
 
 const PR_FIELDS = `
   number title url state isDraft reviewDecision headRefName
@@ -72,6 +91,24 @@ type Candidate = { ref: WorkRef; rank: number };
 
 const VIA_RANK: Record<WorkRef['via'], number> = { self: 0, linked: 1, 'branch-name': 2, mentioned: 3 };
 
+/**
+ * People who commented, and how many times each, most first. Bots post on
+ * every PR and the author answers their own, so neither counts.
+ */
+function commenters(pr: Discussion): WorkRef['comments'] {
+  const authors = [
+    ...pr.comments.nodes,
+    ...pr.reviewThreads.nodes.flatMap((t) => t.comments.nodes),
+  ].map((c) => c.author);
+  const by = new Map<string, number>();
+  for (const a of authors) {
+    if (!a || a.__typename === 'Bot' || a.login === pr.author?.login) continue;
+    by.set(a.login, (by.get(a.login) ?? 0) + 1);
+  }
+  if (!by.size) return undefined;
+  return [...by].sort((a, b) => b[1] - a[1]).map(([login, count]) => ({ login, count }));
+}
+
 /** Approved first: of two open PRs, the one nearest to merging is the news. */
 const REVIEW_RANK: Record<string, number> = { APPROVED: 0, CHANGES_REQUESTED: 1, REVIEW_REQUIRED: 2 };
 
@@ -90,6 +127,7 @@ export function prRef(pr: Pr, via: WorkRef['via']): WorkRef {
     prState: pr.state,
     isDraft: pr.isDraft,
     review: pr.reviewDecision,
+    comments: pr.comments ? commenters(pr as Discussion) : undefined,
     via,
   };
 }

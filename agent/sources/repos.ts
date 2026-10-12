@@ -9,7 +9,7 @@
 
 import type { Octokit } from '@octokit/rest';
 import type { BoardCard } from '../store.ts';
-import { deriveState, prRef, resolveWork } from './work.ts';
+import { DISCUSSION_FIELDS, deriveState, prRef, resolveWork } from './work.ts';
 
 /** Search stops at 1000 results; nobody has that many open. */
 const PAGE = 100;
@@ -43,7 +43,7 @@ const SEARCH = `
       nodes {
         __typename
         ... on PullRequest {
-          number title url state isDraft reviewDecision headRefName
+          number title url state isDraft reviewDecision headRefName ${DISCUSSION_FIELDS}
           repository { nameWithOwner }
         }
         ... on Issue {
@@ -82,8 +82,8 @@ function card(hit: Hit): Omit<BoardCard, 'state' | 'work'> {
 }
 
 /**
- * Open PRs `username` wrote and open issues assigned to them, across every
- * repo `owners` hold. `skip` is what the boards already show, by URL, so
+ * Open PRs `username` wrote, the ones that closed lately, and open issues
+ * assigned to them, across every repo `owners` hold. `skip` is what the boards already show, by URL, so
  * nothing is on the plate twice.
  */
 export async function fetchRepoWork(
@@ -93,13 +93,29 @@ export async function fetchRepoWork(
   skip: Set<string>,
 ): Promise<{ pulls: BoardCard[]; issues: BoardCard[] }> {
   if (!owners.length) return { pulls: [], issues: [] };
-  const scope = `${owners.map((o) => `user:${o}`).join(' ')} is:open archived:false`;
+  const repos = `${owners.map((o) => `user:${o}`).join(' ')} archived:false`;
+  const scope = `${repos} is:open`;
 
-  const pullHits = await search(gh, `${scope} is:pr author:${username}`);
+  // A PR that merges or closes drops out of the open search, and would be
+  // cleared still reading Approved. The recently closed ones are read too, so
+  // a cleared row says how it ended. Two days covers any timezone's today.
+  const since = new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10);
+  const pullHits = [
+    ...(await search(gh, `${scope} is:pr author:${username}`)),
+    ...(await search(gh, `${repos} is:pr is:closed closed:>=${since} author:${username}`)),
+  ];
   const pulls = pullHits.flatMap((hit): BoardCard[] => {
     if (hit.__typename !== 'PullRequest' || skip.has(hit.url)) return [];
     const work = prRef(hit, 'self');
-    return [{ ...card(hit), state: deriveState({ column: '', closed: false, notPlanned: false, work }), work }];
+    const closed = hit.state !== 'OPEN';
+    return [
+      {
+        ...card(hit),
+        done: closed,
+        state: deriveState({ column: '', closed, notPlanned: false, work }),
+        work,
+      },
+    ];
   });
 
   const issueHits = (await search(gh, `${scope} is:issue assignee:${username}`)).filter(

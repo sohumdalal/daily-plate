@@ -8,7 +8,7 @@ import { describeTarget, targetIsLocal } from './db/client.ts';
 
 export type ProjectRef = { owner: string; number: number };
 
-/** `astropods/1,astropods/4` → two refs. Anything malformed is dropped loudly. */
+/** `astropods/1,astropods/2` → two refs. Anything malformed is dropped loudly. */
 function parseProjects(raw: string): ProjectRef[] {
   const out: ProjectRef[] = [];
   for (const part of raw.split(',').map((s) => s.trim()).filter(Boolean)) {
@@ -33,7 +33,7 @@ export const config = {
   github: {
     token: process.env.GITHUB_TOKEN ?? '',
     username: process.env.GITHUB_USERNAME ?? '',
-    projects: parseProjects(process.env.GITHUB_PROJECTS ?? 'astropods/1,astropods/4'),
+    projects: parseProjects(process.env.GITHUB_PROJECTS ?? 'astropods/1'),
     /** Owners whose every repo is searched for your open PRs and issues. */
     orgs: (process.env.GITHUB_ORGS ?? 'astropods').split(',').map((s) => s.trim()).filter(Boolean),
   },

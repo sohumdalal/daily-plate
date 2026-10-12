@@ -47,7 +47,7 @@ reaction.
 |---|---|---|
 | `GITHUB_TOKEN` | — | `repo` + `read:project` (from `integrations.github`) |
 | `GITHUB_USERNAME` | `sohumdalal` | Whose assigned cards to read |
-| `GITHUB_PROJECTS` | `astropods/1,astropods/4` | Boards, as `owner/number` |
+| `GITHUB_PROJECTS` | `astropods/1` | Boards, as `owner/number` |
 | `GITHUB_ORGS` | `astropods` | Owners whose repos are searched for your PRs and issues |
 | `SLACK_USER_ID` | — | Your Slack member id; turns on mention capture |
 | `TIMEZONE` | `America/New_York` | What "cleared today" means |

@@ -2,7 +2,8 @@
  * The whole API.
  *
  *   GET   /healthz
- *   GET   /api/plate        today's plate, readiness, and the last board sync
+ *   GET   /api/plate        today's plate, what was cleared before it, readiness,
+ *                           and the last board sync
  *   POST  /api/sync         re-read GitHub now
  *   PATCH /api/items/:id    { done: boolean } — clear an item, or put it back
  */
@@ -26,6 +27,7 @@ async function plateBody() {
     sync: lastSync(),
     assignee: assignee(),
     items: await store.plate(today, config.timezone),
+    history: await store.history(today, config.timezone),
   };
 }
 

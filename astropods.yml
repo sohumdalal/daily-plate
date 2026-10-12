@@ -22,10 +22,10 @@ agent:
       description: GitHub handle whose assigned cards make up the plate.
     - name: GITHUB_PROJECTS
       datatype: string
-      default: "astropods/1,astropods/4"
+      default: "astropods/1"
       description: >-
         Comma-separated `owner/number` GitHub Projects to read assigned cards
-        from. Defaults to Astro Kanban and Astro Kanban (AI). Needs a token
+        from. Defaults to Astro Kanban. Needs a token
         with `read:project`.
     - name: GITHUB_ORGS
       datatype: string

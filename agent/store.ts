@@ -35,6 +35,8 @@ export type WorkRef = {
   prState?: 'OPEN' | 'MERGED' | 'CLOSED';
   isDraft?: boolean;
   review?: string | null;
+  /** Who commented on the PR, by person. Only for a row that is the PR. */
+  comments?: { login: string; count: number }[];
   via: 'self' | 'linked' | 'branch-name' | 'mentioned';
 };
 
@@ -107,6 +109,20 @@ export async function plate(today: string, timezone: string): Promise<Item[]> {
      WHERE user_id = ${USER}
        AND (done_at IS NULL OR (done_at AT TIME ZONE ${timezone})::date = ${today}::date)
      ORDER BY done_at IS NOT NULL, added_at DESC
+  `;
+  return rows.map(toItem);
+}
+
+/** Everything cleared before today, newest first, for All activity. */
+export async function history(today: string, timezone: string): Promise<Item[]> {
+  const sql = db();
+  const rows = await sql<ItemRow[]>`
+    SELECT ${sql.unsafe(COLUMNS)}
+      FROM items
+     WHERE user_id = ${USER}
+       AND done_at IS NOT NULL
+       AND (done_at AT TIME ZONE ${timezone})::date < ${today}::date
+     ORDER BY done_at DESC
   `;
   return rows.map(toItem);
 }

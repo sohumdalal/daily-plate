@@ -23,6 +23,9 @@
   --semantic-warning: #da291c; /* the accent; #f13a2c is 3.9:1 on white */
   --semantic-info: #2f7a99;    /* 4.8:1; #4c98b9 is 3.2:1 */
   --semantic-success: #037d40; /* 5.2:1; #03904a is 4.1:1 */
+  --board: #bc4c00;            /* GitHub's orange; 5:1 on white */
+  --pr: #1a7f37;               /* GitHub's open-PR green; 5.1:1 on white */
+  --merged: #8250df;           /* GitHub's merged purple; 5:1 under white */
   --focus: #181818;
 
   --xxxs: 4px;
@@ -83,8 +86,12 @@ body {
 
 /* ── Chrome ─────────────────────────────────────────────────────────────── */
 
+/* The nav stays at the top as the plate scrolls under it. */
 .topnav {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--canvas);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -323,6 +330,103 @@ body:not(.ready) .shell {
   }
 }
 
+/* ── Filters: one row per dimension, chips drawn like the Refresh button ── */
+
+.filters {
+  display: grid;
+  gap: var(--xxs);
+  padding-top: var(--xs);
+}
+
+.filters:empty {
+  display: none;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: start;
+  gap: var(--xs);
+}
+
+.filter-label {
+  line-height: 28px;
+}
+
+/* Repo and State rise in under the Section row when Pull requests is picked. */
+.filter-row-enter {
+  animation: rise 420ms var(--ease) backwards;
+}
+
+.filter-row-enter + .filter-row-enter {
+  animation-delay: 60ms;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--xxs);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--xxs);
+  height: 28px;
+  padding: 0 10px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  color: var(--body);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  transition: color 200ms var(--ease), background 200ms var(--ease), border-color 200ms var(--ease);
+}
+
+.chip:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--canvas);
+}
+
+.chip:disabled {
+  color: var(--hairline);
+  cursor: default;
+}
+
+.chip-count {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.filter-clear {
+  justify-self: start;
+  margin-left: calc(72px + var(--xs));
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.filter-clear:hover {
+  color: var(--ink);
+}
+
 .note {
   margin: 0;
   padding-top: var(--xs);
@@ -489,6 +593,7 @@ a.group-name:hover {
 .icon-git-merge { --glyph: url('/icons/git-merge.svg'); }
 .icon-circle-check-big { --glyph: url('/icons/circle-check-big.svg'); }
 .icon-circle-slash { --glyph: url('/icons/circle-slash.svg'); }
+.icon-message-square { --glyph: url('/icons/message-square.svg'); }
 
 /* ── Ticket state ─────────────────────────────────────────────────────── */
 
@@ -509,6 +614,15 @@ a.group-name:hover {
   font-size: 10px;
   letter-spacing: 0.9px;
   white-space: nowrap;
+}
+
+a.state {
+  text-decoration: none;
+}
+
+a.state:hover span {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .meta .state .icon {
@@ -535,10 +649,10 @@ a.group-name:hover {
   border-color: currentColor;
 }
 
-/* The end of the road gets the only filled pill. */
+/* The end of the road gets the only filled pill, in GitHub's purple. */
 .state-merged {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--merged);
+  border-color: var(--merged);
   color: var(--canvas);
 }
 
@@ -694,8 +808,8 @@ a.group-name:hover {
 }
 
 .done .check {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .done .check path {
@@ -731,6 +845,15 @@ a.group-name:hover {
   color: var(--semantic-info);
 }
 
+/* A board card's repo and number read apart from a PR's. */
+.meta .where-board {
+  color: var(--board);
+}
+
+.meta .where-pr {
+  color: var(--pr);
+}
+
 .meta .status {
   color: var(--ink);
 }
@@ -747,6 +870,28 @@ a.group-name:hover {
   transition:
     background-size 380ms var(--ease),
     color 380ms var(--ease);
+}
+
+/* Comments on a PR, beside its title: the state pill's shape, quieter. */
+.comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 7px 0 6px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-full);
+  color: var(--ink);
+  font-size: 11px;
+  vertical-align: 2px;
+  cursor: default;
+}
+
+.comments .icon {
+  width: 12px;
+  height: 12px;
+  color: inherit;
 }
 
 a.title:hover {
@@ -790,6 +935,19 @@ a.title:hover {
 
   .specs {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filter-row {
+    grid-template-columns: 1fr;
+    gap: var(--xxxs);
+  }
+
+  .filter-label {
+    line-height: 1.4;
+  }
+
+  .filter-clear {
+    margin-left: 0;
   }
 
   .spec-cell:nth-child(3) {

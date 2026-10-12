@@ -17,8 +17,8 @@ An Astropods agent that keeps one list of what is on your plate today.
 
 Three sources feed it:
 
-- **The boards.** Every card assigned to you on Astro Kanban and Astro Kanban
-  (AI), read through GitHub Projects every ten minutes. A card moved to Done,
+- **The boards.** Every card assigned to you on Astro Kanban, read through
+  GitHub Projects every ten minutes. A card moved to Done,
   closed, or unassigned from you leaves the plate on its own.
 - **Your PRs and issues.** Every open PR you opened, and every open issue
   assigned to you, across every repo in `GITHUB_ORGS` (`astropods` by
@@ -48,10 +48,21 @@ remembered in this browser.
   newest first, then the rest of the boards' queue, then issues off the
   boards. Each row leads with its source.
 
+## Filters
+
+Under the counts, a Section row (a board, Pull requests, Issues, Slack) shows
+one section at a time. One section is always on; click another to switch.
+Under Pull requests, a Repo row (`astropods/messaging`) and a State row (In PR,
+Approved…) narrow the list. Click a chip to show only its rows, and click it
+again to turn it off. Each chip counts what it would leave with the other
+filters as they are, and a chip that would leave nothing is greyed out. `Esc`
+or "Clear filters" turns off Repo and State. The counts across the top stay
+whole, and the filters are remembered in this browser.
+
 ## The boards
 
-`GITHUB_PROJECTS` lists `owner/number` pairs, `astropods/1,astropods/4` by
-default. Each board is read whole and filtered to cards assigned to
+`GITHUB_PROJECTS` lists `owner/number` pairs, `astropods/1` (Astro Kanban)
+by default. Each board is read whole and filtered to cards assigned to
 `GITHUB_USERNAME`. Archived cards are skipped. A card on both boards appears
 once, and it is done only when both boards say Done.
 
@@ -78,8 +89,10 @@ and the PR or branch tackling it:
 | Merged | The PR merged |
 | Closed / Not planned | The issue closed without a merged PR |
 
-The PR or branch shows beside the card, linked. `sources/work.ts` finds it
-from three kinds of evidence, strongest first:
+A PR the state comes from is named in the pill, linked: In PR #3216. A
+branch, or a PR that only mentions the card, shows beside it instead.
+`sources/work.ts` finds the PR or branch from three kinds of evidence,
+strongest first:
 
 1. **Linked**: a PR set to close the issue, or a branch made from its
    Development sidebar

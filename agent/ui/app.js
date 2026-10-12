@@ -53,11 +53,32 @@ const MARK_MS = 360;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const VIEW_KEY = 'daily-plate:view';
+const FILTER_KEY = 'daily-plate:filters';
+
+/** The section whose rows the Repo and State filters narrow. */
+const PR_SECTION = 'Pull requests';
+
+/** The section that holds every row, open and cleared, under its own section's title. */
+const ALL_SECTION = 'All';
+
+/**
+ * The filter rows, in the order they are drawn. Section is always on, one at a
+ * time; Repo and State show only under Pull requests.
+ */
+const FILTER_DIMS = [
+  { key: 'section', label: 'Section' },
+  { key: 'repo', label: 'Repo', under: PR_SECTION },
+  { key: 'state', label: 'State', under: PR_SECTION },
+];
 
 let data = null;
 let busy = false;
 /** 'split' (a section per source) or 'all' (one list). Remembered per browser. */
 let view = readView();
+/** One section, and at most one repo and state, as { section, repo, state }. Remembered per browser. */
+let filters = readFilters();
+/** Set when a section switch brings in its Repo and State rows, so they rise in once. */
+let revealRows = false;
 /** Set while a completion plays, so a poll cannot re-render under it. */
 let animating = 0;
 let first = true;
@@ -238,6 +259,152 @@ function readView() {
   }
 }
 
+function readFilters() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FILTER_KEY) ?? '{}');
+    return saved && typeof saved === 'object' ? saved : {};
+  } catch {
+    return {};
+  }
+}
+
+/** What a row is, along each filter dimension. A card on two boards is in two sections. */
+function facets(item) {
+  const fromGitHub = GITHUB_SOURCES.has(item.source);
+  return {
+    repo: fromGitHub && item.context.includes('#') ? [item.context.split('#')[0]] : [],
+    section: [ALL_SECTION, ...(SECTION_OF[item.source]?.(item) ?? ['Slack'])],
+    state: item.state ? [item.state] : [],
+  };
+}
+
+const SECTION_OF = {
+  board: (item) => item.boards,
+  pr: () => ['Pull requests'],
+  issue: () => ['Issues'],
+};
+
+/** The filter rows that apply to the section that is on. */
+function liveDims() {
+  return FILTER_DIMS.filter(({ under }) => !under || under === filters.section);
+}
+
+/** Whether a row passes every filter that is on, leaving out `skip`. */
+function passes(item, skip) {
+  const of = facets(item);
+  return liveDims().every(({ key }) => key === skip || !filters[key] || of[key].includes(filters[key]));
+}
+
+/** Whether a filter narrows the section that is on. */
+function filtering() {
+  return liveDims().some(({ key }) => key !== 'section' && filters[key]);
+}
+
+/** The section to show: the one last picked, or the first with rows in it. All is only ever picked. */
+function pickSection(open) {
+  const order = FILTER_ORDER.section();
+  if (order.includes(filters.section)) return filters.section;
+  const present = new Set(open.flatMap((i) => facets(i).section));
+  return order.find((name) => name !== ALL_SECTION && present.has(name)) ?? order[1];
+}
+
+function setFilter(key, value) {
+  if (animating) return;
+  if (key === 'section') {
+    // One section is always on, and its narrowing starts over.
+    if (filters.section === value) return;
+    filters = { section: value };
+    revealRows = FILTER_DIMS.some(({ under }) => under === value);
+  } else {
+    filters = { ...filters, [key]: filters[key] === value ? null : value };
+  }
+  try {
+    localStorage.setItem(FILTER_KEY, JSON.stringify(filters));
+  } catch {
+    // Private window or blocked storage: the filter lasts this visit only.
+  }
+  if (data) render();
+}
+
+/**
+ * The chip rows. Each chip counts what it would leave on screen with the
+ * other filters as they are, so a dead end shows before it is clicked.
+ */
+function renderFilters(open) {
+  const rows = liveDims().map(({ key, label }) => {
+    const values = new Map();
+    for (const item of open) {
+      for (const value of facets(item)[key]) values.set(value, 0);
+    }
+    for (const item of open) {
+      // A section counts all its rows: picking one starts its narrowing over.
+      if (key !== 'section' && !passes(item, key)) continue;
+      for (const value of facets(item)[key]) values.set(value, values.get(value) + 1);
+    }
+    // A stale filter (its last row cleared) still shows, so it can be turned off.
+    if (filters[key] && !values.has(filters[key])) values.set(filters[key], 0);
+    if (!values.size) return null;
+
+    const order = FILTER_ORDER[key]?.() ?? null;
+    const sorted = [...values].sort(([a, n], [b, m]) =>
+      order ? orderOf(order, a) - orderOf(order, b) : m - n || a.localeCompare(b),
+    );
+
+    const row = document.createElement('div');
+    row.className = revealRows && key !== 'section' ? 'filter-row filter-row-enter' : 'filter-row';
+    row.append(span('label filter-label', label));
+    const chips = document.createElement('div');
+    chips.className = 'chips';
+    for (const [value, count] of sorted) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      const on = filters[key] === value;
+      chip.setAttribute('aria-pressed', String(on));
+      chip.disabled = !on && count === 0;
+      chip.append(span('', key === 'state' ? (STATE[value]?.label ?? value) : value), span('chip-count', String(count)));
+      chip.addEventListener('click', () => setFilter(key, value));
+      chips.append(chip);
+    }
+    row.append(chips);
+    return row;
+  }).filter(Boolean);
+
+  if (filtering()) {
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'filter-clear';
+    clear.textContent = 'Clear filters';
+    clear.title = 'Clear filters (Esc)';
+    clear.addEventListener('click', clearFilters);
+    rows.push(clear);
+  }
+  $('filters').replaceChildren(...rows);
+  revealRows = false;
+}
+
+function clearFilters() {
+  if (animating) return;
+  filters = { section: filters.section };
+  try {
+    localStorage.setItem(FILTER_KEY, JSON.stringify(filters));
+  } catch {
+    // Private window or blocked storage: the section lasts this visit only.
+  }
+  if (data) render();
+}
+
+/** Sections in plate order, states in lifecycle order; repos by count. */
+const FILTER_ORDER = {
+  section: () => [ALL_SECTION, ...boardList([]).map((b) => b.title), PR_SECTION, 'Issues', 'Slack'],
+  state: () => Object.keys(STATE),
+};
+
+function orderOf(order, value) {
+  const i = order.indexOf(value);
+  return i === -1 ? order.length : i;
+}
+
 /**
  * Lucide's github and slack marks, vendored from lucide-static 1.0.0 into
  * /icons — the last release that still carries brand icons. Drawn as a CSS
@@ -273,21 +440,26 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   const meta = document.createElement('div');
   meta.className = 'meta';
   const fromGitHub = GITHUB_SOURCES.has(item.source);
-  if (withSource) {
+  // A board card or PR says where it is from by its repo, number and colour.
+  if (withSource && item.source !== 'board' && item.source !== 'pr') {
     const from = span('from', FROM[item.source]?.(item) ?? 'Slack');
     from.prepend(icon(fromGitHub ? 'github' : 'slack'));
     meta.append(from);
   }
   if (fromGitHub) {
-    if (item.state) meta.append(statePill(item));
+    meta.append(span(`where where-${item.source}`, item.context));
+    // The PR a card's state comes from is named in the pill, so the two read
+    // as one: In PR #3216. A mention sets no state and keeps its own link.
+    const work = item.work;
+    const pr = work?.kind === 'pr' && work.via !== 'self' && work.via !== 'mentioned' ? work : null;
+    if (item.state) meta.append(statePill(item, pr));
     // The pill says where a card is; the column only adds to it while the
     // card has not started, as Backlog against Ready. Off the boards there
     // is no column to add.
     if (item.source === 'board' && (!item.state || item.state === 'open')) {
       meta.append(span('status', item.status || 'No status'));
     }
-    meta.append(span('where', item.context));
-    if (item.work && item.work.via !== 'self') meta.append(workLink(item.work));
+    if (work && work.via !== 'self' && !pr) meta.append(workLink(work));
     if (!withSource && item.boards.length > 1) meta.append(span('', 'Both boards'));
   } else {
     meta.append(span('status', SOURCE_LABEL[item.source]), span('where', item.context || 'Slack'));
@@ -305,21 +477,40 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   }
 
   body.append(meta, title);
+  if (item.work?.via === 'self' && item.work.comments?.length) body.append(commentChip(item.work.comments));
   li.append(check, body);
   return li;
 }
 
-function statePill(item) {
+/** The state pill. With `pr`, it names that PR and links to it. */
+function statePill(item, pr = null) {
   const meta = STATE[item.state] ?? STATE.open;
-  const pill = span(`state state-${item.state}`, '');
-  pill.append(icon(meta.icon), span('', meta.label));
+  const pill = document.createElement(pr ? 'a' : 'span');
+  pill.className = `state state-${item.state}`;
+  pill.append(icon(meta.icon), span('', pr ? `${meta.label} #${pr.number}` : meta.label));
   pill.title = meta.hint;
+  if (pr) {
+    pill.href = pr.url;
+    pill.target = '_blank';
+    pill.rel = 'noopener';
+    pill.title = `${meta.hint}\n${pr.title} (${pr.repo}#${pr.number})\n${VIA[pr.via] ?? ''}`;
+  }
 
   // A state that moved since the last render says so, once.
   const was = lastStates.get(item.id);
   if (was !== undefined && was !== item.state) pill.classList.add('changed');
   lastStates.set(item.id, item.state);
   return pill;
+}
+
+/** How many comments a PR has, and on hover, who left them. */
+function commentChip(comments) {
+  const total = comments.reduce((sum, c) => sum + c.count, 0);
+  const chip = span('comments', '');
+  chip.append(icon('message-square'), span('', String(total)));
+  chip.title = comments.map((c) => `${c.login} (${c.count})`).join('\n');
+  chip.setAttribute('aria-label', `${total} ${total === 1 ? 'comment' : 'comments'}`);
+  return chip;
 }
 
 /** The PR or branch tackling a card, as a link. */
@@ -403,7 +594,8 @@ function section({ key, iconName, name, href, sub, warn: isWarn, count, items, e
     const p = document.createElement('p');
     p.className = 'empty';
     p.dataset.flip = `e-${key}`;
-    p.innerHTML = empty;
+    // Under a filter, an empty list says so rather than claiming a clear plate.
+    p.innerHTML = filtering() ? 'Nothing here matches the filters.' : empty;
     group.append(p);
   }
   return group;
@@ -425,8 +617,6 @@ function byState(a, b) {
 
 /** Where a GitHub row is from, for the views that mix sources. */
 const FROM = {
-  board: (item) => item.boards.join(' + '),
-  pr: () => 'Pull request',
   issue: () => 'Issue',
 };
 
@@ -463,7 +653,8 @@ function splitSections(board, pulls, issues, slack) {
   const sync = data.sync;
   const failed = Boolean(sync && !sync.ok);
   const drawn = new Set();
-  const sections = boardList(board).map((b) => {
+  const shown = (name) => filters.section === name;
+  const sections = boardList(board).filter((b) => shown(b.title)).map((b) => {
     const key = `board-${b.owner}-${b.number}-${b.title}`;
     const items = board.filter((c) => c.boards.includes(b.title));
     let line = b.owner ? `${b.owner} · #${b.number}` : 'GitHub Projects';
@@ -500,31 +691,38 @@ function splitSections(board, pulls, issues, slack) {
     if (failed) return 'Could not read';
     return text;
   };
-  sections.push(
-    section({
-      key: 'pr',
-      iconName: 'github',
-      name: 'Pull requests',
-      href: searchUrl('pr'),
-      sub: sub(repoLine(`${orgs} · opened by you`)),
-      warn: failed,
-      count: pulls.length,
-      items: pulls,
-      empty: 'No open PRs of yours.',
-    }),
-    section({
-      key: 'issue',
-      iconName: 'github',
-      name: 'Issues',
-      href: searchUrl('issue'),
-      sub: sub(repoLine(`${orgs} · assigned to you, not on a board`)),
-      warn: failed,
-      count: issues.length,
-      items: issues,
-      empty: 'Every issue of yours is on a board.',
-    }),
-  );
+  if (shown(PR_SECTION)) {
+    sections.push(
+      section({
+        key: 'pr',
+        iconName: 'github',
+        name: 'Pull requests',
+        href: searchUrl('pr'),
+        sub: sub(repoLine(`${orgs} · opened by you`)),
+        warn: failed,
+        count: pulls.length,
+        items: pulls,
+        empty: 'No open PRs of yours.',
+      }),
+    );
+  }
+  if (shown('Issues')) {
+    sections.push(
+      section({
+        key: 'issue',
+        iconName: 'github',
+        name: 'Issues',
+        href: searchUrl('issue'),
+        sub: sub(repoLine(`${orgs} · assigned to you, not on a board`)),
+        warn: failed,
+        count: issues.length,
+        items: issues,
+        empty: 'Every issue of yours is on a board.',
+      }),
+    );
+  }
 
+  if (!shown('Slack')) return sections;
   const live = data.state.slackConnected;
   sections.push(
     section({
@@ -554,8 +752,8 @@ function allSection(board, pulls, issues, slack) {
   const items = [...active, ...pulls, ...slack, ...queued, ...issues];
   return section({
     key: 'all',
-    name: 'Everything',
-    sub: sub('GitHub and Slack, most urgent first'),
+    name: filters.section,
+    sub: sub('Most urgent first'),
     count: items.length,
     items,
     empty: 'Your plate is clear.',
@@ -563,28 +761,104 @@ function allSection(board, pulls, issues, slack) {
   });
 }
 
+/**
+ * All activity: every row there is, open and cleared, under the title of the
+ * section it belongs to. Open rows lead in each, then cleared, newest first.
+ * A section with nothing in it ever is left out.
+ */
+function activitySections(open) {
+  const cleared = [...data.items.filter((i) => i.doneAt), ...(data.history ?? [])].sort((a, b) =>
+    b.doneAt.localeCompare(a.doneAt),
+  );
+  const of = (source) => cleared.filter((i) => (source === 'slack' ? !GITHUB_SOURCES.has(i.source) : i.source === source));
+  const drawn = new Set();
+  // A card on two boards appears under both; the second copy needs a key of its own.
+  const rowOpts = (name) => (item) => {
+    if (!drawn.has(item.id)) {
+      drawn.add(item.id);
+      return undefined;
+    }
+    return { key: `item-${item.id}@${name}` };
+  };
+  const part = ({ key, name, href, iconName, openItems, doneItems }) =>
+    section({
+      key: `all-${key}`,
+      iconName,
+      name,
+      href,
+      sub: sub(`${doneItems.length} cleared`),
+      count: openItems.length,
+      items: [...openItems, ...doneItems],
+      rowOpts: rowOpts(name),
+    });
+
+  const boards = boardList(open.board).map((b) =>
+    part({
+      key: `board-${b.owner}-${b.number}-${b.title}`,
+      name: b.title,
+      href: b.url,
+      iconName: 'github',
+      openItems: open.board.filter((c) => c.boards.includes(b.title)),
+      doneItems: of('board').filter((c) => c.boards.includes(b.title)),
+    }),
+  );
+  const parts = [
+    ...boards,
+    part({ key: 'pr', name: 'Pull requests', href: searchUrl('pr'), iconName: 'github', openItems: open.pulls, doneItems: of('pr') }),
+    part({ key: 'issue', name: 'Issues', href: searchUrl('issue'), iconName: 'github', openItems: open.issues, doneItems: of('issue') }),
+    part({ key: 'slack', name: 'Slack', iconName: 'slack', openItems: open.slack, doneItems: of('slack') }),
+  ].filter((group) => group.querySelector('.item'));
+
+  const head = section({
+    key: 'all-activity',
+    name: 'All activity',
+    sub: sub('Everything open and everything cleared, by section'),
+    items: [],
+  });
+  return [head, ...parts];
+}
+
 function render() {
   const before = snapshot();
 
   const open = data.items.filter((i) => !i.doneAt);
-  const board = open.filter((i) => i.source === 'board').sort(byColumn);
-  const pulls = open.filter((i) => i.source === 'pr').sort(byState);
-  const issues = open.filter((i) => i.source === 'issue').sort(byState);
-  const slack = open.filter((i) => !GITHUB_SOURCES.has(i.source)).sort(byNewest);
+  // The counts up top stay whole; the filters only narrow the lists.
+  filters.section = pickSection(open);
+  const all = {
+    board: open.filter((i) => i.source === 'board'),
+    pulls: open.filter((i) => i.source === 'pr'),
+    issues: open.filter((i) => i.source === 'issue'),
+    slack: open.filter((i) => !GITHUB_SOURCES.has(i.source)),
+  };
+  const shown = (list) => list.filter((i) => passes(i));
+  const board = shown(all.board).sort(byColumn);
+  const pulls = shown(all.pulls).sort(byState);
+  const issues = shown(all.issues).sort(byState);
+  const slack = shown(all.slack).sort(byNewest);
   // Most recently cleared first, so a row you just ticked lands on top.
-  const done = data.items
-    .filter((i) => i.doneAt)
-    .sort((a, b) => b.doneAt.localeCompare(a.doneAt));
+  const allDone = data.items.filter((i) => i.doneAt);
+  const done = shown(allDone).sort((a, b) => b.doneAt.localeCompare(a.doneAt));
 
   $('date').textContent = new Date(`${data.today}T12:00:00`).toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
-  setCount($('n-open'), open.length);
-  setCount($('n-github'), board.length + pulls.length + issues.length);
-  setCount($('n-slack'), slack.length);
-  setCount($('n-done'), done.length);
+  // Pull requests are listed but not counted: the plate is issues and Slack.
+  setCount($('n-open'), all.board.length + all.issues.length + all.slack.length);
+  setCount($('n-github'), all.board.length + all.issues.length);
+  setCount($('n-slack'), all.slack.length);
+  setCount($('n-done'), allDone.length);
+  renderFilters(open);
+
+  if (filters.section === ALL_SECTION) {
+    $('lists').replaceChildren(...activitySections({ board, pulls, issues, slack }));
+    renderChrome();
+    play(before);
+    if (first) document.body.classList.add('ready');
+    first = false;
+    return;
+  }
 
   const sections =
     view === 'all'
@@ -691,8 +965,15 @@ async function sync() {
  * sends the row back where it came from.
  */
 async function toggle(id) {
-  const item = data.items.find((i) => i.id === id);
-  if (!item) return;
+  let item = data.items.find((i) => i.id === id);
+  // A row cleared before today lives in the history; acting on it brings it
+  // onto today's plate, cleared or not.
+  if (!item) {
+    const at = data.history?.findIndex((i) => i.id === id) ?? -1;
+    if (at === -1) return;
+    [item] = data.history.splice(at, 1);
+    data.items.push(item);
+  }
   const done = !item.doneAt;
   const previous = item.doneAt;
 
@@ -735,6 +1016,7 @@ document.addEventListener('keydown', (e) => {
   const key = e.key.toLowerCase();
   if (key === 'r') sync();
   if (key === 'v') setView(view === 'split' ? 'all' : 'split');
+  if (key === 'escape') clearFilters();
 });
 // Set before the first plate arrives, so the thumb starts where it belongs.
 $('views').dataset.view = view;
