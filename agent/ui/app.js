@@ -507,9 +507,17 @@ function statePill(item, pr = null) {
 function commentChip(comments) {
   const total = comments.reduce((sum, c) => sum + c.count, 0);
   const chip = span('comments', '');
-  chip.append(icon('message-square'), span('', String(total)));
-  chip.title = comments.map((c) => `${c.login} (${c.count})`).join('\n');
+  chip.tabIndex = 0;
   chip.setAttribute('aria-label', `${total} ${total === 1 ? 'comment' : 'comments'}`);
+  // Drawn by the page, not `title`: the browser's tooltip waits, and some never show it.
+  const tip = span('tip', '');
+  tip.setAttribute('role', 'tooltip');
+  for (const c of comments) {
+    const line = span('tip-line', '');
+    line.append(span('', c.login), span('tip-count', String(c.count)));
+    tip.append(line);
+  }
+  chip.append(icon('message-square'), span('', String(total)), tip);
   return chip;
 }
 

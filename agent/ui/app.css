@@ -894,6 +894,41 @@ a.state:hover span {
   color: inherit;
 }
 
+/* Who commented, shown at once on hover or focus. */
+.comments {
+  position: relative;
+}
+
+.comments .tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: none;
+  min-width: 140px;
+  padding: var(--xxs) 10px;
+  background: var(--ink);
+  color: var(--canvas);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.comments:hover .tip,
+.comments:focus-visible .tip {
+  display: block;
+}
+
+.tip-line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--xs);
+}
+
+.tip-count {
+  font-variant-numeric: tabular-nums;
+}
+
 a.title:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
