@@ -32,20 +32,22 @@ type Pr = {
 
 type Author = { login: string; __typename: string } | null;
 
-/** Who has said what on a PR: the conversation, and the review threads. */
+/** Who has said what on a PR: the conversation, review summaries, and review threads. */
 type Discussion = {
   author: Author;
   comments: { nodes: { author: Author }[] };
+  reviews: { nodes: { author: Author; body: string }[] };
   reviewThreads: { nodes: { comments: { nodes: { author: Author }[] } }[] };
 };
 
 /**
- * The comments on a PR, for the PRs that are your own rows. Kept off
- * `PR_FIELDS`, which every linked and mentioned PR also asks for.
+ * The comments on a PR. Kept off `PR_FIELDS`, which every candidate PR asks
+ * for: a linked PR's comments are read once it is chosen, by `discussions`.
  */
 export const DISCUSSION_FIELDS = `
   author { login __typename }
   comments(last: 30) { nodes { author { login __typename } } }
+  reviews(last: 30) { nodes { author { login __typename } body } }
   reviewThreads(last: 20) { nodes { comments(first: 10) { nodes { author { login __typename } } } } }
 `;
 
@@ -96,8 +98,10 @@ const VIA_RANK: Record<WorkRef['via'], number> = { self: 0, linked: 1, 'branch-n
  * every PR and the author answers their own, so neither counts.
  */
 function commenters(pr: Discussion): WorkRef['comments'] {
+  // A review counts when it says something; a bare approval is not a comment.
   const authors = [
     ...pr.comments.nodes,
+    ...pr.reviews.nodes.filter((r) => r.body.trim()),
     ...pr.reviewThreads.nodes.flatMap((t) => t.comments.nodes),
   ].map((c) => c.author);
   const by = new Map<string, number>();
@@ -235,6 +239,27 @@ async function branchesByName(
   return out;
 }
 
+/**
+ * Who commented on each PR, by URL, for the PRs a card's state comes from.
+ * One query per 50, each PR an aliased `resource(url:)`.
+ */
+async function discussions(gh: Octokit, urls: string[]): Promise<Map<string, WorkRef['comments']>> {
+  const out = new Map<string, WorkRef['comments']>();
+  const unique = [...new Set(urls)];
+  for (let i = 0; i < unique.length; i += 50) {
+    const batch = unique.slice(i, i + 50);
+    const fields = batch
+      .map((url, n) => `p${n}: resource(url: ${JSON.stringify(url)}) { ... on PullRequest { ${DISCUSSION_FIELDS} } }`)
+      .join('\n');
+    const data = await gh.graphql<Record<string, Discussion | null>>(`query { ${fields} }`);
+    batch.forEach((url, n) => {
+      const pr = data[`p${n}`];
+      if (pr?.comments) out.set(url, commenters(pr));
+    });
+  }
+  return out;
+}
+
 export type IssueWork = { work: WorkRef | null; closed: boolean; notPlanned: boolean };
 
 /** The work behind each issue, keyed by issue node id. */
@@ -281,9 +306,16 @@ export async function resolveWork(gh: Octokit, ids: string[]): Promise<Map<strin
     candidates.get(id)?.push(...found);
   }
 
+  const chosen = new Map(issues.map((issue) => [issue.id, pick(candidates.get(issue.id) ?? [])]));
+  const said = await discussions(
+    gh,
+    [...chosen.values()].flatMap((w) => (w?.kind === 'pr' && w.via !== 'mentioned' ? [w.url] : [])),
+  );
   for (const issue of issues) {
+    const work = chosen.get(issue.id) ?? null;
+    if (work) work.comments = said.get(work.url);
     result.set(issue.id, {
-      work: pick(candidates.get(issue.id) ?? []),
+      work,
       closed: issue.state === 'CLOSED',
       notPlanned: issue.stateReason === 'NOT_PLANNED',
     });

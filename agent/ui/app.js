@@ -477,7 +477,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   }
 
   body.append(meta, title);
-  if (item.work?.via === 'self' && item.work.comments?.length) body.append(commentChip(item.work.comments));
+  if (item.work?.kind === 'pr' && item.work.comments?.length) body.append(commentChip(item.work.comments));
   li.append(check, body);
   return li;
 }

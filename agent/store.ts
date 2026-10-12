@@ -35,7 +35,7 @@ export type WorkRef = {
   prState?: 'OPEN' | 'MERGED' | 'CLOSED';
   isDraft?: boolean;
   review?: string | null;
-  /** Who commented on the PR, by person. Only for a row that is the PR. */
+  /** Who commented on the PR, by person. Not read for a PR that only mentions the card. */
   comments?: { login: string; count: number }[];
   via: 'self' | 'linked' | 'branch-name' | 'mentioned';
 };
