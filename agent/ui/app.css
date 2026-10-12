@@ -385,7 +385,8 @@ body:not(.ready) .shell {
   transition: color 200ms var(--ease), background 200ms var(--ease), border-color 200ms var(--ease);
 }
 
-.chip:hover:not(:disabled) {
+/* Not the pressed chip: this rule outranks it, and would draw ink on ink. */
+.chip:hover:not(:disabled, [aria-pressed='true']) {
   color: var(--ink);
   border-color: var(--muted);
 }
