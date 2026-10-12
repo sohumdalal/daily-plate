@@ -15,11 +15,15 @@ repository: "github:sohumdalal/daily-plate"
 
 An Astropods agent that keeps one list of what is on your plate today.
 
-Two sources feed it:
+Three sources feed it:
 
 - **The boards.** Every card assigned to you on Astro Kanban and Astro Kanban
   (AI), read through GitHub Projects every ten minutes. A card moved to Done,
   closed, or unassigned from you leaves the plate on its own.
+- **Your PRs and issues.** Every open PR you opened, and every open issue
+  assigned to you, across every repo in `GITHUB_ORGS` (`astropods` by
+  default), read with the boards. An issue or PR already on a board shows
+  there only, so nothing is on the plate twice.
 - **Slack.** React `:knife_fork_plate:` 🍽️ to any message and it lands on the
   plate. A message that @-mentions you in an observed channel lands there
   without the reaction.
@@ -35,12 +39,14 @@ remembered in this browser.
 
 - **Split**: a section per source. Each board gets its own section, headed
   by its name (a link to the board), `owner · #number`, and how many of your
-  cards are open on it. Slack follows, and its header is where the connection
+  cards are open on it. Pull requests and Issues come next, each headed by
+  a link to the same search on GitHub. Slack follows, and its header is where the connection
   shows: live or not, and whether mentions are on. A card on both boards
   appears under each.
 - **All**: one list of every task, whatever the source. Active board work
-  (In progress, In review) comes first, then Slack asks newest first, then
-  the rest of the boards' queue. Each row leads with its source.
+  (In progress, In review) comes first, then your PRs, then Slack asks
+  newest first, then the rest of the boards' queue, then issues off the
+  boards. Each row leads with its source.
 
 ## The boards
 

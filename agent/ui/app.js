@@ -15,6 +15,12 @@ const COLUMN_ORDER = ['In progress', 'In review', 'Ready', 'On hold', 'Backlog']
 
 const SOURCE_LABEL = { mention: 'Mention', reaction: 'Reacted' };
 
+/** Sources read from GitHub. Everything else is Slack. */
+const GITHUB_SOURCES = new Set(['board', 'pr', 'issue']);
+
+/** PRs and issues off the boards have no column, so their state orders them. */
+const STATE_ORDER = ['changes', 'approved', 'in_review', 'draft', 'branch', 'in_progress', 'open'];
+
 /** A card's lifecycle, as the pill shows it. Icons are Lucide's. */
 const STATE = {
   open: { label: 'Open', icon: 'circle-dot', hint: 'Not started' },
@@ -266,16 +272,20 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   const body = document.createElement('div');
   const meta = document.createElement('div');
   meta.className = 'meta';
+  const fromGitHub = GITHUB_SOURCES.has(item.source);
   if (withSource) {
-    const from = span('from', item.source === 'board' ? item.boards.join(' + ') : 'Slack');
-    from.prepend(icon(item.source === 'board' ? 'github' : 'slack'));
+    const from = span('from', FROM[item.source]?.(item) ?? 'Slack');
+    from.prepend(icon(fromGitHub ? 'github' : 'slack'));
     meta.append(from);
   }
-  if (item.source === 'board') {
+  if (fromGitHub) {
     if (item.state) meta.append(statePill(item));
     // The pill says where a card is; the column only adds to it while the
-    // card has not started, as Backlog against Ready.
-    if (!item.state || item.state === 'open') meta.append(span('status', item.status || 'No status'));
+    // card has not started, as Backlog against Ready. Off the boards there
+    // is no column to add.
+    if (item.source === 'board' && (!item.state || item.state === 'open')) {
+      meta.append(span('status', item.status || 'No status'));
+    }
     meta.append(span('where', item.context));
     if (item.work && item.work.via !== 'self') meta.append(workLink(item.work));
     if (!withSource && item.boards.length > 1) meta.append(span('', 'Both boards'));
@@ -408,6 +418,27 @@ function byNewest(a, b) {
   return b.addedAt.localeCompare(a.addedAt);
 }
 
+function byState(a, b) {
+  const at = (i) => (STATE_ORDER.includes(i.state) ? STATE_ORDER.indexOf(i.state) : STATE_ORDER.length);
+  return at(a) - at(b) || byNewest(a, b);
+}
+
+/** Where a GitHub row is from, for the views that mix sources. */
+const FROM = {
+  board: (item) => item.boards.join(' + '),
+  pr: () => 'Pull request',
+  issue: () => 'Issue',
+};
+
+/** The same search on GitHub, for a section header to link to. */
+function searchUrl(kind) {
+  const login = data.assignee?.login;
+  if (!login || !data.state.orgs.length) return '';
+  const who = kind === 'pr' ? `author:${login}` : `assignee:${login}`;
+  const q = `is:open is:${kind} ${who} ${data.state.orgs.map((o) => `org:${o}`).join(' ')} archived:false`;
+  return `https://github.com/${kind === 'pr' ? 'pulls' : 'issues'}?q=${encodeURIComponent(q)}`;
+}
+
 /**
  * The boards to section by: as last read, or — before a read has named them —
  * whatever the cards themselves say they are on.
@@ -428,7 +459,7 @@ function sub(text, { live = false } = {}) {
   return node;
 }
 
-function splitSections(board, slack) {
+function splitSections(board, pulls, issues, slack) {
   const sync = data.sync;
   const failed = Boolean(sync && !sync.ok);
   const drawn = new Set();
@@ -461,6 +492,39 @@ function splitSections(board, slack) {
     });
   });
 
+  // Your PRs and issues across the orgs, headed like a board.
+  const orgs = data.state.orgs.join(' · ');
+  const repoLine = (text) => {
+    if (!data.state.github) return 'GitHub is not configured';
+    if (!sync) return 'Reading…';
+    if (failed) return 'Could not read';
+    return text;
+  };
+  sections.push(
+    section({
+      key: 'pr',
+      iconName: 'github',
+      name: 'Pull requests',
+      href: searchUrl('pr'),
+      sub: sub(repoLine(`${orgs} · opened by you`)),
+      warn: failed,
+      count: pulls.length,
+      items: pulls,
+      empty: 'No open PRs of yours.',
+    }),
+    section({
+      key: 'issue',
+      iconName: 'github',
+      name: 'Issues',
+      href: searchUrl('issue'),
+      sub: sub(repoLine(`${orgs} · assigned to you, not on a board`)),
+      warn: failed,
+      count: issues.length,
+      items: issues,
+      empty: 'Every issue of yours is on a board.',
+    }),
+  );
+
   const live = data.state.slackConnected;
   sections.push(
     section({
@@ -483,15 +547,15 @@ function splitSections(board, slack) {
   return sections;
 }
 
-function allSection(board, slack) {
+function allSection(board, pulls, issues, slack) {
   // What is moving first, then fresh asks, then the queue.
   const active = board.filter((c) => rank(c.status) <= 1);
   const queued = board.filter((c) => rank(c.status) > 1);
-  const items = [...active, ...slack, ...queued];
+  const items = [...active, ...pulls, ...slack, ...queued, ...issues];
   return section({
     key: 'all',
     name: 'Everything',
-    sub: sub('Boards and Slack, most urgent first'),
+    sub: sub('GitHub and Slack, most urgent first'),
     count: items.length,
     items,
     empty: 'Your plate is clear.',
@@ -504,7 +568,9 @@ function render() {
 
   const open = data.items.filter((i) => !i.doneAt);
   const board = open.filter((i) => i.source === 'board').sort(byColumn);
-  const slack = open.filter((i) => i.source !== 'board').sort(byNewest);
+  const pulls = open.filter((i) => i.source === 'pr').sort(byState);
+  const issues = open.filter((i) => i.source === 'issue').sort(byState);
+  const slack = open.filter((i) => !GITHUB_SOURCES.has(i.source)).sort(byNewest);
   // Most recently cleared first, so a row you just ticked lands on top.
   const done = data.items
     .filter((i) => i.doneAt)
@@ -516,11 +582,14 @@ function render() {
     day: 'numeric',
   });
   setCount($('n-open'), open.length);
-  setCount($('n-board'), board.length);
+  setCount($('n-github'), board.length + pulls.length + issues.length);
   setCount($('n-slack'), slack.length);
   setCount($('n-done'), done.length);
 
-  const sections = view === 'all' ? [allSection(board, slack)] : splitSections(board, slack);
+  const sections =
+    view === 'all'
+      ? [allSection(board, pulls, issues, slack)]
+      : splitSections(board, pulls, issues, slack);
   if (done.length) {
     sections.push(
       section({
@@ -557,7 +626,7 @@ function renderChrome() {
 
   const note = $('provenance');
   note.hidden = !(sync && !sync.ok);
-  if (sync && !sync.ok) note.textContent = `Could not read the boards: ${sync.error}`;
+  if (sync && !sync.ok) note.textContent = `Could not read GitHub: ${sync.error}`;
 }
 
 function warn(message) {

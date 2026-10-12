@@ -1,12 +1,15 @@
 /**
- * Every query against the plate. One table, `items`, three sources.
+ * Every query against the plate. One table, `items`, five sources.
  */
 
 import { db } from './db/client.ts';
 
 const USER = 'default';
 
-export type Source = 'board' | 'mention' | 'reaction';
+export type Source = 'board' | 'pr' | 'issue' | 'mention' | 'reaction';
+
+/** The sources read from GitHub, each replaced whole on every sync. */
+export type GitHubSource = 'board' | 'pr' | 'issue';
 
 /** Where a card is in its life. Empty for Slack items, which are not tickets. */
 export type TicketState =
@@ -41,7 +44,7 @@ export type Item = {
   externalId: string;
   title: string;
   url: string;
-  /** `astropods/astro#1377` for a card, `#channel` for Slack. */
+  /** `astropods/astro#1377` for a card, PR or issue, `#channel` for Slack. */
   context: string;
   author: string;
   /** The board column. Empty for Slack. */
@@ -121,13 +124,17 @@ export type BoardCard = {
 };
 
 /**
- * Make the stored cards match the boards.
+ * Make the stored cards of one source match what GitHub says.
  *
  * A card the boards call Done is cleared by the board. A card no longer
- * assigned to you is cleared too, since it is off your plate either way. A
- * card the board reopens comes back, unless you cleared it yourself.
+ * assigned to you — or a PR or issue no longer open — is cleared too, since
+ * it is off your plate either way; `done_by` says 'board' for all of these.
+ * A card GitHub reopens comes back, unless you cleared it yourself.
  */
-export async function syncBoard(cards: BoardCard[]): Promise<{ added: number; cleared: number }> {
+export async function syncSource(
+  source: GitHubSource,
+  cards: BoardCard[],
+): Promise<{ added: number; cleared: number }> {
   const sql = db();
   return sql.begin(async (tx) => {
     let added = 0;
@@ -143,7 +150,7 @@ export async function syncBoard(cards: BoardCard[]): Promise<{ added: number; cl
                  updated_at = now(),
                  done_at = coalesce(done_at, now()),
                  done_by = coalesce(done_by, 'board')
-           WHERE user_id = ${USER} AND source = 'board' AND external_id = ${card.externalId}
+           WHERE user_id = ${USER} AND source = ${source} AND external_id = ${card.externalId}
         `;
         continue;
       }
@@ -151,7 +158,7 @@ export async function syncBoard(cards: BoardCard[]): Promise<{ added: number; cl
       const [row] = await tx<{ inserted: boolean }[]>`
         INSERT INTO items (user_id, source, external_id, title, url, context, status, boards,
                            state, work)
-        VALUES (${USER}, 'board', ${card.externalId}, ${card.title}, ${card.url},
+        VALUES (${USER}, ${source}, ${card.externalId}, ${card.title}, ${card.url},
                 ${card.context}, ${card.status}, ${tx.json(card.boards)},
                 ${card.state}, ${card.work ? tx.json(card.work) : null})
         ON CONFLICT (user_id, source, external_id) DO UPDATE
@@ -174,7 +181,7 @@ export async function syncBoard(cards: BoardCard[]): Promise<{ added: number; cl
     const gone = await tx`
       UPDATE items
          SET done_at = now(), done_by = 'board', updated_at = now()
-       WHERE user_id = ${USER} AND source = 'board' AND done_at IS NULL
+       WHERE user_id = ${USER} AND source = ${source} AND done_at IS NULL
          AND NOT (external_id = ANY(${ids}::text[]))
     `;
     return { added, cleared: gone.count };

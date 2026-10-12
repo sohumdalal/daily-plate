@@ -51,6 +51,15 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       ALTER TABLE items ADD COLUMN IF NOT EXISTS work JSONB;
     `,
   },
+  {
+    // Your open PRs and assigned issues across whole orgs, beside the boards.
+    id: '0004_repo_sources',
+    sql: `
+      ALTER TABLE items DROP CONSTRAINT IF EXISTS items_source_check;
+      ALTER TABLE items ADD CONSTRAINT items_source_check
+        CHECK (source IN ('board','pr','issue','mention','reaction'));
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

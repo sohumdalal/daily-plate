@@ -34,6 +34,8 @@ export const config = {
     token: process.env.GITHUB_TOKEN ?? '',
     username: process.env.GITHUB_USERNAME ?? '',
     projects: parseProjects(process.env.GITHUB_PROJECTS ?? 'astropods/1,astropods/4'),
+    /** Owners whose every repo is searched for your open PRs and issues. */
+    orgs: (process.env.GITHUB_ORGS ?? 'astropods').split(',').map((s) => s.trim()).filter(Boolean),
   },
   slack: {
     /** The raw U… id. Mentions of it are captured; only its reactions count. */
@@ -49,6 +51,7 @@ export function readiness() {
     timezone: config.timezone,
     github: Boolean(config.github.token && config.github.username),
     projects: config.github.projects.map((p) => `${p.owner}/${p.number}`),
+    orgs: config.github.orgs,
     slackMentions: Boolean(config.slack.userId),
     database: describeTarget(),
     databaseIsLocal: targetIsLocal(),

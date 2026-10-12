@@ -22,7 +22,7 @@ const DONE_COLUMN = /^done$/i;
 
 let client: Octokit | null = null;
 
-function gh(token: string): Octokit {
+export function gh(token: string): Octokit {
   client ??= new Octokit({ auth: token });
   return client;
 }

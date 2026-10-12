@@ -27,6 +27,12 @@ agent:
         Comma-separated `owner/number` GitHub Projects to read assigned cards
         from. Defaults to Astro Kanban and Astro Kanban (AI). Needs a token
         with `read:project`.
+    - name: GITHUB_ORGS
+      datatype: string
+      default: "astropods"
+      description: >-
+        Comma-separated GitHub owners whose every repo is searched for your
+        open PRs and the open issues assigned to you.
     - name: SLACK_USER_ID
       datatype: string
       optional: true

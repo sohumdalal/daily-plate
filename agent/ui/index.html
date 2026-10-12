@@ -23,7 +23,7 @@
           <button type="button" data-view="all" title="Everything in one list (V)">All</button>
         </div>
         <span class="label read-at" id="read-at"></span>
-        <button class="sync" id="sync" type="button" title="Re-read the boards (R)">Refresh</button>
+        <button class="sync" id="sync" type="button" title="Re-read GitHub (R)">Refresh</button>
       </div>
       <div class="progress" id="progress" aria-hidden="true"></div>
     </nav>
@@ -38,15 +38,15 @@
         </div>
         <div class="specs">
           <div class="spec-cell"><span class="spec-value" id="n-open" data-i="0"></span><span class="label">On the plate</span></div>
-          <div class="spec-cell"><span class="spec-value" id="n-board" data-i="1"></span><span class="label">From the boards</span></div>
+          <div class="spec-cell"><span class="spec-value" id="n-github" data-i="1"></span><span class="label">From GitHub</span></div>
           <div class="spec-cell"><span class="spec-value" id="n-slack" data-i="2"></span><span class="label">From Slack</span></div>
           <div class="spec-cell"><span class="spec-value" id="n-done" data-i="3"></span><span class="label">Cleared today</span></div>
         </div>
         <p class="note warn" id="provenance" hidden></p>
       </header>
 
-      <!-- Sections are built per view: one per board and one for Slack when
-           split, a single list when not. Cleared today closes both. -->
+      <!-- Sections are built per view: one per board, one each for your PRs and
+           issues, and one for Slack when split, a single list when not. Cleared today closes both. -->
       <div id="lists"></div>
     </main>
 

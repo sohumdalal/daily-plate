@@ -1,15 +1,18 @@
 /**
- * Keeps the board half of the plate current: on boot, every SYNC_EVERY_MS,
- * and whenever the screen asks.
+ * Keeps the GitHub half of the plate current — the boards, and your PRs and
+ * issues across the orgs — on boot, every SYNC_EVERY_MS, and whenever the
+ * screen asks.
  */
 
 import { config } from './config.ts';
 import {
   fetchAssignedCards,
   fetchProfile,
+  gh,
   type BoardSummary,
   type Profile,
 } from './sources/github.ts';
+import { fetchRepoWork } from './sources/repos.ts';
 import * as store from './store.ts';
 
 const SYNC_EVERY_MS = 10 * 60_000;
@@ -18,6 +21,8 @@ export type SyncResult = {
   at: string;
   ok: boolean;
   cards: number;
+  pulls: number;
+  issues: number;
   added: number;
   cleared: number;
   /** The boards as last read successfully. */
@@ -56,17 +61,52 @@ export function syncBoards(): Promise<SyncResult> {
         console.warn('[sync] could not read the GitHub profile:', err.message);
         return null;
       });
+      // An issue or PR already on a board stays there, and only there.
+      const { pulls, issues } = await fetchRepoWork(
+        gh(config.github.token),
+        config.github.username,
+        config.github.orgs,
+        new Set(cards.map((c) => c.externalId)),
+      );
       // Only after a full read: clearing what is missing from a partial one
       // would empty the plate on every GitHub hiccup.
-      const { added, cleared } = await store.syncBoard(cards);
-      last = { at, ok: true, cards: cards.length, added, cleared, boards };
-      console.log(`[sync] ${cards.length} cards assigned — ${added} new, ${cleared} cleared`);
+      let added = 0;
+      let cleared = 0;
+      for (const [source, list] of [['board', cards], ['pr', pulls], ['issue', issues]] as const) {
+        const result = await store.syncSource(source, list);
+        added += result.added;
+        cleared += result.cleared;
+      }
+      last = {
+        at,
+        ok: true,
+        cards: cards.length,
+        pulls: pulls.length,
+        issues: issues.length,
+        added,
+        cleared,
+        boards,
+      };
+      console.log(
+        `[sync] ${cards.length} cards, ${pulls.length} PRs, ${issues.length} issues — ` +
+          `${added} new, ${cleared} cleared`,
+      );
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       // Keep the last good board names, so a failed read can still say which
       // boards it failed on.
-      last = { at, ok: false, cards: 0, added: 0, cleared: 0, boards: last?.boards ?? [], error };
-      console.error('[sync] board read failed:', error);
+      last = {
+        at,
+        ok: false,
+        cards: 0,
+        pulls: 0,
+        issues: 0,
+        added: 0,
+        cleared: 0,
+        boards: last?.boards ?? [],
+        error,
+      };
+      console.error('[sync] GitHub read failed:', error);
     }
     return last;
   })().finally(() => {

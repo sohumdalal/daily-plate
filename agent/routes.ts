@@ -3,7 +3,7 @@
  *
  *   GET   /healthz
  *   GET   /api/plate        today's plate, readiness, and the last board sync
- *   POST  /api/sync         re-read the boards now
+ *   POST  /api/sync         re-read GitHub now
  *   PATCH /api/items/:id    { done: boolean } — clear an item, or put it back
  */
 

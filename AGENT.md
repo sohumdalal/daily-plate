@@ -29,6 +29,10 @@ messages where someone asked you for something. Tick an item to clear it.
 
 ## Where the plate comes from
 
+**Your PRs and issues**: every open PR you opened, and every open issue
+assigned to you, across all repos of the orgs you name. An issue or PR
+already on a board shows there only.
+
 **GitHub Projects**: every non-archived card assigned to you, with its
 column. A card moved to Done, closed, or unassigned leaves the plate on its
 own. Read every ten minutes, or on demand.
@@ -44,6 +48,7 @@ reaction.
 | `GITHUB_TOKEN` | — | `repo` + `read:project` (from `integrations.github`) |
 | `GITHUB_USERNAME` | `sohumdalal` | Whose assigned cards to read |
 | `GITHUB_PROJECTS` | `astropods/1,astropods/4` | Boards, as `owner/number` |
+| `GITHUB_ORGS` | `astropods` | Owners whose repos are searched for your PRs and issues |
 | `SLACK_USER_ID` | — | Your Slack member id; turns on mention capture |
 | `TIMEZONE` | `America/New_York` | What "cleared today" means |
 
