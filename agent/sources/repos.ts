@@ -99,10 +99,11 @@ export async function fetchRepoWork(
   // A PR that merges or closes drops out of the open search, and would be
   // cleared still reading Approved. The recently closed ones are read too, so
   // a cleared row says how it ended. Two days covers any timezone's today.
+  // `updated:`, not `closed:`, which misses some PRs closed without merging.
   const since = new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10);
   const pullHits = [
     ...(await search(gh, `${scope} is:pr author:${username}`)),
-    ...(await search(gh, `${repos} is:pr is:closed closed:>=${since} author:${username}`)),
+    ...(await search(gh, `${repos} is:pr is:closed updated:>=${since} author:${username}`)),
   ];
   const pulls = pullHits.flatMap((hit): BoardCard[] => {
     if (hit.__typename !== 'PullRequest' || skip.has(hit.url)) return [];
