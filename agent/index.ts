@@ -23,7 +23,9 @@ app.get('/', serveStatic({ root: './agent/ui', path: 'index.html' }));
 // Bind the HTTP server FIRST so the platform's port-80 ingress comes up
 // immediately. Database problems must never block binding or crash the
 // process — otherwise the pod crash-loops and the URL never resolves.
-Bun.serve({ port: config.port, fetch: app.fetch });
+// A manual sync runs several GitHub queries in one request and can outlast
+// Bun's 10s default idle timeout, which drops the connection mid-sync.
+Bun.serve({ port: config.port, fetch: app.fetch, idleTimeout: 120 });
 
 console.log(
   `Daily Plate on :${config.port} — ${config.timezone}` +
