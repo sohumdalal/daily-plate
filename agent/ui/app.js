@@ -453,6 +453,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     const work = item.work;
     const pr = work?.kind === 'pr' && work.via !== 'self' && work.via !== 'mentioned' ? work : null;
     if (item.state) meta.append(statePill(item, pr));
+    if (work?.stack) meta.append(stackPill(work.stack));
     // The pill says where a card is; the column only adds to it while the
     // card has not started, as Backlog against Ready. Off the boards there
     // is no column to add.
@@ -500,6 +501,14 @@ function statePill(item, pr = null) {
   const was = lastStates.get(item.id);
   if (was !== undefined && was !== item.state) pill.classList.add('changed');
   lastStates.set(item.id, item.state);
+  return pill;
+}
+
+/** Where a PR sits in a stack of PRs: 2 of 5 is on top of one, under three. */
+function stackPill({ position, total }) {
+  const pill = span('state stack', '');
+  pill.append(icon('layers'), span('', `${position} of ${total}`));
+  pill.title = `Stacked PR: ${position} of ${total}, counted from the bottom`;
   return pill;
 }
 

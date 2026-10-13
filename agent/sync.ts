@@ -13,6 +13,7 @@ import {
   type Profile,
 } from './sources/github.ts';
 import { fetchRepoWork } from './sources/repos.ts';
+import { markStacks } from './sources/work.ts';
 import * as store from './store.ts';
 
 const SYNC_EVERY_MS = 10 * 60_000;
@@ -68,6 +69,11 @@ export function syncBoards(): Promise<SyncResult> {
         config.github.orgs,
         new Set(cards.map((c) => c.externalId)),
       );
+      // A missing stack only costs the screen a pill, never the sync.
+      await markStacks(
+        gh(config.github.token),
+        [...cards, ...pulls, ...issues].flatMap((c) => (c.work ? [c.work] : [])),
+      ).catch((err) => console.warn('[sync] could not read PR stacks:', err.message));
       // Only after a full read: clearing what is missing from a partial one
       // would empty the plate on every GitHub hiccup.
       let added = 0;

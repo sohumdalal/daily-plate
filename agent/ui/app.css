@@ -612,6 +612,7 @@ a.group-name:hover {
 .icon-circle-check-big { --glyph: url('/icons/circle-check-big.svg'); }
 .icon-circle-slash { --glyph: url('/icons/circle-slash.svg'); }
 .icon-message-square { --glyph: url('/icons/message-square.svg'); }
+.icon-layers { --glyph: url('/icons/layers.svg'); }
 
 /* ── Ticket state ─────────────────────────────────────────────────────── */
 
@@ -647,6 +648,10 @@ a.state:hover span {
   width: 12px;
   height: 12px;
   color: inherit;
+}
+
+.stack {
+  --c: var(--ink);
 }
 
 .state-in_progress,

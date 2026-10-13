@@ -322,3 +322,52 @@ export async function resolveWork(gh: Octokit, ids: string[]): Promise<Map<strin
   }
   return result;
 }
+
+type OpenPr = { number: number; headRefName: string; baseRefName: string };
+
+/**
+ * Where each open PR sits in a stack: a PR whose base is another open PR's
+ * branch is on top of it. Sets `stack` on every open PR ref that is part of
+ * one, from the bottom (1) up. Where the stack forks, the longest arm counts.
+ * One query for every repo, each an aliased `repository`.
+ */
+export async function markStacks(gh: Octokit, refs: WorkRef[]): Promise<void> {
+  const open = refs.filter((r) => r.kind === 'pr' && r.prState === 'OPEN' && r.number);
+  const repos = [...new Set(open.map((r) => r.repo))];
+  if (!repos.length) return;
+
+  const fields = repos
+    .map((repo, n) => {
+      const [owner, name] = repo.split('/');
+      return `r${n}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) {
+        pullRequests(states: OPEN, first: 100, orderBy: { field: UPDATED_AT, direction: DESC }) {
+          nodes { number headRefName baseRefName }
+        }
+      }`;
+    })
+    .join('\n');
+  const data = await gh.graphql<Record<string, { pullRequests: { nodes: OpenPr[] } } | null>>(`query { ${fields} }`);
+
+  repos.forEach((repo, n) => {
+    const prs = data[`r${n}`]?.pullRequests.nodes ?? [];
+    const byHead = new Map(prs.map((pr) => [pr.headRefName, pr]));
+    const below = (pr: OpenPr, seen = new Set<number>()): number => {
+      const next = byHead.get(pr.baseRefName);
+      if (!next || seen.has(next.number)) return 0;
+      seen.add(pr.number);
+      return 1 + below(next, seen);
+    };
+    const above = (pr: OpenPr, seen = new Set<number>()): number => {
+      seen.add(pr.number);
+      const tops = prs.filter((p) => p.baseRefName === pr.headRefName && !seen.has(p.number));
+      return tops.length ? 1 + Math.max(...tops.map((p) => above(p, new Set(seen)))) : 0;
+    };
+    for (const ref of open.filter((r) => r.repo === repo)) {
+      const pr = prs.find((p) => p.number === ref.number);
+      if (!pr) continue;
+      const down = below(pr);
+      const total = down + 1 + above(pr);
+      if (total > 1) ref.stack = { position: down + 1, total };
+    }
+  });
+}

@@ -37,6 +37,8 @@ export type WorkRef = {
   review?: string | null;
   /** Who commented on the PR, by person. Not read for a PR that only mentions the card. */
   comments?: { login: string; count: number }[];
+  /** Where an open PR sits in a stack of PRs, from the bottom. Absent when it stands alone. */
+  stack?: { position: number; total: number };
   via: 'self' | 'linked' | 'branch-name' | 'mentioned';
 };
 
