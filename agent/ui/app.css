@@ -919,12 +919,14 @@ a.state:hover span {
 
 /* Who commented, shown at once on hover or focus: the canvas, a hairline,
    and the system's one soft drop. It rises off the chip's upper right as a
-   thought bubble, its one square corner pointing back at the chip. */
-.comments {
+   thought bubble, its one square corner pointing back at the chip. A
+   stack pill shows its PRs the same way. */
+.comments,
+.stack {
   position: relative;
 }
 
-.comments .tip {
+:is(.comments, .stack) .tip {
   position: absolute;
   bottom: calc(100% + 4px);
   left: calc(100% - 6px);
@@ -950,21 +952,32 @@ a.state:hover span {
 }
 
 /* Bridges the gap to the chip, so the pointer can cross into the bubble. */
-.comments .tip::before {
+:is(.comments, .stack) .tip::before {
   content: '';
   position: absolute;
   inset: auto 0 -6px 0;
   height: 6px;
 }
 
-.comments:hover .tip,
-.comments:focus-within .tip {
+:is(.comments, .stack):hover .tip,
+:is(.comments, .stack):focus-within .tip {
   opacity: 1;
   visibility: visible;
   transform: none;
   transition:
     opacity 140ms var(--ease),
     transform 140ms var(--ease);
+}
+
+/* The meta line's caps and tracking stop at the bubble. */
+.stack .tip {
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.stack .tip-line.current {
+  font-weight: 600;
 }
 
 .tip-line {

@@ -323,13 +323,13 @@ export async function resolveWork(gh: Octokit, ids: string[]): Promise<Map<strin
   return result;
 }
 
-type OpenPr = { number: number; headRefName: string; baseRefName: string };
+type OpenPr = { number: number; title: string; url: string; headRefName: string; baseRefName: string };
 
 /**
  * Where each open PR sits in a stack: a PR whose base is another open PR's
  * branch is on top of it. Sets `stack` on every open PR ref that is part of
- * one, from the bottom (1) up. Where the stack forks, the longest arm counts.
- * One query for every repo, each an aliased `repository`.
+ * one, with the stack's PRs from the bottom up. Where the stack forks, the
+ * longest arm counts. One query for every repo, each an aliased `repository`.
  */
 export async function markStacks(gh: Octokit, refs: WorkRef[]): Promise<void> {
   const open = refs.filter((r) => r.kind === 'pr' && r.prState === 'OPEN' && r.number);
@@ -341,7 +341,7 @@ export async function markStacks(gh: Octokit, refs: WorkRef[]): Promise<void> {
       const [owner, name] = repo.split('/');
       return `r${n}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) {
         pullRequests(states: OPEN, first: 100, orderBy: { field: UPDATED_AT, direction: DESC }) {
-          nodes { number headRefName baseRefName }
+          nodes { number title url headRefName baseRefName }
         }
       }`;
     })
@@ -351,23 +351,35 @@ export async function markStacks(gh: Octokit, refs: WorkRef[]): Promise<void> {
   repos.forEach((repo, n) => {
     const prs = data[`r${n}`]?.pullRequests.nodes ?? [];
     const byHead = new Map(prs.map((pr) => [pr.headRefName, pr]));
-    const below = (pr: OpenPr, seen = new Set<number>()): number => {
-      const next = byHead.get(pr.baseRefName);
-      if (!next || seen.has(next.number)) return 0;
-      seen.add(pr.number);
-      return 1 + below(next, seen);
+    // The PRs under `pr`, nearest first.
+    const below = (pr: OpenPr): OpenPr[] => {
+      const out: OpenPr[] = [];
+      for (let next = byHead.get(pr.baseRefName); next && next !== pr && !out.includes(next); next = byHead.get(next.baseRefName)) {
+        out.push(next);
+      }
+      return out;
     };
-    const above = (pr: OpenPr, seen = new Set<number>()): number => {
-      seen.add(pr.number);
-      const tops = prs.filter((p) => p.baseRefName === pr.headRefName && !seen.has(p.number));
-      return tops.length ? 1 + Math.max(...tops.map((p) => above(p, new Set(seen)))) : 0;
+    // The longest run of PRs on top of `pr`, nearest first.
+    const above = (pr: OpenPr, seen: Set<OpenPr>): OpenPr[] => {
+      let best: OpenPr[] = [];
+      for (const top of prs) {
+        if (top.baseRefName !== pr.headRefName || seen.has(top)) continue;
+        const arm = [top, ...above(top, new Set([...seen, top]))];
+        if (arm.length > best.length) best = arm;
+      }
+      return best;
     };
     for (const ref of open.filter((r) => r.repo === repo)) {
       const pr = prs.find((p) => p.number === ref.number);
       if (!pr) continue;
-      const down = below(pr);
-      const total = down + 1 + above(pr);
-      if (total > 1) ref.stack = { position: down + 1, total };
+      const under = below(pr);
+      const chain = [...under.reverse(), pr, ...above(pr, new Set([pr, ...under]))];
+      if (chain.length < 2) continue;
+      ref.stack = {
+        position: under.length + 1,
+        total: chain.length,
+        prs: chain.map(({ number, title, url }) => ({ number, title, url })),
+      };
     }
   });
 }

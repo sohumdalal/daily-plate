@@ -35,6 +35,15 @@ const STATE = {
   not_planned: { label: 'Not planned', icon: 'circle-slash', hint: 'Closed as not planned' },
 };
 
+/**
+ * On a PR's own row, "In PR" says nothing; the review it waits on does. Only
+ * the PR section is filtered by state, so its chips read the same.
+ */
+const PR_STATE = {
+  ...STATE,
+  in_review: { label: 'Awaiting review', icon: 'git-pull-request', hint: 'Open, no review decision yet' },
+};
+
 /** How a PR or branch was tied to a card, for its tooltip. */
 const VIA = {
   linked: 'Linked to this issue',
@@ -362,7 +371,7 @@ function renderFilters(open) {
       const on = filters[key] === value;
       chip.setAttribute('aria-pressed', String(on));
       chip.disabled = !on && count === 0;
-      chip.append(span('', key === 'state' ? (STATE[value]?.label ?? value) : value), span('chip-count', String(count)));
+      chip.append(span('', key === 'state' ? (PR_STATE[value]?.label ?? value) : value), span('chip-count', String(count)));
       chip.addEventListener('click', () => setFilter(key, value));
       chips.append(chip);
     }
@@ -453,7 +462,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     const work = item.work;
     const pr = work?.kind === 'pr' && work.via !== 'self' && work.via !== 'mentioned' ? work : null;
     if (item.state) meta.append(statePill(item, pr));
-    if (work?.stack) meta.append(stackPill(work.stack));
+    if (work?.stack) meta.append(stackPill(work.stack, work.number));
     // The pill says where a card is; the column only adds to it while the
     // card has not started, as Backlog against Ready. Off the boards there
     // is no column to add.
@@ -485,7 +494,8 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
 
 /** The state pill. With `pr`, it names that PR and links to it. */
 function statePill(item, pr = null) {
-  const meta = STATE[item.state] ?? STATE.open;
+  const states = item.source === 'pr' ? PR_STATE : STATE;
+  const meta = states[item.state] ?? STATE.open;
   const pill = document.createElement(pr ? 'a' : 'span');
   pill.className = `state state-${item.state}`;
   pill.append(icon(meta.icon), span('', pr ? `${meta.label} #${pr.number}` : meta.label));
@@ -504,11 +514,27 @@ function statePill(item, pr = null) {
   return pill;
 }
 
-/** Where a PR sits in a stack of PRs: 2 of 5 is on top of one, under three. */
-function stackPill({ position, total }) {
+/**
+ * Where a PR sits in a stack of PRs: 2 of 5 is on top of one, under three.
+ * On hover, the whole stack from the bottom, this PR marked.
+ */
+function stackPill({ position, total, prs }, current) {
   const pill = span('state stack', '');
+  pill.tabIndex = 0;
+  pill.setAttribute('aria-label', `Stacked PR, ${position} of ${total}`);
+  const tip = span('tip', '');
+  tip.setAttribute('role', 'tooltip');
+  for (const pr of prs ?? []) {
+    const line = document.createElement('a');
+    line.className = pr.number === current ? 'tip-line current' : 'tip-line';
+    line.href = pr.url;
+    line.target = '_blank';
+    line.rel = 'noopener';
+    line.append(span('tip-count', `#${pr.number}`), span('tip-login', pr.title));
+    tip.append(line);
+  }
   pill.append(icon('layers'), span('', `${position} of ${total}`));
-  pill.title = `Stacked PR: ${position} of ${total}, counted from the bottom`;
+  if (prs?.length) pill.append(tip);
   return pill;
 }
 
