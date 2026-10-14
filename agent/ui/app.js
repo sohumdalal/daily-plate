@@ -66,7 +66,6 @@ const MARK_MS = 360;
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const VIEW_KEY = 'daily-plate:view';
 const FILTER_KEY = 'daily-plate:filters';
 
 /** The section whose rows the Repo and State filters narrow. */
@@ -87,8 +86,6 @@ const FILTER_DIMS = [
 
 let data = null;
 let busy = false;
-/** 'split' (a section per source) or 'all' (one list). Remembered per browser. */
-let view = readView();
 /** One section, and at most one repo and state, as { section, repo, state }. Remembered per browser. */
 let filters = readFilters();
 /** Set when a section switch brings in its Repo and State rows, so they rise in once. */
@@ -268,14 +265,6 @@ function setCount(node, value) {
 
 // ── Rendering ────────────────────────────────────────────────────────────
 
-function readView() {
-  try {
-    return localStorage.getItem(VIEW_KEY) === 'all' ? 'all' : 'split';
-  } catch {
-    return 'split';
-  }
-}
-
 function readFilters() {
   try {
     const saved = JSON.parse(localStorage.getItem(FILTER_KEY) ?? '{}');
@@ -438,7 +427,7 @@ const CHECK_SVG =
 /**
  * One row. `key` is its FLIP identity: a card on both boards is shown under
  * each, and the second copy needs a key of its own. `withSource` leads the
- * meta line with where it came from, for the view that mixes sources.
+ * meta line with where it came from, for the lists that mix sources.
  */
 function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   const li = document.createElement('li');
@@ -760,7 +749,7 @@ function byState(a, b) {
   return at(a) - at(b) || byNewest(a, b);
 }
 
-/** Where a GitHub row is from, for the views that mix sources. */
+/** Where a GitHub row is from, for the lists that mix sources. */
 const FROM = {
   issue: () => 'Issue',
 };
@@ -817,7 +806,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
       items,
       empty: 'Nothing of yours is open on this board.',
       // A card on two boards appears under both; the first copy drawn keeps
-      // the plain key, so it is the one that travels when the view changes.
+      // the plain key, so it is the one that travels when the section changes.
       rowOpts: (item) => {
         if (!drawn.has(item.id)) {
           drawn.add(item.id);
@@ -901,22 +890,6 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
     }),
   );
   return sections;
-}
-
-function allSection({ board, pulls, issues, tasks, slack }) {
-  // What is moving first, then fresh asks, then the queue.
-  const active = board.filter((c) => rank(c.status) <= 1);
-  const queued = board.filter((c) => rank(c.status) > 1);
-  const items = [...active, ...pulls, ...slack, ...tasks, ...queued, ...issues];
-  return section({
-    key: 'all',
-    name: filters.section,
-    sub: sub('Most urgent first'),
-    count: items.length,
-    items,
-    empty: 'Your plate is clear.',
-    rowOpts: () => ({ withSource: true }),
-  });
 }
 
 /**
@@ -1025,17 +998,14 @@ function render() {
     return;
   }
 
-  const sections =
-    view === 'all'
-      ? [allSection(lists)]
-      : splitSections(lists);
+  const sections = splitSections(lists);
   if (done.length) {
     sections.push(
       section({
         key: 'done',
         name: 'Cleared today',
         items: done,
-        // Cleared rows mix sources in either view, so each says where it is from.
+        // Cleared rows mix sources, so each says where it is from.
         rowOpts: () => ({ withSource: true }),
       }),
     );
@@ -1057,16 +1027,11 @@ function refocus(id) {
   input.setSelectionRange(input.value.length, input.value.length);
 }
 
-/** The toggle, the read time, whose plate it is, and a failed read's reason. */
+/** The read time, whose plate it is, and a failed read's reason. */
 function renderChrome() {
   const me = data.assignee;
   $('assignee').hidden = !me;
   if (me) $('assignee').replaceChildren(avatar(me.login, 'assignee-avatar'), span('', `Assigned to me · ${me.name}`));
-
-  $('views').dataset.view = view;
-  for (const button of $('views').querySelectorAll('button')) {
-    button.setAttribute('aria-pressed', String(button.dataset.view === view));
-  }
 
   const sync = data.sync;
   $('read-at').textContent = sync ? `Read ${ago(sync.at)}` : '';
@@ -1080,17 +1045,6 @@ function warn(message) {
   const note = $('provenance');
   note.hidden = false;
   note.textContent = message;
-}
-
-function setView(next) {
-  if (next === view || animating) return;
-  view = next;
-  try {
-    localStorage.setItem(VIEW_KEY, view);
-  } catch {
-    // Private window or blocked storage: the choice lasts this visit only.
-  }
-  if (data) render();
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────
@@ -1240,9 +1194,6 @@ async function removeNote(item, noteId) {
 
 $('add').addEventListener('submit', addTask);
 $('sync').addEventListener('click', sync);
-for (const button of $('views').querySelectorAll('button')) {
-  button.addEventListener('click', () => setView(button.dataset.view));
-}
 document.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   // Typing a task or a note is not a shortcut.
@@ -1256,11 +1207,8 @@ document.addEventListener('keydown', (e) => {
     $('add-title').focus();
   }
   if (key === 'r') sync();
-  if (key === 'v') setView(view === 'split' ? 'all' : 'split');
   if (key === 'escape') clearFilters();
 });
-// Set before the first plate arrives, so the thumb starts where it belongs.
-$('views').dataset.view = view;
 
 load();
 // Slack items arrive on their own; pick them up without a reload.

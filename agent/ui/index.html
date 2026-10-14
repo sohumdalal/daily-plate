@@ -16,12 +16,6 @@
     <nav class="topnav">
       <span class="wordmark"><span class="tick" aria-hidden="true"></span>Daily Plate</span>
       <div class="nav-right">
-        <!-- Two ways to read the same plate. The thumb slides between them. -->
-        <div class="views" id="views" role="group" aria-label="View">
-          <span class="views-thumb" aria-hidden="true"></span>
-          <button type="button" data-view="split" title="By source (V)">Split</button>
-          <button type="button" data-view="all" title="Everything in one list (V)">All</button>
-        </div>
         <span class="label read-at" id="read-at"></span>
         <button class="sync" id="sync" type="button" title="Re-read GitHub (R)">Refresh</button>
       </div>
@@ -54,8 +48,8 @@
         <p class="note warn" id="provenance" hidden></p>
       </header>
 
-      <!-- Sections are built per view: one per board, one each for your PRs and
-           issues, one for your tasks, and one for Slack when split, a single list when not. Cleared today closes both. -->
+      <!-- Sections: one per board, one each for your PRs and
+           issues, one for your tasks, and one for Slack. Cleared today closes both. -->
       <div id="lists"></div>
     </main>
 

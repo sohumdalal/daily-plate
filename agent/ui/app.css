@@ -127,53 +127,6 @@ body {
   display: none;
 }
 
-/* Two buttons over one ink thumb. The thumb slides; the labels swap colour
-   as it passes, so the change reads as one motion. */
-.views {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 32px;
-  border: 1px solid var(--ink);
-}
-
-/* Laid over the border rather than inside it, so it meets the frame flush on
-   both sides instead of leaving a subpixel sliver of white. Its own width is
-   exactly the distance to travel, so translateX(100%) lands it. */
-.views-thumb {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  left: -1px;
-  width: calc(50% + 1px);
-  background: var(--ink);
-  transition: transform 420ms var(--ease);
-}
-
-.views[data-view='all'] .views-thumb {
-  transform: translateX(100%);
-}
-
-.views button {
-  position: relative;
-  min-width: 64px;
-  padding: 0 var(--xs);
-  background: none;
-  border: 0;
-  color: var(--ink);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.65px;
-  text-transform: uppercase;
-  transition: color 300ms var(--ease);
-}
-
-.views button[aria-pressed='true'] {
-  color: var(--canvas);
-}
-
 .sync {
   height: 32px;
   padding: 0 var(--xs);

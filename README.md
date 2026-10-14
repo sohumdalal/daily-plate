@@ -40,25 +40,18 @@ Tick an item to clear it. What you cleared today stays visible beneath the
 plate until the day ends. A card you clear yourself stays cleared, even if the
 board still has it open.
 
-## Two views
+## Sections
 
-The toggle in the nav (or `V`) switches between them, and the choice is
-remembered in this browser.
-
-- **Split**: a section per source. Each board gets its own section, headed
-  by its name (a link to the board), `owner · #number`, and how many of your
-  cards are open on it. Pull requests and Issues come next, each headed by
-  a link to the same search on GitHub. Tasks and then Slack follow, and Slack's header is where the connection
-  shows: live or not, and whether mentions are on. A card on both boards
-  appears under each.
-- **All**: one list of every task, whatever the source. Active board work
-  (In progress, In review) comes first, then your PRs, then Slack asks
-  newest first, then the rest of the boards' queue, then issues off the
-  boards. Each row leads with its source.
+Each board gets its own section, headed by its name (a link to the board),
+`owner · #number`, and how many of your cards are open on it. Pull requests
+and Issues come next, each headed by a link to the same search on GitHub.
+Tasks and then Slack follow, and Slack's header is where the connection
+shows: live or not, and whether mentions are on. A card on both boards
+appears under each.
 
 ## Filters
 
-Under the counts, a Section row (a board, Pull requests, Issues, Slack) shows
+Under the counts, a Section row (a board, Pull requests, Issues, Tasks, Slack) shows
 one section at a time. One section is always on; click another to switch.
 Under Pull requests, a Repo row (`astropods/messaging`) and a State row (In PR,
 Approved…) narrow the list. Click a chip to show only its rows, and click it
@@ -200,6 +193,4 @@ when they grow and downward when they shrink. Ticking an item plays the mark
 in place first (the box fills, the tick draws, a line runs through the
 title), then the row glides into Cleared today while the rows around it close
 the gap. Unticking runs it back. A new Slack arrival fades in with a brief
-highlight, and Refresh runs a red line along the nav. Switching views moves
-every row from its place in one layout to its place in the other. All of it
-is off under `prefers-reduced-motion`.
+highlight, and Refresh runs a red line along the nav. All of it is off under `prefers-reduced-motion`.
