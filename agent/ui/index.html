@@ -42,6 +42,12 @@
           <div class="spec-cell"><span class="spec-value" id="n-slack" data-i="2"></span><span class="label">From Slack</span></div>
           <div class="spec-cell"><span class="spec-value" id="n-done" data-i="3"></span><span class="label">Cleared today</span></div>
         </div>
+        <!-- A task of your own, with no board or Slack behind it. -->
+        <form class="add" id="add">
+          <input id="add-title" type="text" maxlength="2000" autocomplete="off"
+                 placeholder="Add a task to the plate (N)" aria-label="New task" />
+          <button class="sync" type="submit">Add</button>
+        </form>
         <!-- Repo, section and state chips. One of each can be on at a time,
              and they combine. -->
         <div class="filters" id="filters"></div>
@@ -49,7 +55,7 @@
       </header>
 
       <!-- Sections are built per view: one per board, one each for your PRs and
-           issues, and one for Slack when split, a single list when not. Cleared today closes both. -->
+           issues, one for your tasks, and one for Slack when split, a single list when not. Cleared today closes both. -->
       <div id="lists"></div>
     </main>
 

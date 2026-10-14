@@ -13,10 +13,15 @@ const $ = (id) => document.getElementById(id);
 /** Board columns, most urgent first. Anything else sorts after these. */
 const COLUMN_ORDER = ['In progress', 'In review', 'Ready', 'On hold', 'Backlog'];
 
-const SOURCE_LABEL = { mention: 'Mention', reaction: 'Reacted' };
+const SOURCE_LABEL = { mention: 'Mention', reaction: 'Reacted', task: 'Task' };
 
-/** Sources read from GitHub. Everything else is Slack. */
+/** Sources read from GitHub. */
 const GITHUB_SOURCES = new Set(['board', 'pr', 'issue']);
+
+/** Sources read from Slack. A task is neither: you typed it in. */
+const SLACK_SOURCES = new Set(['mention', 'reaction']);
+
+const TASKS_SECTION = 'Tasks';
 
 /** PRs and issues off the boards have no column, so their state orders them. */
 const STATE_ORDER = ['changes', 'approved', 'in_review', 'draft', 'branch', 'in_progress', 'open'];
@@ -93,6 +98,9 @@ let animating = 0;
 let first = true;
 /** Each card's state at the last render, so a change can announce itself. */
 const lastStates = new Map();
+/** Rows whose notes are open, and what is typed in each one's note box. Both outlive a render. */
+const openNotes = new Set();
+const noteDrafts = new Map();
 
 function rank(status) {
   const i = COLUMN_ORDER.indexOf(status);
@@ -291,6 +299,7 @@ const SECTION_OF = {
   board: (item) => item.boards,
   pr: () => ['Pull requests'],
   issue: () => ['Issues'],
+  task: () => [TASKS_SECTION],
 };
 
 /** The filter rows that apply to the section that is on. */
@@ -405,7 +414,7 @@ function clearFilters() {
 
 /** Sections in plate order, states in lifecycle order; repos by count. */
 const FILTER_ORDER = {
-  section: () => [ALL_SECTION, ...boardList([]).map((b) => b.title), PR_SECTION, 'Issues', 'Slack'],
+  section: () => [ALL_SECTION, ...boardList([]).map((b) => b.title), PR_SECTION, 'Issues', TASKS_SECTION, 'Slack'],
   state: () => Object.keys(STATE),
 };
 
@@ -450,7 +459,8 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   meta.className = 'meta';
   const fromGitHub = GITHUB_SOURCES.has(item.source);
   // A board card or PR says where it is from by its repo, number and colour.
-  if (withSource && item.source !== 'board' && item.source !== 'pr') {
+  // A task's meta line already says Task.
+  if (withSource && !['board', 'pr', 'task'].includes(item.source)) {
     const from = span('from', FROM[item.source]?.(item) ?? 'Slack');
     from.prepend(icon(fromGitHub ? 'github' : 'slack'));
     meta.append(from);
@@ -472,7 +482,8 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     if (work && work.via !== 'self' && !pr) meta.append(workLink(work));
     if (!withSource && item.boards.length > 1) meta.append(span('', 'Both boards'));
   } else {
-    meta.append(span('status', SOURCE_LABEL[item.source]), span('where', item.context || 'Slack'));
+    meta.append(span('status', SOURCE_LABEL[item.source]));
+    if (item.source !== 'task') meta.append(span('where', item.context || 'Slack'));
     if (item.author) meta.append(span('', item.author));
     meta.append(span('', ago(item.addedAt)));
   }
@@ -488,8 +499,85 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
 
   body.append(meta, title);
   if (item.work?.kind === 'pr' && item.work.comments?.length) body.append(commentChip(item.work.comments));
-  li.append(check, body);
+  li.append(check, body, notesToggle(item));
+  if (openNotes.has(item.id)) {
+    li.classList.add('notes-open');
+    li.append(notesPanel(item));
+  }
   return li;
+}
+
+const CHEVRON_SVG =
+  '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg>';
+
+/** Opens a row's notes. The bubble counts them, and is gone while there are none. */
+function notesToggle(item) {
+  const n = item.notes?.length ?? 0;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'notes-toggle';
+  button.setAttribute('aria-expanded', String(openNotes.has(item.id)));
+  button.setAttribute('aria-label', n ? `${n} ${n === 1 ? 'note' : 'notes'}` : 'Add a note');
+  button.title = openNotes.has(item.id) ? 'Hide notes' : n ? 'Show notes' : 'Add a note';
+  if (n) button.append(span('note-count', String(n)));
+  button.insertAdjacentHTML('beforeend', CHEVRON_SVG);
+  button.addEventListener('click', () => {
+    if (!openNotes.delete(item.id)) openNotes.add(item.id);
+    render();
+    if (openNotes.has(item.id)) document.querySelector(`.note-input[data-id="${item.id}"]`)?.focus();
+  });
+  return button;
+}
+
+/** A row's notes, oldest first, and a box to add one. Enter adds; Shift+Enter breaks the line. */
+function notesPanel(item) {
+  const panel = document.createElement('div');
+  panel.className = 'notes';
+
+  const list = document.createElement('ul');
+  list.className = 'note-list';
+  for (const note of item.notes ?? []) {
+    const li = document.createElement('li');
+    li.className = 'note-row';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'note-remove';
+    remove.textContent = '×';
+    remove.title = 'Delete this note';
+    remove.setAttribute('aria-label', 'Delete this note');
+    remove.addEventListener('click', () => removeNote(item, note.id));
+    li.append(span('note-text', note.text), span('label note-at', ago(note.at)), remove);
+    list.append(li);
+  }
+
+  const input = document.createElement('textarea');
+  input.className = 'note-input';
+  input.dataset.id = String(item.id);
+  input.rows = 1;
+  input.maxLength = 2000;
+  input.placeholder = item.notes?.length ? 'Add another note' : 'Add a note';
+  input.value = noteDrafts.get(item.id) ?? '';
+  input.addEventListener('input', () => {
+    noteDrafts.set(item.id, input.value);
+    fit(input);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      addNote(item, input.value);
+    }
+    if (e.key === 'Escape') input.blur();
+  });
+  requestAnimationFrame(() => fit(input));
+
+  panel.append(list, input);
+  return panel;
+}
+
+/** A note box grows with what is typed in it. */
+function fit(input) {
+  input.style.height = 'auto';
+  input.style.height = `${input.scrollHeight}px`;
 }
 
 /** The state pill. With `pr`, it names that PR and links to it. */
@@ -706,7 +794,7 @@ function sub(text, { live = false } = {}) {
   return node;
 }
 
-function splitSections(board, pulls, issues, slack) {
+function splitSections({ board, pulls, issues, tasks, slack }) {
   const sync = data.sync;
   const failed = Boolean(sync && !sync.ok);
   const drawn = new Set();
@@ -779,6 +867,19 @@ function splitSections(board, pulls, issues, slack) {
     );
   }
 
+  if (shown(TASKS_SECTION)) {
+    sections.push(
+      section({
+        key: 'task',
+        name: TASKS_SECTION,
+        sub: sub('Added by you'),
+        count: tasks.length,
+        items: tasks,
+        empty: 'No tasks of your own. Add one above.',
+      }),
+    );
+  }
+
   if (!shown('Slack')) return sections;
   const live = data.state.slackConnected;
   sections.push(
@@ -802,11 +903,11 @@ function splitSections(board, pulls, issues, slack) {
   return sections;
 }
 
-function allSection(board, pulls, issues, slack) {
+function allSection({ board, pulls, issues, tasks, slack }) {
   // What is moving first, then fresh asks, then the queue.
   const active = board.filter((c) => rank(c.status) <= 1);
   const queued = board.filter((c) => rank(c.status) > 1);
-  const items = [...active, ...pulls, ...slack, ...queued, ...issues];
+  const items = [...active, ...pulls, ...slack, ...tasks, ...queued, ...issues];
   return section({
     key: 'all',
     name: filters.section,
@@ -827,7 +928,7 @@ function activitySections(open) {
   const cleared = [...data.items.filter((i) => i.doneAt), ...(data.history ?? [])].sort((a, b) =>
     b.doneAt.localeCompare(a.doneAt),
   );
-  const of = (source) => cleared.filter((i) => (source === 'slack' ? !GITHUB_SOURCES.has(i.source) : i.source === source));
+  const of = (source) => cleared.filter((i) => (source === 'slack' ? SLACK_SOURCES.has(i.source) : i.source === source));
   const drawn = new Set();
   // A card on two boards appears under both; the second copy needs a key of its own.
   const rowOpts = (name) => (item) => {
@@ -863,6 +964,7 @@ function activitySections(open) {
     ...boards,
     part({ key: 'pr', name: 'Pull requests', href: searchUrl('pr'), iconName: 'github', openItems: open.pulls, doneItems: of('pr') }),
     part({ key: 'issue', name: 'Issues', href: searchUrl('issue'), iconName: 'github', openItems: open.issues, doneItems: of('issue') }),
+    part({ key: 'task', name: TASKS_SECTION, openItems: open.tasks, doneItems: of('task') }),
     part({ key: 'slack', name: 'Slack', iconName: 'slack', openItems: open.slack, doneItems: of('slack') }),
   ].filter((group) => group.querySelector('.item'));
 
@@ -877,6 +979,8 @@ function activitySections(open) {
 
 function render() {
   const before = snapshot();
+  // A note box being typed in is rebuilt with its row; it keeps the focus.
+  const typing = document.activeElement?.classList.contains('note-input') ? document.activeElement.dataset.id : null;
 
   const open = data.items.filter((i) => !i.doneAt);
   // The counts up top stay whole; the filters only narrow the lists.
@@ -885,13 +989,16 @@ function render() {
     board: open.filter((i) => i.source === 'board'),
     pulls: open.filter((i) => i.source === 'pr'),
     issues: open.filter((i) => i.source === 'issue'),
-    slack: open.filter((i) => !GITHUB_SOURCES.has(i.source)),
+    tasks: open.filter((i) => i.source === 'task'),
+    slack: open.filter((i) => SLACK_SOURCES.has(i.source)),
   };
   const shown = (list) => list.filter((i) => passes(i));
   const board = shown(all.board).sort(byColumn);
   const pulls = shown(all.pulls).sort(byState);
   const issues = shown(all.issues).sort(byState);
+  const tasks = shown(all.tasks).sort(byNewest);
   const slack = shown(all.slack).sort(byNewest);
+  const lists = { board, pulls, issues, tasks, slack };
   // Most recently cleared first, so a row you just ticked lands on top.
   const allDone = data.items.filter((i) => i.doneAt);
   const done = shown(allDone).sort((a, b) => b.doneAt.localeCompare(a.doneAt));
@@ -901,15 +1008,16 @@ function render() {
     month: 'long',
     day: 'numeric',
   });
-  // Pull requests are listed but not counted: the plate is issues and Slack.
-  setCount($('n-open'), all.board.length + all.issues.length + all.slack.length);
+  // Pull requests are listed but not counted: the plate is issues, tasks and Slack.
+  setCount($('n-open'), all.board.length + all.issues.length + all.tasks.length + all.slack.length);
   setCount($('n-github'), all.board.length + all.issues.length);
   setCount($('n-slack'), all.slack.length);
   setCount($('n-done'), allDone.length);
   renderFilters(open);
 
   if (filters.section === ALL_SECTION) {
-    $('lists').replaceChildren(...activitySections({ board, pulls, issues, slack }));
+    $('lists').replaceChildren(...activitySections(lists));
+    refocus(typing);
     renderChrome();
     play(before);
     if (first) document.body.classList.add('ready');
@@ -919,8 +1027,8 @@ function render() {
 
   const sections =
     view === 'all'
-      ? [allSection(board, pulls, issues, slack)]
-      : splitSections(board, pulls, issues, slack);
+      ? [allSection(lists)]
+      : splitSections(lists);
   if (done.length) {
     sections.push(
       section({
@@ -933,12 +1041,20 @@ function render() {
     );
   }
   $('lists').replaceChildren(...sections);
+  refocus(typing);
 
   renderChrome();
   play(before);
 
   if (first) document.body.classList.add('ready');
   first = false;
+}
+
+function refocus(id) {
+  const input = id && document.querySelector(`.note-input[data-id="${id}"]`);
+  if (!input) return;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
 }
 
 /** The toggle, the read time, whose plate it is, and a failed read's reason. */
@@ -1064,13 +1180,81 @@ async function toggle(id) {
   }
 }
 
+/** Put a task of your own on the plate, and show the section it lands in. */
+async function addTask(e) {
+  e.preventDefault();
+  const input = $('add-title');
+  const title = input.value.trim();
+  if (!title) return;
+  input.disabled = true;
+  try {
+    const item = await request('/api/items', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title }),
+    });
+    data.items.push(item);
+    input.value = '';
+    if (filters.section !== ALL_SECTION && filters.section !== TASKS_SECTION) setFilter('section', TASKS_SECTION);
+    else render();
+  } catch (err) {
+    warn(`Could not add that task: ${err.message}`);
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+/** The item as the server now has it, wherever it is kept on the page. */
+function replaceItem(fresh) {
+  for (const list of [data.items, data.history ?? []]) {
+    const at = list.findIndex((i) => i.id === fresh.id);
+    if (at !== -1) list[at] = fresh;
+  }
+  render();
+}
+
+async function addNote(item, value) {
+  const text = value.trim();
+  if (!text) return;
+  try {
+    const fresh = await request(`/api/items/${item.id}/notes`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    noteDrafts.delete(item.id);
+    replaceItem(fresh);
+  } catch (err) {
+    warn(`Could not add that note: ${err.message}`);
+  }
+}
+
+async function removeNote(item, noteId) {
+  try {
+    replaceItem(await request(`/api/items/${item.id}/notes/${noteId}`, { method: 'DELETE' }));
+  } catch (err) {
+    warn(`Could not delete that note: ${err.message}`);
+  }
+}
+
+$('add').addEventListener('submit', addTask);
 $('sync').addEventListener('click', sync);
 for (const button of $('views').querySelectorAll('button')) {
   button.addEventListener('click', () => setView(button.dataset.view));
 }
 document.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // Typing a task or a note is not a shortcut.
+  if (e.target.closest('input, textarea')) {
+    if (e.key === 'Escape') e.target.blur();
+    return;
+  }
   const key = e.key.toLowerCase();
+  if (key === 'n') {
+    e.preventDefault();
+    $('add-title').focus();
+  }
   if (key === 'r') sync();
   if (key === 'v') setView(view === 'split' ? 'all' : 'split');
   if (key === 'escape') clearFilters();

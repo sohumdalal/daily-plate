@@ -1,12 +1,12 @@
 /**
- * Every query against the plate. One table, `items`, five sources.
+ * Every query against the plate. One table, `items`, six sources.
  */
 
 import { db } from './db/client.ts';
 
 const USER = 'default';
 
-export type Source = 'board' | 'pr' | 'issue' | 'mention' | 'reaction';
+export type Source = 'board' | 'pr' | 'issue' | 'mention' | 'reaction' | 'task';
 
 /** The sources read from GitHub, each replaced whole on every sync. */
 export type GitHubSource = 'board' | 'pr' | 'issue';
@@ -42,6 +42,8 @@ export type WorkRef = {
   via: 'self' | 'linked' | 'branch-name' | 'mentioned';
 };
 
+export type Note = { id: string; text: string; at: string };
+
 export type Item = {
   id: number;
   source: Source;
@@ -57,6 +59,8 @@ export type Item = {
   boards: string[];
   state: TicketState | '';
   work: WorkRef | null;
+  /** Your own notes on the item, oldest first. */
+  notes: Note[];
   doneAt: string | null;
   doneBy: 'you' | 'board' | null;
   addedAt: string;
@@ -74,13 +78,14 @@ type ItemRow = {
   boards: string[];
   state: TicketState | '';
   work: WorkRef | null;
+  notes: Note[];
   done_at: Date | null;
   done_by: 'you' | 'board' | null;
   added_at: Date;
 };
 
 const COLUMNS =
-  'id, source, external_id, title, url, context, author, status, boards, state, work, ' +
+  'id, source, external_id, title, url, context, author, status, boards, state, work, notes, ' +
   'done_at, done_by, added_at';
 
 function toItem(row: ItemRow): Item {
@@ -96,6 +101,7 @@ function toItem(row: ItemRow): Item {
     boards: row.boards,
     state: row.state,
     work: row.work,
+    notes: row.notes,
     doneAt: row.done_at?.toISOString() ?? null,
     doneBy: row.done_by,
     addedAt: row.added_at.toISOString(),
@@ -230,6 +236,42 @@ export async function addSlackItem(input: {
   `;
   const row = rows[0]!;
   return { item: toItem(row), isNew: row.inserted };
+}
+
+/** A task you typed in. It has no source to sync, so only you clear it. */
+export async function addTask(title: string): Promise<Item> {
+  const sql = db();
+  const rows = await sql<ItemRow[]>`
+    INSERT INTO items (user_id, source, external_id, title)
+    VALUES (${USER}, 'task', ${crypto.randomUUID()}, ${title})
+    RETURNING ${sql.unsafe(COLUMNS)}
+  `;
+  return toItem(rows[0]!);
+}
+
+export async function addNote(id: number, text: string): Promise<Item | null> {
+  const sql = db();
+  const note: Note = { id: crypto.randomUUID(), text, at: new Date().toISOString() };
+  const rows = await sql<ItemRow[]>`
+    UPDATE items SET notes = notes || ${sql.json([note])}, updated_at = now()
+     WHERE id = ${id} AND user_id = ${USER}
+    RETURNING ${sql.unsafe(COLUMNS)}
+  `;
+  return rows[0] ? toItem(rows[0]) : null;
+}
+
+export async function deleteNote(id: number, noteId: string): Promise<Item | null> {
+  const sql = db();
+  const rows = await sql<ItemRow[]>`
+    UPDATE items
+       SET notes = coalesce(
+             (SELECT jsonb_agg(n) FROM jsonb_array_elements(notes) n WHERE n->>'id' <> ${noteId}),
+             '[]'::jsonb),
+           updated_at = now()
+     WHERE id = ${id} AND user_id = ${USER}
+    RETURNING ${sql.unsafe(COLUMNS)}
+  `;
+  return rows[0] ? toItem(rows[0]) : null;
 }
 
 /** Clear an item from the screen, or put it back. */

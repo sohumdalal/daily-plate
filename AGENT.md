@@ -14,6 +14,7 @@ capabilities:
   - Clears a card from the plate when the board moves it to Done
   - Puts any Slack message you react to with a plate emoji on the plate
   - Puts Slack messages that @-mention you in observed channels on the plate
+  - Takes tasks you type in yourself, and your notes on any item
 integrations:
   - GitHub
   - Slack

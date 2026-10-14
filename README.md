@@ -28,6 +28,14 @@ Three sources feed it:
   plate. A message that @-mentions you in an observed channel lands there
   without the reaction.
 
+You can also type a task of your own into the box under the counts (or press
+`N`). It goes under Tasks and stays until you clear it.
+
+Every item has a dropdown at its right edge for your notes. A bubble on the
+dropdown counts them. Type a note and press Enter to add it, or Shift+Enter for
+a new line. Hover a note and click × to delete it. A sync never changes your
+notes.
+
 Tick an item to clear it. What you cleared today stays visible beneath the
 plate until the day ends. A card you clear yourself stays cleared, even if the
 board still has it open.
@@ -40,7 +48,7 @@ remembered in this browser.
 - **Split**: a section per source. Each board gets its own section, headed
   by its name (a link to the board), `owner · #number`, and how many of your
   cards are open on it. Pull requests and Issues come next, each headed by
-  a link to the same search on GitHub. Slack follows, and its header is where the connection
+  a link to the same search on GitHub. Tasks and then Slack follow, and Slack's header is where the connection
   shows: live or not, and whether mentions are on. A card on both boards
   appears under each.
 - **All**: one list of every task, whatever the source. Active board work

@@ -60,6 +60,17 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
         CHECK (source IN ('board','pr','issue','mention','reaction'));
     `,
   },
+  {
+    // Tasks you type in yourself, and your own notes on any item, oldest
+    // first, as [{ id, text, at }]. A sync never touches the notes.
+    id: '0005_tasks_notes',
+    sql: `
+      ALTER TABLE items DROP CONSTRAINT IF EXISTS items_source_check;
+      ALTER TABLE items ADD CONSTRAINT items_source_check
+        CHECK (source IN ('board','pr','issue','mention','reaction','task'));
+      ALTER TABLE items ADD COLUMN IF NOT EXISTS notes JSONB NOT NULL DEFAULT '[]'::jsonb;
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {
