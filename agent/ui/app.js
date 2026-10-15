@@ -423,6 +423,8 @@ function icon(name) {
 
 const CHECK_SVG =
   '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 10.5l3 3 6-6.5" /></svg>';
+const CROSS_SVG =
+  '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6l8 8M14 6l-8 8" /></svg>';
 
 /**
  * One row. `key` is its FLIP identity: a card on both boards is shown under
@@ -488,7 +490,21 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
 
   body.append(meta, title);
   if (item.work?.kind === 'pr' && item.work.comments?.length) body.append(commentChip(item.work.comments));
-  li.append(check, body, notesToggle(item));
+  // A task can also go for good. Anything synced would only come back.
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  actions.append(notesToggle(item));
+  if (item.source === 'task') {
+    const cross = document.createElement('button');
+    cross.className = 'cross';
+    cross.type = 'button';
+    cross.innerHTML = CROSS_SVG;
+    cross.title = 'Delete it';
+    cross.setAttribute('aria-label', 'Delete it');
+    cross.addEventListener('click', () => removeTask(item.id));
+    actions.append(cross);
+  }
+  li.append(check, body, actions);
   if (openNotes.has(item.id)) {
     li.classList.add('notes-open');
     li.append(notesPanel(item));
@@ -1166,6 +1182,23 @@ function replaceItem(fresh) {
     if (at !== -1) list[at] = fresh;
   }
   render();
+}
+
+/** Delete a task for good. A failure puts it back where it was. */
+async function removeTask(id) {
+  const lists = [data.items, data.history ?? []];
+  const list = lists.find((l) => l.some((i) => i.id === id));
+  if (!list) return;
+  const at = list.findIndex((i) => i.id === id);
+  const [item] = list.splice(at, 1);
+  render();
+  try {
+    await request(`/api/items/${id}`, { method: 'DELETE' });
+  } catch (err) {
+    list.splice(at, 0, item);
+    render();
+    warn(`Could not delete that task: ${err.message}`);
+  }
 }
 
 async function addNote(item, value) {

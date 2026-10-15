@@ -7,6 +7,7 @@
  *   POST  /api/sync         re-read GitHub now
  *   POST  /api/items        { title: string } — put a task of your own on the plate
  *   PATCH /api/items/:id    { done: boolean } — clear an item, or put it back
+ *   DELETE /api/items/:id   delete a task of your own
  *   POST  /api/items/:id/notes      { text: string } — add a note to an item
  *   DELETE /api/items/:id/notes/:n  remove that note
  */
@@ -61,6 +62,12 @@ routes.patch('/api/items/:id', async (c) => {
   }
   const item = await store.setDone(id, body.done);
   return item ? c.json(item) : c.json({ error: 'not found' }, 404);
+});
+
+routes.delete('/api/items/:id', async (c) => {
+  const id = Number(c.req.param('id'));
+  const deleted = Number.isInteger(id) && (await store.deleteTask(id));
+  return deleted ? c.json({ id }) : c.json({ error: 'not found' }, 404);
 });
 
 routes.post('/api/items/:id/notes', async (c) => {

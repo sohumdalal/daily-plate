@@ -288,6 +288,14 @@ export async function setDone(id: number, done: boolean): Promise<Item | null> {
   return rows[0] ? toItem(rows[0]) : null;
 }
 
+/** Delete a task for good. Only tasks: a synced item would come back. */
+export async function deleteTask(id: number): Promise<boolean> {
+  const rows = await db()`
+    DELETE FROM items WHERE id = ${id} AND user_id = ${USER} AND source = 'task' RETURNING id
+  `;
+  return rows.length > 0;
+}
+
 export async function openCount(): Promise<number> {
   const [row] = await db()<{ n: number }[]>`
     SELECT count(*)::int AS n FROM items WHERE user_id = ${USER} AND done_at IS NULL
