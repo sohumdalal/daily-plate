@@ -1,12 +1,12 @@
 /**
- * Every query against the plate. One table, `items`, six sources.
+ * Every query against the plate. One table, `items`, seven sources.
  */
 
 import { db } from './db/client.ts';
 
 const USER = 'default';
 
-export type Source = 'board' | 'pr' | 'issue' | 'mention' | 'reaction' | 'task';
+export type Source = 'board' | 'pr' | 'issue' | 'mention' | 'reaction' | 'task' | 'foreman';
 
 /** The sources read from GitHub, each replaced whole on every sync. */
 export type GitHubSource = 'board' | 'pr' | 'issue';
@@ -213,8 +213,8 @@ export async function syncSource(
 }
 
 /** A Slack message, from a reaction or a mention. Re-delivery updates in place. */
-export async function addSlackItem(input: {
-  source: 'mention' | 'reaction';
+export async function addMessageItem(input: {
+  source: 'mention' | 'reaction' | 'foreman';
   externalId: string;
   title: string;
   url: string;

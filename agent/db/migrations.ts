@@ -71,6 +71,15 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       ALTER TABLE items ADD COLUMN IF NOT EXISTS notes JSONB NOT NULL DEFAULT '[]'::jsonb;
     `,
   },
+  {
+    // Tasks another agent sends over the agent mesh, such as Foreman.
+    id: '0006_foreman',
+    sql: `
+      ALTER TABLE items DROP CONSTRAINT IF EXISTS items_source_check;
+      ALTER TABLE items ADD CONSTRAINT items_source_check
+        CHECK (source IN ('board','pr','issue','mention','reaction','task','foreman'));
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

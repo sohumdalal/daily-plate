@@ -15,6 +15,10 @@ agent:
     messaging: true
   healthcheck:
     path: /healthz
+  # Advertised on the agent mesh when deployed with the Agent mesh interface.
+  skills:
+    - name: plate.serve
+      description: Puts a ticket on this person's Daily Plate, under Foreman says.
   inputs:
     - name: GITHUB_USERNAME
       datatype: string
