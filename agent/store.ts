@@ -274,6 +274,27 @@ export async function deleteNote(id: number, noteId: string): Promise<Item | nul
   return rows[0] ? toItem(rows[0]) : null;
 }
 
+/** The item a Slack message put on the plate, by `channel:ts`. */
+export async function findSlackItem(externalId: string): Promise<Item | null> {
+  const sql = db();
+  const rows = await sql<ItemRow[]>`
+    SELECT ${sql.unsafe(COLUMNS)} FROM items
+     WHERE user_id = ${USER} AND source IN ('mention', 'reaction') AND external_id = ${externalId}
+     ORDER BY added_at LIMIT 1
+  `;
+  return rows[0] ? toItem(rows[0]) : null;
+}
+
+export async function renameItem(id: number, title: string): Promise<Item | null> {
+  const sql = db();
+  const rows = await sql<ItemRow[]>`
+    UPDATE items SET title = ${title}, updated_at = now()
+     WHERE id = ${id} AND user_id = ${USER}
+    RETURNING ${sql.unsafe(COLUMNS)}
+  `;
+  return rows[0] ? toItem(rows[0]) : null;
+}
+
 /** Clear an item from the screen, or put it back. */
 export async function setDone(id: number, done: boolean): Promise<Item | null> {
   const sql = db();

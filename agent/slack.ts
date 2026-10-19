@@ -9,7 +9,8 @@
  *             `observe_channel_ids` (or in a thread the app can see). The
  *             adapter forwards those messages whole; this file keeps the ones
  *             naming you. A message that @-mentions Daily Plate itself goes on
- *             the plate too, whoever sent it.
+ *             the plate too, whoever sent it, unless it is a command
+ *             (commands.ts): read, add a task, or change a plated message.
  *
  * The bot only sees channels it was invited to and never sees DMs between
  * people, so a mention elsewhere has to be reacted onto the plate instead.
@@ -22,8 +23,8 @@
 import { connect } from 'node:net';
 import { MessagingClient, type AgentResponse, type Message } from '@astropods/messaging';
 import { config } from './config.ts';
+import { answer, plateOwner } from './commands.ts';
 import * as store from './store.ts';
-import { assignee } from './sync.ts';
 
 /**
  * Astro injects the sidecar's address as GRPC_SERVER_ADDR, deployed and under
@@ -75,21 +76,12 @@ function permalink(workspace: string, channelId: string, messageTs: string): str
   return `https://${workspace}.slack.com/archives/${channelId}/p${messageTs.replace('.', '')}`;
 }
 
-/** `@Daily Plate remove this` in a thread takes the thread's message off. */
-const REMOVE_ASK = /\b(remove|take (it|this|that) off|unplate|drop)\b/i;
-
 function titleOf(text: string): string {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length > MAX_TITLE ? `${flat.slice(0, MAX_TITLE - 1)}…` : flat;
 }
 
 /** `Added to Sohum's plate for Monday, October 19. 5 open.` */
-/** `Sohum's`, from the GitHub profile, or `your` before it is read. */
-function plateOwner(): string {
-  const name = assignee()?.name || config.github.username;
-  return name ? `${name.split(' ')[0]}'s` : 'your';
-}
-
 function platedReply(isNew: boolean, open: number): string {
   const who = plateOwner();
   const day = new Intl.DateTimeFormat('en-US', {
@@ -99,11 +91,6 @@ function platedReply(isNew: boolean, open: number): string {
     day: 'numeric',
   }).format(new Date());
   return isNew ? `Added to ${who} plate for ${day}. ${open} open.` : `Already on ${who} plate. ${open} open.`;
-}
-
-function removedReply(removed: boolean, open: number): string {
-  const who = plateOwner();
-  return removed ? `Took this off ${who} plate. ${open} open.` : `This was not on ${who} plate.`;
 }
 
 /** START, DELTA, END: the adapter only posts a buffered DELTA on END. */
@@ -211,10 +198,16 @@ export async function startSlackIngestion(): Promise<void> {
       const text = content.startsWith('[slack_thread_summary]')
         ? content.slice(content.lastIndexOf('\n\n') + 2)
         : content;
-      if (REMOVE_ASK.test(text) && ctx.threadRootId && message.conversationId) {
-        const removed = await store.removeSlackItem(`${ctx.channelId}:${ctx.threadRootId}`, ['mention', 'reaction']);
-        console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} thread in ${channel || '?'}`);
-        say(conversation, message.conversationId, removedReply(removed, await store.openCount()));
+      // A command (see commands.ts) gets its answer; anything else is plated.
+      const reply = await answer({ text, channelId: ctx.channelId ?? '', threadRootId: ctx.threadRootId ?? '' }).catch(
+        (err) => {
+          console.error('[slack] command failed:', err);
+          return 'Something went wrong. Try again later.';
+        },
+      );
+      if (reply !== null) {
+        console.log(`[slack] answered a command in ${channel || '?'}`);
+        if (message.conversationId) say(conversation, message.conversationId, reply);
         return;
       }
       await save(message, {
