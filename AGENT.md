@@ -15,7 +15,6 @@ capabilities:
   - Puts any Slack message you react to with a plate emoji on the plate, and takes it off when you remove the emoji
   - Puts Slack messages that @-mention you in observed channels on the plate
   - Takes tasks you type in yourself, and your notes on any item
-  - Takes tickets Foreman sends over the agent mesh, under Foreman says
 integrations:
   - GitHub
   - Slack

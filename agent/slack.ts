@@ -1,5 +1,5 @@
 /**
- * Slack and agent mesh ingestion, three ways onto the plate.
+ * Slack ingestion, two ways onto the plate.
  *
  *   Reaction  React :knife_fork_plate: to any message in a channel the app is
  *             in, and remove it to take the message off. `actionable_reactions`
@@ -9,9 +9,6 @@
  *             `observe_channel_ids` (or in a thread the app can see). The
  *             adapter forwards those messages whole; this file keeps the ones
  *             naming you.
- *   Mesh      A task another agent sends over the agent mesh, such as
- *             Foreman. It lands under Foreman says, and the reply completes
- *             the task.
  *
  * The bot only sees channels it was invited to and never sees DMs between
  * people, so a mention elsewhere has to be reacted onto the plate instead.
@@ -141,19 +138,6 @@ export async function startSlackIngestion(): Promise<void> {
 
   async function handle(message: Message): Promise<void> {
     const ctx = message.platformContext ?? ({} as NonNullable<Message['platformContext']>);
-    if (message.platform === 'mesh') {
-      const content = message.content ?? '';
-      console.log(`[mesh] inbound ${ctx.platformData?.mesh_kind ?? 'unknown'} from ${ctx.platformData?.mesh_from ?? '?'}`);
-      await save(message, {
-        source: 'foreman',
-        externalId: ctx.platformData?.mesh_task_id || message.conversationId,
-        title: titleOf(content.split('\n')[0] ?? ''),
-        url: content.match(/https:\/\/github\.com\/\S+/)?.[0] ?? '',
-        context: '',
-        author: '',
-      }, true);
-      return;
-    }
     console.log(
       `[slack] inbound ${ctx.eventKind ?? 'unknown'} channel=${ctx.channelName || ctx.channelId || '?'}`,
     );
@@ -214,17 +198,16 @@ export async function startSlackIngestion(): Promise<void> {
 
   async function save(
     message: Message,
-    input: Parameters<typeof store.addMessageItem>[0],
+    input: Parameters<typeof store.addSlackItem>[0],
     reply: boolean,
   ): Promise<void> {
     try {
-      const { item, isNew } = await store.addMessageItem(input);
+      const { item, isNew } = await store.addSlackItem(input);
       console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} ${item.source} from ${item.context || '?'}`);
       // A reaction needs a visible result, or it is indistinguishable from a
       // channel the app was never invited to. A mention gets none: replying in
-      // somebody else's thread to say you were mentioned is noise. A mesh task
-      // always gets one, since the reply is what completes it.
-      if (reply && (isNew || message.platform === 'mesh') && message.conversationId) {
+      // somebody else's thread to say you were mentioned is noise.
+      if (reply && isNew && message.conversationId) {
         const open = await store.openCount();
         say(conversation, message.conversationId, `On your plate (${open} open).`);
       }

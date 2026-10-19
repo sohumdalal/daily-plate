@@ -13,7 +13,7 @@ const $ = (id) => document.getElementById(id);
 /** Board columns, most urgent first. Anything else sorts after these. */
 const COLUMN_ORDER = ['In progress', 'In review', 'Ready', 'On hold', 'Backlog'];
 
-const SOURCE_LABEL = { mention: 'Mention', reaction: 'Reacted', task: 'Task', foreman: 'Foreman' };
+const SOURCE_LABEL = { mention: 'Mention', reaction: 'Reacted', task: 'Task' };
 
 /** Sources read from GitHub. */
 const GITHUB_SOURCES = new Set(['board', 'pr', 'issue']);
@@ -22,9 +22,6 @@ const GITHUB_SOURCES = new Set(['board', 'pr', 'issue']);
 const SLACK_SOURCES = new Set(['mention', 'reaction']);
 
 const TASKS_SECTION = 'Tasks';
-
-/** Tasks Foreman sends over the agent mesh. */
-const FOREMAN_SECTION = 'Foreman says';
 
 /** PRs and issues off the boards have no column, so their state orders them. */
 const STATE_ORDER = ['changes', 'approved', 'in_review', 'draft', 'branch', 'in_progress', 'open'];
@@ -292,7 +289,6 @@ const SECTION_OF = {
   pr: () => ['Pull requests'],
   issue: () => ['Issues'],
   task: () => [TASKS_SECTION],
-  foreman: () => [FOREMAN_SECTION],
 };
 
 /** The filter rows that apply to the section that is on. */
@@ -407,7 +403,7 @@ function clearFilters() {
 
 /** Sections in plate order, states in lifecycle order; repos by count. */
 const FILTER_ORDER = {
-  section: () => [ALL_SECTION, FOREMAN_SECTION, ...boardList([]).map((b) => b.title), PR_SECTION, 'Issues', TASKS_SECTION, 'Slack'],
+  section: () => [ALL_SECTION, ...boardList([]).map((b) => b.title), PR_SECTION, 'Issues', TASKS_SECTION, 'Slack'],
   state: () => Object.keys(STATE),
 };
 
@@ -457,7 +453,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   // A task's meta line already says Task.
   if (withSource && !['board', 'pr', 'task'].includes(item.source)) {
     const from = span('from', FROM[item.source]?.(item) ?? 'Slack');
-    if (item.source !== 'foreman') from.prepend(icon(fromGitHub ? 'github' : 'slack'));
+    from.prepend(icon(fromGitHub ? 'github' : 'slack'));
     meta.append(from);
   }
   if (fromGitHub) {
@@ -478,7 +474,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     if (!withSource && item.boards.length > 1) meta.append(span('', 'Both boards'));
   } else {
     meta.append(span('status', SOURCE_LABEL[item.source]));
-    if (SLACK_SOURCES.has(item.source)) meta.append(span('where', item.context || 'Slack'));
+    if (item.source !== 'task') meta.append(span('where', item.context || 'Slack'));
     if (item.author) meta.append(span('', item.author));
     meta.append(span('', ago(item.addedAt)));
   }
@@ -772,7 +768,6 @@ function byState(a, b) {
 /** Where a GitHub row is from, for the lists that mix sources. */
 const FROM = {
   issue: () => 'Issue',
-  foreman: () => 'Foreman',
 };
 
 /** The same search on GitHub, for a section header to link to. */
@@ -804,25 +799,12 @@ function sub(text, { live = false } = {}) {
   return node;
 }
 
-function splitSections({ foreman, board, pulls, issues, tasks, slack }) {
+function splitSections({ board, pulls, issues, tasks, slack }) {
   const sync = data.sync;
   const failed = Boolean(sync && !sync.ok);
   const drawn = new Set();
   const shown = (name) => filters.section === name;
-  const sections = [];
-  if (shown(FOREMAN_SECTION)) {
-    sections.push(
-      section({
-        key: 'foreman',
-        name: FOREMAN_SECTION,
-        sub: sub('Sent over the agent mesh'),
-        count: foreman.length,
-        items: foreman,
-        empty: 'Nothing from Foreman yet.',
-      }),
-    );
-  }
-  sections.push(...boardList(board).filter((b) => shown(b.title)).map((b) => {
+  const sections = boardList(board).filter((b) => shown(b.title)).map((b) => {
     const key = `board-${b.owner}-${b.number}-${b.title}`;
     const items = board.filter((c) => c.boards.includes(b.title));
     let line = b.owner ? `${b.owner} · #${b.number}` : 'GitHub Projects';
@@ -849,7 +831,7 @@ function splitSections({ foreman, board, pulls, issues, tasks, slack }) {
         return { key: `item-${item.id}@${b.title}` };
       },
     });
-  }));
+  });
 
   // Your PRs and issues across the orgs, headed like a board.
   const orgs = data.state.orgs.join(' · ');
@@ -968,7 +950,6 @@ function activitySections(open) {
     }),
   );
   const parts = [
-    part({ key: 'foreman', name: FOREMAN_SECTION, openItems: open.foreman, doneItems: of('foreman') }),
     ...boards,
     part({ key: 'pr', name: 'Pull requests', href: searchUrl('pr'), iconName: 'github', openItems: open.pulls, doneItems: of('pr') }),
     part({ key: 'issue', name: 'Issues', href: searchUrl('issue'), iconName: 'github', openItems: open.issues, doneItems: of('issue') }),
@@ -994,7 +975,6 @@ function render() {
   // The counts up top stay whole; the filters only narrow the lists.
   filters.section = pickSection(open);
   const all = {
-    foreman: open.filter((i) => i.source === 'foreman'),
     board: open.filter((i) => i.source === 'board'),
     pulls: open.filter((i) => i.source === 'pr'),
     issues: open.filter((i) => i.source === 'issue'),
@@ -1006,9 +986,8 @@ function render() {
   const pulls = shown(all.pulls).sort(byState);
   const issues = shown(all.issues).sort(byState);
   const tasks = shown(all.tasks).sort(byNewest);
-  const foreman = shown(all.foreman).sort(byNewest);
   const slack = shown(all.slack).sort(byNewest);
-  const lists = { foreman, board, pulls, issues, tasks, slack };
+  const lists = { board, pulls, issues, tasks, slack };
   // Most recently cleared first, so a row you just ticked lands on top.
   const allDone = data.items.filter((i) => i.doneAt);
   const done = shown(allDone).sort((a, b) => b.doneAt.localeCompare(a.doneAt));
@@ -1018,8 +997,8 @@ function render() {
     month: 'long',
     day: 'numeric',
   });
-  // Pull requests are listed but not counted: the plate is issues, tasks, Foreman and Slack.
-  setCount($('n-open'), all.foreman.length + all.board.length + all.issues.length + all.tasks.length + all.slack.length);
+  // Pull requests are listed but not counted: the plate is issues, tasks and Slack.
+  setCount($('n-open'), all.board.length + all.issues.length + all.tasks.length + all.slack.length);
   setCount($('n-github'), all.board.length + all.issues.length);
   setCount($('n-slack'), all.slack.length);
   setCount($('n-done'), allDone.length);
