@@ -23,6 +23,7 @@ import { connect } from 'node:net';
 import { MessagingClient, type AgentResponse, type Message } from '@astropods/messaging';
 import { config } from './config.ts';
 import * as store from './store.ts';
+import { assignee } from './sync.ts';
 
 /**
  * Astro injects the sidecar's address as GRPC_SERVER_ADDR, deployed and under
@@ -77,6 +78,19 @@ function permalink(workspace: string, channelId: string, messageTs: string): str
 function titleOf(text: string): string {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length > MAX_TITLE ? `${flat.slice(0, MAX_TITLE - 1)}…` : flat;
+}
+
+/** `Added to Sohum's plate for Monday, October 19. 5 open.` */
+function platedReply(isNew: boolean, open: number): string {
+  const name = assignee()?.name || config.github.username || 'your';
+  const who = name === 'your' ? 'your' : `${name.split(' ')[0]}'s`;
+  const day = new Intl.DateTimeFormat('en-US', {
+    timeZone: config.timezone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date());
+  return isNew ? `Added to ${who} plate for ${day}. ${open} open.` : `Already on ${who} plate. ${open} open.`;
 }
 
 /** START, DELTA, END: the adapter only posts a buffered DELTA on END. */
@@ -229,7 +243,7 @@ export async function startSlackIngestion(): Promise<void> {
       const appMention = message.platformContext?.eventKind === 'EVENT_KIND_APP_MENTION';
       if (reply && (isNew || appMention) && message.conversationId) {
         const open = await store.openCount();
-        say(conversation, message.conversationId, `On your plate (${open} open).`);
+        say(conversation, message.conversationId, platedReply(isNew, open));
       }
     } catch (err) {
       console.error('[slack] could not store the message:', err);
