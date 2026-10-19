@@ -5,12 +5,14 @@
  * read whole and filtered here. The GraphQL `items` filter would save a few
  * pages but is not on every Projects API version.
  *
- * Needs a token with `read:project`. A token without it gets a GraphQL error
- * naming the scope, which is passed through to the screen as-is.
+ * Needs Projects read access: `read:project` on a token, or the Projects
+ * permission on the GitHub App. Without it GraphQL names what is missing,
+ * which is passed through to the screen as-is.
  */
 
 import { Octokit } from '@octokit/rest';
 import type { ProjectRef } from '../config.ts';
+import { githubToken } from './auth.ts';
 import type { BoardCard } from '../store.ts';
 import { DISCUSSION_FIELDS, deriveState, prRef, resolveWork } from './work.ts';
 
@@ -22,8 +24,13 @@ const DONE_COLUMN = /^done$/i;
 
 let client: Octokit | null = null;
 
-export function gh(token: string): Octokit {
-  client ??= new Octokit({ auth: token });
+/** One client for every call. The token is looked up per request, since an App's expires hourly. */
+export function gh(): Octokit {
+  if (client) return client;
+  client = new Octokit();
+  client.hook.before('request', async (options) => {
+    options.headers.authorization = `token ${await githubToken()}`;
+  });
   return client;
 }
 
@@ -112,13 +119,12 @@ type QueryResult = {
 };
 
 async function readPage(
-  token: string,
   ref: ProjectRef,
   cursor: string | null,
 ): Promise<ProjectPage> {
   let data: QueryResult;
   try {
-    data = await gh(token).graphql<QueryResult>(QUERY, { ...ref, cursor });
+    data = await gh().graphql<QueryResult>(QUERY, { ...ref, cursor });
   } catch (err) {
     // Partial success: one of organization/user is always NOT_FOUND.
     const partial = (err as { data?: QueryResult; errors?: { type?: string; message: string }[] });
@@ -135,8 +141,8 @@ async function readPage(
 /** Whose plate this is, as GitHub names them. */
 export type Profile = { login: string; name: string };
 
-export async function fetchProfile(token: string, username: string): Promise<Profile> {
-  const { data } = await gh(token).users.getByUsername({ username });
+export async function fetchProfile(username: string): Promise<Profile> {
+  const { data } = await gh().users.getByUsername({ username });
   // Not everyone sets a display name; the handle stands in.
   return { login: data.login, name: data.name || data.login };
 }
@@ -151,7 +157,6 @@ export type BoardSummary = {
 
 /** Every non-archived card on the boards that is assigned to `username`. */
 export async function fetchAssignedCards(
-  token: string,
   username: string,
   projects: ProjectRef[],
 ): Promise<{ cards: BoardCard[]; boards: BoardSummary[] }> {
@@ -167,7 +172,7 @@ export async function fetchAssignedCards(
     let cursor: string | null = null;
     let summary: BoardSummary | null = null;
     for (let page = 0; page < MAX_PAGES; page++) {
-      const project = await readPage(token, ref, cursor);
+      const project = await readPage(ref, cursor);
       if (!summary) {
         summary = { ...ref, title: project.title, url: project.url };
         boards.push(summary);
@@ -212,7 +217,7 @@ export async function fetchAssignedCards(
   // What is being done about each issue, in one lookup for all of them.
   const pending = [...byId.values()];
   const work = await resolveWork(
-    gh(token),
+    gh(),
     pending.flatMap((p) => (p.content.__typename === 'Issue' ? [p.content.id] : [])),
   );
 

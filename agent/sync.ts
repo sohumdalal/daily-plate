@@ -4,7 +4,7 @@
  * screen asks.
  */
 
-import { config } from './config.ts';
+import { config, readiness } from './config.ts';
 import {
   fetchAssignedCards,
   fetchProfile,
@@ -49,29 +49,28 @@ export function syncBoards(): Promise<SyncResult> {
   running ??= (async () => {
     const at = new Date().toISOString();
     try {
-      if (!config.github.token || !config.github.username) {
-        throw new Error('GITHUB_TOKEN and GITHUB_USERNAME are both needed to read the boards');
+      if (!readiness().github) {
+        throw new Error('GITHUB_USERNAME and a GitHub App or GITHUB_TOKEN are needed to read the boards');
       }
       const { cards, boards } = await fetchAssignedCards(
-        config.github.token,
         config.github.username,
         config.github.projects,
       );
       // A missing profile only costs the screen a name, never the sync.
-      profile ??= await fetchProfile(config.github.token, config.github.username).catch((err) => {
+      profile ??= await fetchProfile(config.github.username).catch((err) => {
         console.warn('[sync] could not read the GitHub profile:', err.message);
         return null;
       });
       // An issue or PR already on a board stays there, and only there.
       const { pulls, issues } = await fetchRepoWork(
-        gh(config.github.token),
+        gh(),
         config.github.username,
         config.github.orgs,
         new Set(cards.map((c) => c.externalId)),
       );
       // A missing stack only costs the screen a pill, never the sync.
       await markStacks(
-        gh(config.github.token),
+        gh(),
         [...cards, ...pulls, ...issues].flatMap((c) => (c.work ? [c.work] : [])),
       ).catch((err) => console.warn('[sync] could not read PR stacks:', err.message));
       // Only after a full read: clearing what is missing from a partial one

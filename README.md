@@ -67,7 +67,10 @@ by default. Each board is read whole and filtered to cards assigned to
 `GITHUB_USERNAME`. Archived cards are skipped. A card on both boards appears
 once, and it is done only when both boards say Done.
 
-The token needs `read:project` on top of `repo`. Locally that means
+Deployed, Daily Plate reads GitHub as a GitHub App installed on the org,
+because `astropods` forbids personal access tokens. The App needs read access
+to Contents, Issues, Pull requests and (org) Projects. Locally it uses your
+`gh` token instead, which needs `read:project` on top of `repo`: run
 `gh auth refresh -s read:project` once.
 
 A card first seen in Done was never on the plate, so it is not stored. That
@@ -164,7 +167,8 @@ Then deploy **from the dashboard**, the same way as Daily Wrap:
 
 1. **Blueprints → daily-plate → Deploy**
 2. `daily-plate-db` → your Postgres store
-3. `GITHUB_TOKEN` as a PAT with `repo` + `read:project`
+3. `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `GITHUB_APP_INSTALLATION_ID`
+   from a GitHub App installed on the org (see [The boards](#the-boards))
 4. Under the Slack toggle: "Actionable Reactions" = `knife_fork_plate`, and
    "Observe Channels" = the channel ids to watch for mentions
 5. `SLACK_USER_ID` = your Slack member id

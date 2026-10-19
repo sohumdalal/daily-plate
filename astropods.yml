@@ -20,6 +20,19 @@ agent:
     - name: plate.serve
       description: Puts a ticket on this person's Daily Plate, under Foreman says.
   inputs:
+    # A GitHub App installed on the org, since `astropods` forbids personal
+    # access tokens. It needs read access to Contents, Issues, Pull requests
+    # and (org) Projects.
+    - name: GITHUB_APP_ID
+      datatype: string
+      description: The GitHub App's numeric App ID.
+    - name: GITHUB_APP_PRIVATE_KEY
+      datatype: string
+      secret: true
+      description: The GitHub App's private key (the whole .pem file).
+    - name: GITHUB_APP_INSTALLATION_ID
+      datatype: string
+      description: The App's installation ID on the org, from the end of the installation URL.
     - name: GITHUB_USERNAME
       datatype: string
       default: "sohumdalal"
@@ -29,8 +42,8 @@ agent:
       default: "astropods/1"
       description: >-
         Comma-separated `owner/number` GitHub Projects to read assigned cards
-        from. Defaults to Astro Kanban. Needs a token
-        with `read:project`.
+        from. Defaults to Astro Kanban. Needs the App's Projects
+        permission.
     - name: GITHUB_ORGS
       datatype: string
       default: "astropods"
@@ -48,11 +61,6 @@ agent:
       datatype: string
       default: "America/New_York"
       description: IANA timezone that decides what "cleared today" means.
-
-integrations:
-  # → GITHUB_TOKEN
-  github:
-    provider: github
 
 knowledge:
   daily-plate-db:

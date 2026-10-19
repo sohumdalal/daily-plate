@@ -32,6 +32,12 @@ export const config = {
   timezone: process.env.TIMEZONE || systemTimezone(),
   github: {
     token: process.env.GITHUB_TOKEN ?? '',
+    /** A GitHub App installed on the org. When set, it replaces the token. */
+    app: {
+      id: process.env.GITHUB_APP_ID ?? '',
+      privateKey: process.env.GITHUB_APP_PRIVATE_KEY ?? '',
+      installationId: process.env.GITHUB_APP_INSTALLATION_ID ?? '',
+    },
     username: process.env.GITHUB_USERNAME ?? '',
     projects: parseProjects(process.env.GITHUB_PROJECTS ?? 'astropods/1'),
     /** Owners whose every repo is searched for your open PRs and issues. */
@@ -45,11 +51,17 @@ export const config = {
 
 export const isDev = config.port !== 80;
 
+/** Whether a GitHub App is configured, rather than a plain token. */
+export function usesApp(): boolean {
+  const { id, privateKey, installationId } = config.github.app;
+  return Boolean(id && privateKey && installationId);
+}
+
 /** What the agent can and cannot do right now, for the UI to report honestly. */
 export function readiness() {
   return {
     timezone: config.timezone,
-    github: Boolean(config.github.token && config.github.username),
+    github: Boolean((config.github.token || usesApp()) && config.github.username),
     projects: config.github.projects.map((p) => `${p.owner}/${p.number}`),
     orgs: config.github.orgs,
     slackMentions: Boolean(config.slack.userId),
