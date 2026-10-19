@@ -296,6 +296,14 @@ export async function deleteTask(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
+/** Takes a reacted message off the plate when the reaction is removed. */
+export async function removeReactionItem(externalId: string): Promise<boolean> {
+  const rows = await db()`
+    DELETE FROM items WHERE user_id = ${USER} AND source = 'reaction' AND external_id = ${externalId} RETURNING id
+  `;
+  return rows.length > 0;
+}
+
 export async function openCount(): Promise<number> {
   const [row] = await db()<{ n: number }[]>`
     SELECT count(*)::int AS n FROM items WHERE user_id = ${USER} AND done_at IS NULL

@@ -4,7 +4,7 @@
 # Socket Mode means no public request URL.
 #
 # Scope notes:
-#   reactions:read     receive the :knife_fork_plate: at all
+#   reactions:read     receive the :knife_fork_plate:, and its removal, at all
 #   channels:history   read reacted and observed messages, in public channels
 #   groups:history     the same, in private channels
 #   chat:write         post the "On your plate" reply to a reaction
@@ -41,6 +41,7 @@ settings:
   event_subscriptions:
     bot_events:
       - reaction_added
+      - reaction_removed
       - app_mention
       - message.channels
       - message.groups

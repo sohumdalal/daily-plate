@@ -2,8 +2,9 @@
  * Slack and agent mesh ingestion, three ways onto the plate.
  *
  *   Reaction  React :knife_fork_plate: to any message in a channel the app is
- *             in. `actionable_reactions` decides which emoji are forwarded,
- *             and the adapter fetches the message text before handing it over.
+ *             in, and remove it to take the message off. `actionable_reactions`
+ *             decides which emoji are forwarded, and the adapter fetches the
+ *             message text before handing it over.
  *   Mention   A message that mentions SLACK_USER_ID, in a channel listed in
  *             `observe_channel_ids` (or in a thread the app can see). The
  *             adapter forwards those messages whole; this file keeps the ones
@@ -60,6 +61,9 @@ async function sidecarPresent(address: string): Promise<boolean> {
 
 /** `[reaction :emoji: added by <@U…> on message]\n` precedes a reaction's text. */
 const REACTION_HEADER = /^\[reaction :([^:]+): added by <@([^>]+)> on message\]\n?/;
+
+/** `[reaction :emoji: removed by <@U…> on message]`: the message is not refetched. */
+const REMOVAL_HEADER = /^\[reaction :[^:]+: removed by <@([^>]+)> on message\]/;
 
 function parseReaction(content: string): { reactor: string; text: string } | null {
   const match = content.match(REACTION_HEADER);
@@ -160,6 +164,14 @@ export async function startSlackIngestion(): Promise<void> {
     const extra = ctx.platformData ?? {};
 
     if (ctx.eventKind === 'EVENT_KIND_REACTION') {
+      const removal = content.match(REMOVAL_HEADER);
+      if (removal) {
+        const reactor = ctx.userId || removal[1]!;
+        if (me && reactor !== me) return;
+        const removed = await store.removeReactionItem(`${ctx.channelId}:${ctx.messageId}`);
+        console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} reaction from ${channel || '?'}`);
+        return;
+      }
       const parsed = parseReaction(content);
       if (!parsed?.text) {
         console.warn('[slack] reaction arrived with no readable message text');
