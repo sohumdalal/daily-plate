@@ -17,7 +17,7 @@ function sql(): postgres.Sql {
   if (_sql) return _sql;
 
   const url = process.env.POSTGRES_URL;
-  const local = targetIsLocal();
+  const plaintext = targetIsLocal() || targetInCluster();
 
   const options = {
     max: 8,
@@ -25,9 +25,10 @@ function sql(): postgres.Sql {
     connect_timeout: 10,
     onnotice: () => {},
     // A hosted Postgres (Supabase, Neon, RDS) refuses plaintext; a Homebrew
-    // install generally has no certificate. Decide from where it is, not from
-    // a flag someone has to remember.
-    ssl: local ? (false as const) : ('require' as const),
+    // install and the knowledge store Astropods runs in the cluster have no
+    // certificate. Decide from where it is, not from a flag someone has to
+    // remember.
+    ssl: plaintext ? (false as const) : ('require' as const),
     // Supabase's transaction-mode pooler on 6543 multiplexes connections and
     // cannot hold prepared statements, which postgres.js uses by default —
     // symptom is a confusing "prepared statement already exists". The direct
@@ -85,6 +86,11 @@ export function describeTarget(): string {
   const host = process.env.POSTGRES_HOST ?? 'localhost';
   const database = process.env.POSTGRES_DB ?? 'daily_plate';
   return `${host}/${database}`;
+}
+
+/** Whether that database is a knowledge store Astropods runs beside the agent. */
+function targetInCluster(): boolean {
+  return /\.svc\.cluster\.local$/.test(describeTarget().split('/')[0] ?? '');
 }
 
 /** Whether that database is on this machine. */
