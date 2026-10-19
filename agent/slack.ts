@@ -8,7 +8,8 @@
  *   Mention   A message that mentions SLACK_USER_ID, in a channel listed in
  *             `observe_channel_ids` (or in a thread the app can see). The
  *             adapter forwards those messages whole; this file keeps the ones
- *             naming you.
+ *             naming you. A message that @-mentions Daily Plate itself goes on
+ *             the plate too, whoever sent it.
  *
  * The bot only sees channels it was invited to and never sees DMs between
  * people, so a mention elsewhere has to be reacted onto the plate instead.
@@ -177,6 +178,23 @@ export async function startSlackIngestion(): Promise<void> {
       return;
     }
 
+    // The adapter strips every <@…> from an app mention, and puts a transcript
+    // of the thread first when it is in one, so the last paragraph is the ask.
+    if (ctx.eventKind === 'EVENT_KIND_APP_MENTION') {
+      const text = content.startsWith('[slack_thread_summary]')
+        ? content.slice(content.lastIndexOf('\n\n') + 2)
+        : content;
+      await save(message, {
+        source: 'mention',
+        externalId: `${ctx.channelId}:${ctx.messageId}`,
+        title: titleOf(text) || 'Mentioned Daily Plate',
+        url: link,
+        context: channel,
+        author: ctx.userId ?? '',
+      }, true);
+      return;
+    }
+
     // Observed top-level messages and thread replies both carry the raw text,
     // mentions intact as <@U…>.
     if (
@@ -206,8 +224,10 @@ export async function startSlackIngestion(): Promise<void> {
       console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} ${item.source} from ${item.context || '?'}`);
       // A reaction needs a visible result, or it is indistinguishable from a
       // channel the app was never invited to. A mention gets none: replying in
-      // somebody else's thread to say you were mentioned is noise.
-      if (reply && isNew && message.conversationId) {
+      // somebody else's thread to say you were mentioned is noise. An app
+      // mention always gets one: the reply clears its "thinking" status.
+      const appMention = message.platformContext?.eventKind === 'EVENT_KIND_APP_MENTION';
+      if (reply && (isNew || appMention) && message.conversationId) {
         const open = await store.openCount();
         say(conversation, message.conversationId, `On your plate (${open} open).`);
       }
