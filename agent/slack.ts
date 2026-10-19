@@ -75,15 +75,23 @@ function permalink(workspace: string, channelId: string, messageTs: string): str
   return `https://${workspace}.slack.com/archives/${channelId}/p${messageTs.replace('.', '')}`;
 }
 
+/** `@Daily Plate remove this` in a thread takes the thread's message off. */
+const REMOVE_ASK = /\b(remove|take (it|this|that) off|unplate|drop)\b/i;
+
 function titleOf(text: string): string {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length > MAX_TITLE ? `${flat.slice(0, MAX_TITLE - 1)}…` : flat;
 }
 
 /** `Added to Sohum's plate for Monday, October 19. 5 open.` */
+/** `Sohum's`, from the GitHub profile, or `your` before it is read. */
+function plateOwner(): string {
+  const name = assignee()?.name || config.github.username;
+  return name ? `${name.split(' ')[0]}'s` : 'your';
+}
+
 function platedReply(isNew: boolean, open: number): string {
-  const name = assignee()?.name || config.github.username || 'your';
-  const who = name === 'your' ? 'your' : `${name.split(' ')[0]}'s`;
+  const who = plateOwner();
   const day = new Intl.DateTimeFormat('en-US', {
     timeZone: config.timezone,
     weekday: 'long',
@@ -91,6 +99,11 @@ function platedReply(isNew: boolean, open: number): string {
     day: 'numeric',
   }).format(new Date());
   return isNew ? `Added to ${who} plate for ${day}. ${open} open.` : `Already on ${who} plate. ${open} open.`;
+}
+
+function removedReply(removed: boolean, open: number): string {
+  const who = plateOwner();
+  return removed ? `Took this off ${who} plate. ${open} open.` : `This was not on ${who} plate.`;
 }
 
 /** START, DELTA, END: the adapter only posts a buffered DELTA on END. */
@@ -167,7 +180,7 @@ export async function startSlackIngestion(): Promise<void> {
       if (removal) {
         const reactor = ctx.userId || removal[1]!;
         if (me && reactor !== me) return;
-        const removed = await store.removeReactionItem(`${ctx.channelId}:${ctx.messageId}`);
+        const removed = await store.removeSlackItem(`${ctx.channelId}:${ctx.messageId}`, ['reaction']);
         console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} reaction from ${channel || '?'}`);
         return;
       }
@@ -198,6 +211,12 @@ export async function startSlackIngestion(): Promise<void> {
       const text = content.startsWith('[slack_thread_summary]')
         ? content.slice(content.lastIndexOf('\n\n') + 2)
         : content;
+      if (REMOVE_ASK.test(text) && ctx.threadRootId && message.conversationId) {
+        const removed = await store.removeSlackItem(`${ctx.channelId}:${ctx.threadRootId}`, ['mention', 'reaction']);
+        console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} thread in ${channel || '?'}`);
+        say(conversation, message.conversationId, removedReply(removed, await store.openCount()));
+        return;
+      }
       await save(message, {
         source: 'mention',
         externalId: `${ctx.channelId}:${ctx.messageId}`,

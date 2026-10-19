@@ -296,10 +296,15 @@ export async function deleteTask(id: number): Promise<boolean> {
   return rows.length > 0;
 }
 
-/** Takes a reacted message off the plate when the reaction is removed. */
-export async function removeReactionItem(externalId: string): Promise<boolean> {
+/** Takes a Slack message off the plate, as the given sources put it there. */
+export async function removeSlackItem(
+  externalId: string,
+  sources: ('mention' | 'reaction')[],
+): Promise<boolean> {
   const rows = await db()`
-    DELETE FROM items WHERE user_id = ${USER} AND source = 'reaction' AND external_id = ${externalId} RETURNING id
+    DELETE FROM items
+     WHERE user_id = ${USER} AND source IN ${db()(sources)} AND external_id = ${externalId}
+    RETURNING id
   `;
   return rows.length > 0;
 }
