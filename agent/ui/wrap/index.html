@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Daily Plate — Wrap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/theme.css" />
+    <link rel="stylesheet" href="/wrap/app.css" />
+    <script src="/theme.js"></script>
+  </head>
+  <body>
+    <nav class="topnav">
+      <!-- The accent rule is the affordance: it pivots from vertical to
+           horizontal when the menu opens, rather than adding a chevron beside
+           a mark that is already doing that job. -->
+      <div class="brand">
+        <button
+          class="wordmark"
+          id="brand"
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded="false"
+        >
+          <span class="tick" aria-hidden="true"></span>
+          Daily Plate
+        </button>
+        <div class="brandmenu" id="brandmenu" role="menu" hidden>
+          <button role="menuitem" type="button" data-view="goals" id="goals-tab">
+            Goals
+          </button>
+          <button role="menuitem" type="button" data-view="feedback" id="feedback-tab">
+            Feedback
+          </button>
+        </div>
+      </div>
+      <div class="apptabs">
+        <a class="apptab" href="/">Plate</a>
+        <a class="apptab" href="/wrap/" aria-current="page">Wrap</a>
+      </div>
+      <div class="nav-right">
+        <div class="periods" id="periods">
+          <button data-period="day" aria-current="true">Day</button>
+          <button data-period="week">Week</button>
+          <button data-period="month">Month</button>
+          <button data-period="year">Year</button>
+        </div>
+        <!-- The whole calendar is ours. A native date input's popup is browser
+             chrome: CSS cannot reach it, so it arrives grey with a blue
+             selection and blue system links, and there is no version of that
+             which matches. Weeks start Monday here, to agree with the ISO week
+             keys the rest of the app is built on. -->
+        <div class="datefield-wrap">
+          <button class="datefield" id="datefield" title="Jump to a date" type="button">
+            <span id="datefield-label">—</span>
+            <span class="chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="calendar" id="calendar" hidden>
+            <div class="cal-head">
+              <button class="cal-nav" id="cal-prev" type="button" aria-label="Previous month">
+                &larr;
+              </button>
+              <span class="cal-month" id="cal-month"></span>
+              <button class="cal-nav" id="cal-next" type="button" aria-label="Next month">
+                &rarr;
+              </button>
+            </div>
+            <div class="cal-dow" id="cal-dow"></div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <div class="cal-foot">
+              <button class="cal-today" id="cal-today" type="button">Today</button>
+            </div>
+          </div>
+        </div>
+        <button class="today-jump" id="today-jump" title="Today's reflection (T)">
+          Today
+        </button>
+        <button class="theme-toggle" type="button" data-theme-toggle>Dark</button>
+      </div>
+    </nav>
+
+    <main class="shell" id="feedback-view" hidden>
+      <header class="hero">
+        <div class="hero-date">
+          <span class="label">Feedback</span>
+          <div class="tabs" id="feedback-tabs">
+            <button data-source="slack" aria-current="true">Slack</button>
+          </div>
+        </div>
+      </header>
+
+      <p class="take goals-intro">
+        What other people said about you. React <strong>:brain:</strong> to a
+        message in Slack and it lands here, and in that day's wrap.
+      </p>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="label">Marked in Slack</span>
+          <span class="caption" id="slack-count"></span>
+        </div>
+        <div class="feedback-list" id="slack-list"></div>
+        <p class="caption" id="slack-empty" hidden>
+          Nothing marked yet. In any channel the agent can see, react
+          <strong>:brain:</strong> to a message worth keeping.
+        </p>
+      </section>
+    </main>
+
+    <main class="shell" id="goals-view" hidden>
+      <header class="hero">
+        <div class="hero-date"><span class="label">Goals</span></div>
+      </header>
+
+      <p class="take goals-intro">
+        What you're trying to become. Every wrap is read against these, so no day
+        goes by without thinking of future you.
+      </p>
+
+      <section class="section">
+        <form class="goal-form" id="goal-form">
+          <input
+            id="goal-title"
+            type="text"
+            placeholder="Ship a system other teams build on"
+            maxlength="200"
+            required
+          />
+          <div class="goal-form-row">
+            <select id="goal-category" aria-label="Category">
+              <option value="career">Career</option>
+              <option value="craft">Craft</option>
+              <option value="impact">Impact</option>
+              <option value="personal">Personal</option>
+              <option value="intrinsic">Why it matters</option>
+            </select>
+            <select id="goal-horizon" aria-label="Horizon">
+              <option value="quarter">This quarter</option>
+              <option value="year" selected>This year</option>
+              <option value="long">Long term</option>
+            </select>
+            <input
+              id="goal-measure"
+              type="text"
+              placeholder="How you'd know (optional)"
+              maxlength="300"
+            />
+          </div>
+          <textarea
+            id="goal-why"
+            rows="2"
+            maxlength="1000"
+            placeholder="Why does this matter to you? The answer keeps it from becoming someone else's goal."
+          ></textarea>
+          <div><button class="btn" type="submit">Add goal</button></div>
+        </form>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><span class="label">Your goals</span></div>
+        <div class="skeleton-goals" id="goals-loading" aria-hidden="true">
+          <div class="sk sk-line"></div>
+          <div class="sk sk-line short"></div>
+        </div>
+        <div class="goals" id="goal-list"></div>
+        <p class="caption" id="goals-empty" hidden>
+          Nothing set yet. Wraps will read your days without a direction to
+          measure them against.
+        </p>
+      </section>
+    </main>
+
+    <main class="shell is-loading" id="shell">
+      <!-- Shown until the first view arrives. Matches the real page's shape so
+           the content does not jump when it replaces this. -->
+      <div class="skeleton" aria-hidden="true">
+        <div class="sk sk-date"></div>
+        <hr class="rule" />
+        <div class="sk-specs">
+          <div><div class="sk sk-num"></div><div class="sk sk-tag"></div></div>
+          <div><div class="sk sk-num"></div><div class="sk sk-tag"></div></div>
+          <div><div class="sk sk-num"></div><div class="sk sk-tag"></div></div>
+          <div><div class="sk sk-num"></div><div class="sk sk-tag"></div></div>
+        </div>
+        <hr class="rule" />
+        <div class="sk-lines">
+          <div class="sk sk-tag"></div>
+          <div class="sk sk-line"></div>
+          <div class="sk sk-line short"></div>
+          <div class="sk sk-line"></div>
+        </div>
+      </div>
+      <!-- The day in numbers is the top of the page. -->
+      <header class="hero">
+        <div class="hero-date">
+          <div class="stepper">
+            <button id="prev" title="Previous (←)">&larr;</button>
+            <button id="next" title="Next (→)">&rarr;</button>
+          </div>
+          <span class="label" id="date-label"></span>
+          <span class="badge" id="today-badge" hidden>Today</span>
+          <div class="tabs" id="tabs">
+            <button data-tab="summary" aria-current="true">Summary</button>
+            <button data-tab="reflect">Reflection</button>
+            <button data-tab="sources">Sources</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Four spec cells. Numbers are the brand's display treatment. -->
+      <section class="specs" id="specs" hidden></section>
+
+      <hr class="rule" id="specs-rule" hidden />
+
+      <div id="tab-summary">
+      <p class="hero-empty" id="empty" hidden>Nothing wrapped yet.</p>
+
+      <section class="section" id="did-section" hidden>
+              <div class="section-head"><span class="label">What you did</span></div>
+              <ul class="bullets" id="did"></ul>
+            </section>
+
+      <section class="section" id="learned-section" hidden>
+              <div class="section-head">
+                <span class="label">What you learned</span>
+                <button class="disagree" id="disagree">Disagree</button>
+              </div>
+              <p class="take" id="learned"></p>
+
+              <div class="dispute" id="dispute" hidden>
+                <textarea
+                  id="dispute-note"
+                  placeholder="What did it get wrong about you? This is kept and applied to every wrap from here on."
+                ></textarea>
+                <div class="dispute-actions">
+                  <button class="btn" id="dispute-send">Send &amp; rewrite</button>
+                  <button class="btn outline" id="dispute-cancel">Cancel</button>
+                </div>
+              </div>
+
+              <div class="corrections" id="corrections" hidden>
+                <span class="label">Corrections you've given</span>
+                <ul class="bullets quiet" id="corrections-list"></ul>
+              </div>
+            </section>
+
+      <section class="section growth" id="grew-section" hidden>
+              <div class="section-head">
+                <span class="label" id="grew-label">Where to improve tomorrow</span>
+              </div>
+              <ul class="bullets" id="grew"></ul>
+            </section>
+
+      <section class="section" id="covered-section" hidden>
+              <div class="section-head"><span class="label">Days in this period</span></div>
+              <div class="covered" id="covered"></div>
+            </section>
+
+
+
+      <div class="actions">
+        <button class="btn" id="wrap">Wrap the day</button>
+        <button class="btn outline" id="collect">Refresh sources</button>
+      </div>
+        <p class="caption" id="provenance" hidden></p>
+      </div>
+
+      <div id="tab-reflect" hidden>
+
+        <div class="chat">
+          <div class="chat-log" id="thread"></div>
+
+          <div class="chat-thinking" id="chat-thinking" hidden>
+            <span class="msg-role">Daily Plate</span>
+            <span class="dots" aria-label="Thinking"><i></i><i></i><i></i></span>
+          </div>
+
+          <p class="chat-intro caption" id="reflect-intro">
+            Reading your day and your recent ones&#8230;
+          </p>
+
+          <div class="three" id="three" hidden>
+            <div class="three-head">
+              <span class="label">Your three</span>
+              <span class="caption" id="three-status"></span>
+            </div>
+            <label class="three-row">
+              <span class="label">Went well</span>
+              <textarea id="take-good" rows="2" maxlength="400"></textarea>
+            </label>
+            <label class="three-row">
+              <span class="label">Went badly</span>
+              <textarea id="take-bad" rows="2" maxlength="400"></textarea>
+            </label>
+            <label class="three-row">
+              <span class="label">To improve</span>
+              <textarea id="take-improve" rows="2" maxlength="400"></textarea>
+            </label>
+            <div class="three-actions">
+              <button class="btn" id="three-save">Save the three</button>
+              <div class="energy">
+                <span class="label">Energy</span>
+                <div class="energy-scale" id="energy">
+                  <button data-energy="1" aria-pressed="false">1</button>
+                  <button data-energy="2" aria-pressed="false">2</button>
+                  <button data-energy="3" aria-pressed="false">3</button>
+                  <button data-energy="4" aria-pressed="false">4</button>
+                  <button data-energy="5" aria-pressed="false">5</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-composer">
+            <textarea
+              id="reflection"
+              rows="1"
+              placeholder="Reply"
+              spellcheck="true"
+            ></textarea>
+            <button class="chat-draft" id="chat-draft" type="button">
+              Draft my three
+            </button>
+            <button class="chat-send" id="reflect-send" type="button" aria-label="Send">
+              &#8593;
+            </button>
+          </div>
+        </div>
+        <p class="caption chat-hint" id="reflect-hint">
+          Enter to send, Shift+Enter for a new line
+        </p>
+      </div>
+
+      <div id="tab-sources" hidden>
+      <section class="section">
+        <div class="section-head">
+          <span class="label">Sources</span>
+          <span class="caption" id="sources-count"></span>
+        </div>
+
+        <!-- Derived from collected data, never from model output: every row is a
+             real URL. Slack threads join this list when that integration lands. -->
+        <div class="source-tools">
+          <input
+            type="search"
+            id="sources-search"
+            placeholder="Filter by repo, number or title"
+            autocomplete="off"
+          />
+          <div class="source-kinds" id="sources-kinds">
+            <button data-kind="all" aria-pressed="true">All</button>
+            <button data-kind="merged">Merged</button>
+            <button data-kind="opened">Opened</button>
+            <button data-kind="reviewed">Reviewed</button>
+            <button data-kind="commit">Commits</button>
+          </div>
+        </div>
+
+        <div class="sources" id="sources"></div>
+        <p class="caption" id="sources-empty" hidden>Nothing matches that filter.</p>
+      </section>
+      </div>
+
+
+      <p class="note" id="note" hidden></p>
+
+      <div class="keys">
+        <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> move</span>
+        <span><kbd>D</kbd> <kbd>W</kbd> <kbd>M</kbd> <kbd>Y</kbd> period</span>
+        <span><kbd>&#9166;</kbd> wrap</span>
+        <span><kbd>R</kbd> reflect</span>
+        <span><kbd>T</kbd> today</span>
+      </div>
+    </main>
+
+    <script src="/wrap/app.js" type="module"></script>
+  </body>
+</html>

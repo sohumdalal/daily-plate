@@ -6,6 +6,7 @@ import { runMigrations } from './db/migrations.ts';
 import { routes } from './routes.ts';
 import { startSlackIngestion } from './slack.ts';
 import { startBoardSync } from './sync.ts';
+import { wrapRoutes } from './wrap/routes.ts';
 
 const app = new Hono();
 
@@ -15,17 +16,22 @@ app.onError((err, c) => {
 });
 
 app.route('/', routes);
+app.route('/api/wrap', wrapRoutes);
 
-// The screen is three static files. No build step, no bundler, no framework.
+// Two tabs of static files, Plate at / and Wrap at /wrap/, sharing theme.css.
+// No build step, no bundler, no framework.
+app.get('/wrap', (c) => c.redirect('/wrap/'));
 app.use('/*', serveStatic({ root: './agent/ui' }));
 app.get('/', serveStatic({ root: './agent/ui', path: 'index.html' }));
+app.get('/wrap/', serveStatic({ root: './agent/ui', path: 'wrap/index.html' }));
 
 // Bind the HTTP server FIRST so the platform's port-80 ingress comes up
 // immediately. Database problems must never block binding or crash the
 // process — otherwise the pod crash-loops and the URL never resolves.
-// A manual sync runs several GitHub queries in one request and can outlast
-// Bun's 10s default idle timeout, which drops the connection mid-sync.
-Bun.serve({ port: config.port, fetch: app.fetch, idleTimeout: 120 });
+// A manual sync runs several GitHub queries in one request, and writing a wrap
+// is one or two model calls that can pass a minute on a dense day. Bun's 10s
+// default idle timeout drops either connection mid-request.
+Bun.serve({ port: config.port, fetch: app.fetch, idleTimeout: 180 });
 
 console.log(
   `Daily Plate on :${config.port} — ${config.timezone}` +

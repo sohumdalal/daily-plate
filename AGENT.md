@@ -1,10 +1,12 @@
 ---
-description: "Your assigned Astro Kanban cards and every Slack ask aimed at you, on one plate."
+description: "Your assigned Astro Kanban cards and every Slack ask aimed at you, on one plate, and a written record of what you did."
 tags:
   - personal
   - todo
   - github
   - slack
+  - daily-review
+  - claude-code
 authors:
   - name: Sohum Dalal
     account: sohumdalal
@@ -16,6 +18,8 @@ capabilities:
   - Puts Slack messages that @-mention you in observed channels on the plate
   - Puts any Slack message that @-mentions Daily Plate on the plate
   - Takes tasks you type in yourself, and your notes on any item
+  - Writes each day back as a short wrap from Claude Code, GitHub, Slack feedback and what you cleared, rolled up into weeks, months and years
+  - Records any Slack message you react to with :brain: as feedback for that day's wrap
 integrations:
   - GitHub
   - Slack

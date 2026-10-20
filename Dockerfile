@@ -1,4 +1,4 @@
-# Single stage — the UI is three static files, so there is nothing to build.
+# Single stage — both tabs are static files, so there is nothing to build.
 FROM --platform=linux/amd64 oven/bun:1-slim
 
 WORKDIR /app

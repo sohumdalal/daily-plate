@@ -11,6 +11,7 @@
  *   POST  /api/items/:id/notes      { text: string } — add a note to an item
  *   DELETE /api/items/:id/notes/:n  remove that note
  *   GET   /api/unfurl?url=          { url, title, site, icon } — a link's preview card
+ *   GET   /api/export      every item as stored, for scripts/import-plate.ts
  */
 
 import { Hono } from 'hono';
@@ -38,6 +39,11 @@ async function plateBody() {
 }
 
 routes.get('/api/plate', async (c) => c.json(await plateBody()));
+
+routes.get('/api/export', async (c) => {
+  c.header('content-disposition', 'attachment; filename="daily-plate-items.json"');
+  return c.json({ exportedAt: new Date().toISOString(), items: await store.exportItems() });
+});
 
 routes.post('/api/sync', async (c) => {
   await syncBoards();

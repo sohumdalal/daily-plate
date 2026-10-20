@@ -56,8 +56,33 @@ agent:
     - name: TIMEZONE
       datatype: string
       default: "America/New_York"
-      description: IANA timezone that decides what "cleared today" means.
+      description: >-
+        IANA timezone that decides what "cleared today" means, and where one
+        day ends and the next begins for the wrap.
+    - name: ANTHROPIC_MODEL
+      datatype: string
+      display-as: select
+      options:
+        - claude-opus-5
+        - claude-sonnet-5
+        - claude-haiku-4-5
+      default: "claude-sonnet-5"
+      description: Claude model that writes the wraps.
+    - name: CLAUDE_HOME
+      datatype: string
+      optional: true
+      description: >-
+        Claude Code home directory the wrap reads days out of. Defaults to
+        `~/.claude`. Read only. A deployed agent has none, so the laptop's
+        nightly job collects the Claude half of each day.
 
+# → ANTHROPIC_API_KEY, for the Wrap tab.
+models:
+  anthropic:
+    provider: anthropic
+
+# Bind to the shared store Daily Wrap used, so the laptop's nightly job and the
+# deployed agent read and write the same days.
 knowledge:
   daily-plate-db:
     provider: postgres
@@ -71,8 +96,8 @@ dev:
       slack:
         # Local only, and a pre-fill for the deploy form: SlackConfig() exists
         # on Dev alone. At deploy, set "Actionable Reactions" to
-        # knife_fork_plate and "Observe Channels" to the channel ids to watch
-        # for mentions, under the Slack toggle.
-        actionable_reactions: [knife_fork_plate]
+        # knife_fork_plate, brain and "Observe Channels" to the channel ids to
+        # watch for mentions, under the Slack toggle.
+        actionable_reactions: [knife_fork_plate, brain]
         observe_channel_ids: []
   command: bun --watch run start

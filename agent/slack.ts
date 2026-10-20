@@ -2,9 +2,10 @@
  * Slack ingestion, two ways onto the plate.
  *
  *   Reaction  React :knife_fork_plate: to any message in a channel the app is
- *             in, and remove it to take the message off. `actionable_reactions`
- *             decides which emoji are forwarded, and the adapter fetches the
- *             message text before handing it over.
+ *             in, and remove it to take the message off. :brain: records
+ *             feedback for the Wrap tab instead (wrap/feedback.ts).
+ *             `actionable_reactions` decides which emoji are forwarded, and
+ *             the adapter fetches the message text before handing it over.
  *   Mention   A message that mentions SLACK_USER_ID, in a channel listed in
  *             `observe_channel_ids` (or in a thread the app can see). The
  *             adapter forwards those messages whole; this file keeps the ones
@@ -25,6 +26,7 @@ import { MessagingClient, type AgentResponse, type Message } from '@astropods/me
 import { config } from './config.ts';
 import { answer, plateOwner } from './commands.ts';
 import * as store from './store.ts';
+import { captureFeedback, FEEDBACK_EMOJI } from './wrap/feedback.ts';
 
 /**
  * Astro injects the sidecar's address as GRPC_SERVER_ADDR, deployed and under
@@ -63,12 +65,12 @@ async function sidecarPresent(address: string): Promise<boolean> {
 const REACTION_HEADER = /^\[reaction :([^:]+): added by <@([^>]+)> on message\]\n?/;
 
 /** `[reaction :emoji: removed by <@U…> on message]`: the message is not refetched. */
-const REMOVAL_HEADER = /^\[reaction :[^:]+: removed by <@([^>]+)> on message\]/;
+const REMOVAL_HEADER = /^\[reaction :([^:]+): removed by <@([^>]+)> on message\]/;
 
-function parseReaction(content: string): { reactor: string; text: string } | null {
+function parseReaction(content: string): { emoji: string; reactor: string; text: string } | null {
   const match = content.match(REACTION_HEADER);
   if (!match) return null;
-  return { reactor: match[2]!, text: content.slice(match[0].length).trim() };
+  return { emoji: match[1]!, reactor: match[2]!, text: content.slice(match[0].length).trim() };
 }
 
 function permalink(workspace: string, channelId: string, messageTs: string): string {
@@ -165,7 +167,9 @@ export async function startSlackIngestion(): Promise<void> {
     if (ctx.eventKind === 'EVENT_KIND_REACTION') {
       const removal = content.match(REMOVAL_HEADER);
       if (removal) {
-        const reactor = ctx.userId || removal[1]!;
+        // Taking feedback back is not a thing the wrap does; only a plate reaction undoes.
+        if (FEEDBACK_EMOJI.has(removal[1]!)) return;
+        const reactor = ctx.userId || removal[2]!;
         if (me && reactor !== me) return;
         const removed = await store.removeSlackItem(`${ctx.channelId}:${ctx.messageId}`, ['reaction']);
         console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} reaction from ${channel || '?'}`);
@@ -174,6 +178,14 @@ export async function startSlackIngestion(): Promise<void> {
       const parsed = parseReaction(content);
       if (!parsed?.text) {
         console.warn('[slack] reaction arrived with no readable message text');
+        return;
+      }
+      if (FEEDBACK_EMOJI.has(parsed.emoji)) {
+        const reply = await captureFeedback(message, parsed, link).catch((err) => {
+          console.error('[slack] could not store the feedback:', err);
+          return 'Could not record that one. It is still in Slack, so react again later.';
+        });
+        if (message.conversationId) say(conversation, message.conversationId, reply);
         return;
       }
       // platformContext.userId is always the raw U…; message.user.id may be

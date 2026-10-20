@@ -10,12 +10,19 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     />
+    <link rel="stylesheet" href="/theme.css" />
     <link rel="stylesheet" href="/app.css" />
+    <script src="/theme.js"></script>
   </head>
   <body>
     <nav class="topnav">
       <span class="wordmark"><span class="tick" aria-hidden="true"></span>Daily Plate</span>
+      <div class="apptabs">
+        <a class="apptab" href="/" aria-current="page">Plate</a>
+        <a class="apptab" href="/wrap/">Wrap</a>
+      </div>
       <div class="nav-right">
+        <button class="theme-toggle" type="button" data-theme-toggle>Dark</button>
         <span class="label read-at" id="read-at"></span>
         <button class="sync" id="sync" type="button" title="Re-read GitHub (R)">Refresh</button>
       </div>

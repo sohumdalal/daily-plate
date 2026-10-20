@@ -1,5 +1,5 @@
 ---
-description: "Your assigned Astro Kanban cards and every Slack ask aimed at you, on one plate."
+description: "Your assigned Astro Kanban cards and every Slack ask aimed at you, on one plate, and a written record of what you did."
 tags:
   - personal
   - todo
@@ -13,9 +13,12 @@ repository: "github:sohumdalal/daily-plate"
 
 # Daily Plate
 
-An Astropods agent that keeps one list of what is on your plate today.
+An Astropods agent with two tabs. **Plate** keeps one list of what is on your
+plate today. **Wrap** keeps the record of what you did: each day written back
+as a few bullets, rolled up into weeks, months and years. Daily Wrap was its own
+agent until it merged in here; see [The Wrap tab](#the-wrap-tab).
 
-Three sources feed it:
+Three sources feed the plate:
 
 - **The boards.** Every card assigned to you on Astro Kanban, read through
   GitHub Projects every ten minutes. A card moved to Done,
@@ -117,10 +120,12 @@ with the name read once from `GITHUB_USERNAME`'s GitHub profile.
 Both paths ride the Astro messaging sidecar. The agent needs no Slack token of
 its own.
 
-| Path | What reaches the plate | Needs |
+| Path | What it does | Needs |
 |---|---|---|
-| Reaction | Any message you react `:knife_fork_plate:` to | "Actionable Reactions" = `knife_fork_plate` at deploy |
-| Mention | A message containing `<@SLACK_USER_ID>` | `SLACK_USER_ID`, and the channel under "Observe Channels" at deploy |
+| Reaction 🍽️ | Any message you react `:knife_fork_plate:` to goes on the plate; removing the reaction takes it off | "Actionable Reactions" includes `knife_fork_plate` at deploy |
+| Reaction 🧠 | Any message reacted `:brain:` to is recorded as feedback for that day's wrap | "Actionable Reactions" includes `brain` at deploy |
+| Mention of you | A message containing `<@SLACK_USER_ID>` goes on the plate | `SLACK_USER_ID`, and the channel under "Observe Channels" at deploy |
+| `@Daily Plate` | The message goes on the plate, unless it is a command: `what's on my plate` (optionally `from slack`, `github`, `prs`, `issues`, `tasks`), `add task …`, and in a plated message's thread `rename to …`, `note …`, `done`, `undo`, `remove this`. `help` lists them | Nothing more (`agent/commands.ts`) |
 
 With `SLACK_USER_ID` set, only your own reactions count. Without it, mention
 capture is off and anyone's reaction counts.
@@ -131,8 +136,9 @@ in, has to be reacted onto the plate. Catching every mention everywhere would
 take a user token and Slack's `search.messages`, which is a separate Slack app
 with user scopes and has not been built.
 
-A reaction gets a reply in Slack ("On your plate"), so you can tell a capture
-from a channel the app was never invited to. A mention gets no reply.
+A reaction gets a reply in Slack ("Added to Sohum's plate for Monday, October
+19"), so you can tell a capture from a channel the app was never invited to. A
+mention of you gets no reply.
 
 The agent reads the sidecar address from `GRPC_SERVER_ADDR`, which Astro
 injects. Plain `bun run dev` has no sidecar, so Slack capture is off and the
@@ -141,20 +147,58 @@ boards still work.
 Setup is `slack-app-manifest.yml`: create the app from it, then
 `/invite @Daily Plate` in the channels where asks happen.
 
-## Local development
+## The Wrap tab
 
-Needs Bun, and Postgres on `localhost:5432` unless you point it elsewhere.
+At `/wrap/`. It reads your day out of **Claude Code** (`~/.claude`, read only:
+your prompts, sessions, repos and active minutes), **GitHub** (commits, PRs
+opened, merged and reviewed), the Slack messages you marked with `:brain:` 🧠,
+and **what you cleared from the plate** that day. A model writes it back as a
+headline, three to five bullets, what you learned, and where to grow. A
+reflection chat then asks about it until you have three takeaways.
+
+Summary, Reflection and Sources are tabs on a period. Keys: `←` `→` move ·
+`D` `W` `M` `Y` period · `⏎` wrap · `T` today. The design notes are in
+[`docs/wrap/`](docs/wrap/architecture.md).
+
+A deployed agent has no `~/.claude`, so the laptop collects the Claude half of
+each day into the shared database, and the deployed agent serves it:
 
 ```bash
-createdb daily_plate
+bun run nightly                # today, plus any unwrapped day in the last 7
+bun run nightly 2026-09-19     # one day, rewrapped
+bun run nightly --dry-run
+```
+
+From cron, with an explicit `PATH`:
+
+```
+30 23 * * * cd /path/to/daily-plate && PATH=$HOME/.bun/bin:/opt/homebrew/bin:/usr/bin:/bin bun scripts/nightly.ts >> $HOME/Library/Logs/daily-plate-nightly.log 2>&1
+```
+
+Under `~/Desktop`, macOS may block cron from the folder until `/usr/sbin/cron`
+has Full Disk Access.
+
+## Local development
+
+Needs Bun. With `POSTGRES_URL` in `.env.local`, this checkout reads and writes
+the shared database the deployed agent serves; without it, Postgres on
+`localhost:5432`. The boot line names whichever is in use.
+
+```bash
 bun install
 bun run dev            # http://localhost:3003, migrations run on boot
-bun run check          # typecheck
+bun run check          # typecheck, then the Wrap tab's UI checks
+bun run prompt [day]   # print the prompt a day would be wrapped with; reads only
 ```
 
 Secrets, in precedence order: your shell, then `.env.local` (gitignored), then
 `~/.ast/project-configs.json`. `GITHUB_TOKEN` comes from `gh auth token` unless
-your shell sets one.
+your shell sets one. The Wrap tab also needs `ANTHROPIC_API_KEY`.
+
+`bun run import-plate <export.json | postgres://…>` copies plate items into
+the database this checkout points at. It only adds: an item already there keeps
+its own state, and gains notes or a cleared state only where it has none.
+`GET /api/export` downloads every item as JSON for it.
 
 ## Deploy
 
@@ -163,23 +207,25 @@ ast login
 ast push                 # build and register
 ```
 
-Then deploy **from the dashboard**, the same way as Daily Wrap:
+Then deploy **from the dashboard**: binding the database to a shared store is
+a deploy-form control with no flag.
 
 1. **Blueprints → daily-plate → Deploy**
-2. `daily-plate-db` → your Postgres store
+2. `daily-plate-db` → **Shared** → the store the laptop's `POSTGRES_URL` names
 3. `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `GITHUB_APP_INSTALLATION_ID`
    from a GitHub App installed on the org (see [The boards](#the-boards))
-4. Under the Slack toggle: "Actionable Reactions" = `knife_fork_plate`, and
-   "Observe Channels" = the channel ids to watch for mentions
-5. `SLACK_USER_ID` = your Slack member id
+4. `ANTHROPIC_API_KEY` from the vault, and `ANTHROPIC_MODEL`
+5. Under the Slack toggle: "Actionable Reactions" = `knife_fork_plate, brain`,
+   and "Observe Channels" = the channel ids to watch for mentions
+6. `SLACK_USER_ID` = your Slack member id
 
 ## Design
 
-The screen uses the shared Ferrari design system in `../DESIGN.md` (linked
-here as `DESIGN.md`), on its light bands, so it pairs with Daily Wrap: Daily
-Wrap is the dark half, this is the light one. Same Inter, sharp corners,
-hairlines and spacing. The counts across the top use the system's `spec-cell`
-treatment.
+Both tabs use the shared Ferrari design system in `../DESIGN.md` (linked here
+as `DESIGN.md`), from one set of tokens in `agent/ui/theme.css`. Light is the
+default; the switch in the top bar turns on the design file's dark palette,
+remembered per browser. Same Inter, sharp corners, hairlines and spacing. The
+counts across the top use the system's `spec-cell` treatment.
 
 The GitHub and Slack marks are Lucide's, vendored into `agent/ui/icons/` from
 `lucide-static@1.0.0`. Later releases dropped brand icons, so that version is

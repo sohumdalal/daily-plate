@@ -274,6 +274,25 @@ export async function deleteNote(id: number, noteId: string): Promise<Item | nul
   return rows[0] ? toItem(rows[0]) : null;
 }
 
+/** Every row, as stored, for GET /api/export and scripts/import-plate.ts. */
+export async function exportItems(): Promise<Record<string, unknown>[]> {
+  return db()`SELECT * FROM items WHERE user_id = ${USER} ORDER BY id`;
+}
+
+/** What came off the plate on one day, for that day's wrap. */
+export async function clearedOn(day: string, timezone: string): Promise<Item[]> {
+  const sql = db();
+  const rows = await sql<ItemRow[]>`
+    SELECT ${sql.unsafe(COLUMNS)}
+      FROM items
+     WHERE user_id = ${USER}
+       AND done_at IS NOT NULL
+       AND (done_at AT TIME ZONE ${timezone})::date = ${day}::date
+     ORDER BY done_at
+  `;
+  return rows.map(toItem);
+}
+
 /** The item a Slack message put on the plate, by `channel:ts`. */
 export async function findSlackItem(externalId: string): Promise<Item | null> {
   const sql = db();

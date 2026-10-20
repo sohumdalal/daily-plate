@@ -1,0 +1,122 @@
+/*
+ * The one theme both tabs share, from ../../DESIGN.md (Ferrari).
+ *
+ * Light is the default. Dark is opt-in from the switch in the top bar, and is
+ * the design file's own dark palette: Rosso Corsa on the near-black canvas.
+ * theme.js sets data-theme on <html> before first paint.
+ */
+
+:root {
+  --primary: #da291c;          /* Rosso Corsa */
+  --primary-active: #b01e0a;
+  --on-primary: #ffffff;
+  --ink: #181818;              /* body-on-light */
+  --body: #666666;             /* 5.7:1 on white; #969696 is 3:1 */
+  --muted: #666666;
+  --muted-soft: #767676;       /* 4.5:1 on white; the dark palette's #8f8f8f is 3.3:1 */
+  --hairline: #d2d2d2;         /* hairline-on-light */
+  --canvas: #ffffff;           /* canvas-light */
+  --canvas-elevated: #f7f7f7;  /* surface-soft-light */
+  --surface-soft: #f7f7f7;
+  --semantic-warning: #da291c; /* the accent; #f13a2c is 3.9:1 on white */
+  --semantic-info: #2f7a99;    /* 4.8:1; #4c98b9 is 3.2:1 */
+  --semantic-success: #037d40; /* 5.2:1; #03904a is 4.1:1 */
+  --board: #bc4c00;            /* GitHub's orange; 5:1 on white */
+  --pr: #1a7f37;               /* GitHub's open-PR green; 5.1:1 on white */
+  --merged: #8250df;           /* GitHub's merged purple; 5:1 under white */
+  --focus: #181818;
+
+  --xxxs: 4px;
+  --xxs: 8px;
+  --xs: 16px;
+  --sm: 24px;
+  --md: 32px;
+  --lg: 48px;
+  --xl: 64px;
+  --xxl: 96px;
+  --super: 128px;
+
+  /* Sharp by default. 4px is for form inputs, the pill for badges only. */
+  --r-none: 0px;
+  --r-sm: 4px;
+  --r-full: 9999px;
+
+  --sans: 'Inter', -apple-system, system-ui, sans-serif;
+
+  /* One curve for everything: quick off the mark, long settle. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --primary: #da291c;
+  --primary-active: #b01e0a;
+  --on-primary: #ffffff;
+  --ink: #ffffff;
+  --body: #969696;
+  --muted: #8f8f8f;            /* the design's #666666 is 3:1 on this canvas */
+  --muted-soft: #8f8f8f;
+  --hairline: #303030;
+  --canvas: #181818;
+  --canvas-elevated: #303030;
+  --surface-soft: #222222;
+  --semantic-warning: #f13a2c;
+  /* Lightened from the documented #03904a, which fails AA for a small label here. */
+  --semantic-success: #03a454;
+  --semantic-info: #4c98b9;
+  --board: #f0883e;            /* GitHub's dark-mode orange */
+  --pr: #3fb950;               /* GitHub's dark-mode open-PR green */
+  --merged: #a371f7;           /* GitHub's dark-mode merged purple */
+  --focus: #ffffff;
+
+  color-scheme: dark;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+/* ── Plate | Wrap, and the theme switch ─────────────────────────────────── */
+
+.apptabs {
+  display: flex;
+  gap: var(--xs);
+  margin-left: var(--md);
+  /* Takes the top bar's free space, so the tabs sit beside the wordmark. */
+  margin-right: auto;
+}
+
+.apptab {
+  font: 600 11px/1 var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--body);
+  text-decoration: none;
+  padding: var(--xxs) 0;
+  border-bottom: 2px solid transparent;
+}
+
+.apptab[aria-current='page'] {
+  color: var(--ink);
+  border-bottom-color: var(--primary);
+}
+
+.apptab:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.theme-toggle {
+  font: 600 11px/1 var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--body);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  padding: var(--xxs) var(--xs);
+  cursor: pointer;
+}

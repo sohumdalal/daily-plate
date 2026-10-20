@@ -1,0 +1,1649 @@
+/*
+ * Daily Plate's Wrap tab — Ferrari design system (see DESIGN.md). Colors,
+ * spacing and type are tokens in ../theme.css, shared with the Plate tab.
+ *
+ * The brand's primary depth treatment is a full-bleed cinematic photograph.
+ * There is no photography here, and a giant headline in its place just shouted
+ * a restatement of the bullets below it. So the day's numbers carry the top
+ * instead — spec-cell is the system's own display treatment for figures, and
+ * these figures are what the day actually amounts to. The accent stays scarce:
+ * the one CTA, and the marker on "where you grew".
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--canvas);
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--body);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ── Type roles ─────────────────────────────────────────────────────────── */
+
+.display-lg {
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.36px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.nav-link {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+
+.caption {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* ── Chrome ─────────────────────────────────────────────────────────────── */
+
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sm);
+  height: 64px;
+  padding: 0 var(--lg);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.brand {
+  position: relative;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--xxs);
+  padding: var(--xxs) 0;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+
+/* The one mark that carries the accent, at the size of a Cavallino. It pivots
+   to horizontal when the menu is open — the mark is the disclosure arrow. */
+.wordmark .tick {
+  width: 3px;
+  height: 14px;
+  background: var(--primary);
+  transition: transform 140ms ease;
+}
+
+.wordmark[aria-expanded='true'] .tick {
+  transform: rotate(90deg);
+}
+
+.brandmenu {
+  position: absolute;
+  top: calc(100% + var(--xxs));
+  left: 0;
+  z-index: 20;
+  min-width: 176px;
+  padding: var(--xxxs);
+  background: var(--canvas);
+  border: 1px solid var(--muted);
+  border-radius: var(--r-none);
+}
+
+.brandmenu button {
+  display: block;
+  width: 100%;
+  padding: var(--xxs) var(--xs);
+  background: none;
+  border: 0;
+  color: var(--body);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.brandmenu button:hover {
+  background: var(--canvas-elevated);
+  color: var(--ink);
+}
+
+.brandmenu button[aria-current='true'] {
+  color: var(--primary);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+}
+
+.periods {
+  display: flex;
+  gap: var(--xs);
+}
+
+.datefield-wrap {
+  position: relative;
+}
+
+.datefield {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--xxs);
+  height: 32px;
+  padding: 0 var(--xxs);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  color: var(--body);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.datefield:hover,
+.datefield[aria-expanded='true'] {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.datefield .chevron {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Near-black with a hairline rather than a lifted grey panel: the system
+   separates surfaces with 1px rules, and has no drop-shadow tiers. */
+.calendar {
+  position: absolute;
+  top: calc(100% + var(--xxs));
+  right: 0;
+  z-index: 20;
+  width: 268px;
+  padding: var(--xs);
+  background: var(--canvas);
+  border: 1px solid var(--muted);
+  border-radius: var(--r-none);
+}
+
+.cal-head {
+  display: grid;
+  grid-template-columns: 28px 1fr 28px;
+  align-items: center;
+  gap: var(--xxs);
+  padding-bottom: var(--xs);
+}
+
+.cal-month {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.cal-nav {
+  appearance: none;
+  height: 28px;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  color: var(--body);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.cal-nav:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.cal-nav:disabled {
+  color: var(--hairline);
+  border-color: var(--hairline);
+  cursor: default;
+}
+
+.cal-dow,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-dow span {
+  padding-bottom: var(--xxxs);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cal-day {
+  appearance: none;
+  aspect-ratio: 1;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-none);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-day:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+/* Days spilling in from the neighbouring months stay present but recede. */
+.cal-day[data-outside='true'] {
+  color: var(--muted);
+}
+
+/* Today is outlined; the selected day is filled. Both in the accent, so the
+   calendar carries the same single colour as the rest of the page. */
+.cal-day[data-today='true'] {
+  border-color: var(--primary);
+}
+
+.cal-day[aria-selected='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
+}
+
+.cal-day:disabled {
+  color: var(--hairline);
+  cursor: default;
+}
+
+.cal-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--xs);
+  margin-top: var(--xs);
+  border-top: 1px solid var(--hairline);
+}
+
+.cal-today {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+/* Separated from the period switcher by a hairline: it is a jump, not a mode. */
+.today-jump {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+  padding: var(--xxs) 0 var(--xxs) var(--sm);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+
+.today-jump:active {
+  color: var(--primary);
+}
+
+.periods button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: var(--xxs) 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+  border-bottom: 1px solid transparent;
+}
+
+.periods button[aria-current='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--primary);
+}
+
+.shell {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: var(--xl) var(--lg) var(--super);
+}
+
+/* ── The hero: the day itself ───────────────────────────────────────────── */
+
+.hero {
+  padding-bottom: var(--md);
+}
+
+.hero-date {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+}
+
+/* Same treatment as the period switcher in the header, so the two read as the
+   same kind of control at two levels. */
+.tabs {
+  display: flex;
+  gap: var(--xs);
+  margin-left: auto;
+}
+
+.tabs button {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: var(--xxs) 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.tabs button:hover {
+  color: var(--body);
+}
+
+.tabs button[aria-current='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--primary);
+}
+
+.stepper {
+  display: flex;
+  gap: var(--xxxs);
+}
+
+.stepper button {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  width: 28px;
+  height: 28px;
+  color: var(--body);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.stepper button:disabled {
+  color: var(--hairline);
+  cursor: default;
+}
+
+/* The empty state is the blank screen. One hairline sentence, nothing else. */
+.hero-empty {
+  padding-top: var(--lg);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.195px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Spec cells — the day in numbers ────────────────────────────────────── */
+
+.rule {
+  height: 1px;
+  background: var(--hairline);
+  border: 0;
+  margin: 0;
+}
+
+.specs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sm);
+  padding: var(--md) 0 var(--lg);
+}
+
+.spec-value {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1.12px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.spec-value.dim {
+  color: var(--hairline);
+}
+
+.spec-label {
+  margin-top: var(--xxs);
+}
+
+/* ── The wrap ───────────────────────────────────────────────────────────── */
+
+.section {
+  padding: var(--lg) 0 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--xs);
+  margin-bottom: var(--sm);
+}
+
+.bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bullets li {
+  position: relative;
+  padding: 0 0 0 var(--md);
+  margin-bottom: var(--sm);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+/* Hairline markers, not bullet glyphs — the brand divides with 1px rules. */
+.bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 10px;
+  height: 1px;
+  background: var(--hairline);
+}
+
+/* "did" is ordered by consequence, so its numbers carry that rather than an
+   identical marker on every line. Leading zeros read as a spec sheet, which is
+   how the system already sets its figures. */
+#did {
+  counter-reset: did;
+}
+
+#did li {
+  counter-increment: did;
+  padding-left: var(--lg);
+}
+
+#did li::before {
+  content: counter(did, decimal-leading-zero);
+  top: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 2;
+  letter-spacing: 0.6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bullets.quiet li {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--body);
+}
+
+/* Growth is the reason the record is kept. It gets the accent. */
+.section.growth .label {
+  color: var(--primary);
+}
+
+.section.growth .bullets li::before {
+  background: var(--primary);
+  width: 10px;
+  height: 2px;
+}
+
+.covered {
+  display: flex;
+  flex-direction: column;
+}
+
+.covered a {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--xs);
+  align-items: baseline;
+  padding: var(--xs) 0;
+  border-top: 1px solid var(--hairline);
+  color: var(--body);
+  text-decoration: none;
+}
+
+.covered a:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.covered .when {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.covered .what {
+  color: var(--ink);
+}
+
+/* ── Feedback ───────────────────────────────────────────────────────────── */
+
+.feedback-list {
+  display: flex;
+  flex-direction: column;
+  max-width: 78ch;
+}
+
+.feedback-item {
+  padding: var(--sm) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.feedback-item:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.feedback-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--xs);
+  padding-bottom: var(--xxs);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.feedback-meta .where {
+  color: var(--semantic-info);
+}
+
+.feedback-meta .who {
+  color: var(--ink);
+}
+
+.feedback-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.feedback-item a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.feedback-item a:hover {
+  color: var(--ink);
+}
+
+/* ── Goals ──────────────────────────────────────────────────────────────── */
+
+.goals-intro {
+  color: var(--body);
+  font-size: 16px;
+  padding-bottom: var(--md);
+}
+
+.goal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xs);
+  max-width: 62ch;
+}
+
+.goal-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, auto)) minmax(0, 1fr);
+  gap: var(--xxs);
+}
+
+.goal-form input[type='text'],
+.goal-form select {
+  appearance: none;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 0 var(--xs);
+  height: 44px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+
+.goal-form select {
+  /* The native arrow is a black glyph on a dark field; ours is drawn instead. */
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 20px, calc(100% - 11px) 20px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: var(--md);
+  cursor: pointer;
+}
+
+.goal-form input::placeholder,
+.goal-form textarea::placeholder {
+  color: var(--muted);
+}
+
+/* One hairline-divided row per goal, matching the sources list. */
+.goals {
+  display: flex;
+  flex-direction: column;
+}
+
+.goal {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: var(--xs);
+  align-items: baseline;
+  padding: var(--xs) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.goal:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.goal-meta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.goal[data-category='career'] .goal-meta {
+  color: var(--primary);
+}
+
+.goal[data-category='craft'] .goal-meta {
+  color: var(--semantic-info);
+}
+
+.goal[data-category='impact'] .goal-meta {
+  color: var(--semantic-success);
+}
+
+.goal[data-category='intrinsic'] .goal-meta {
+  color: var(--semantic-warning);
+}
+
+.goal-title {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.goal-sub {
+  display: block;
+  padding-top: var(--xxxs);
+  font-size: 13px;
+  color: var(--body);
+}
+
+.goal-why {
+  display: block;
+  padding-top: var(--xxxs);
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* A goal that is not active reads as set aside without being hidden. */
+.goal[data-status='paused'],
+.goal[data-status='achieved'],
+.goal[data-status='dropped'] {
+  opacity: 0.5;
+}
+
+.goal-actions {
+  display: flex;
+  gap: var(--xxxs);
+}
+
+.goal-actions button,
+.goal-actions select {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  padding: var(--xxxs) var(--xxs);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.goal-actions button:hover,
+.goal-actions select:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .goal-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .goal {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── The agent's take, and disputing it ─────────────────────────────────── */
+
+/* The most important text on the page, so it is set as prose rather than as a
+   list: larger, looser, and the full measure. */
+.take {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: 0;
+  color: var(--ink);
+  max-width: 64ch;
+}
+
+.disagree {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  padding: var(--xxxs) var(--xxs);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+
+.disagree:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.dispute {
+  padding-top: var(--sm);
+}
+
+.dispute-actions {
+  display: flex;
+  gap: var(--xxs);
+  padding-top: var(--xs);
+}
+
+.corrections {
+  padding-top: var(--sm);
+}
+
+.corrections .label {
+  display: block;
+  padding-bottom: var(--xxs);
+}
+
+/* ── Source tools ───────────────────────────────────────────────────────── */
+
+.source-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--xs);
+  padding-bottom: var(--sm);
+}
+
+#sources-search {
+  appearance: none;
+  flex: 1 1 260px;
+  min-width: 0;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: var(--xxs) var(--xs);
+  height: 36px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+#sources-search::placeholder {
+  color: var(--muted);
+}
+
+.source-kinds {
+  display: flex;
+  gap: var(--xxxs);
+}
+
+.source-kinds button {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  padding: var(--xxxs) var(--xxs);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.source-kinds button:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.source-kinds button[aria-pressed='true'] {
+  background: var(--canvas-elevated);
+  border-color: var(--muted);
+  color: var(--ink);
+}
+
+/* ── Sources ────────────────────────────────────────────────────────────── */
+
+/* Hairline-divided rows, the same treatment as a race calendar in the system:
+   a short label column, then the identity, then what it was. */
+.sources {
+  display: flex;
+  flex-direction: column;
+}
+
+.sources a {
+  display: grid;
+  grid-template-columns: 78px minmax(0, auto) minmax(0, 1fr);
+  gap: var(--xs);
+  align-items: baseline;
+  padding: var(--xs) 0;
+  border-top: 1px solid var(--hairline);
+  color: var(--body);
+  text-decoration: none;
+}
+
+.sources a:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.sources .kind {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Each kind of source carries its own colour from the Ferrari semantic set, so
+   the column scans by outcome rather than reading as one grey block. Commits
+   stay muted on purpose — they are the most numerous row by far, and colouring
+   them would drown the ones that mean something. */
+.sources a[data-kind='merged'] .kind {
+  color: var(--semantic-success);
+}
+
+.sources a[data-kind='opened'] .kind {
+  color: var(--primary);
+}
+
+.sources a[data-kind='reviewed'] .kind {
+  color: var(--semantic-info);
+}
+
+.sources a[data-kind='commit'] .kind {
+  color: var(--body);
+}
+
+.sources a[data-kind='slack'] .kind {
+  color: var(--semantic-warning);
+}
+
+.sources .ref {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.sources .what {
+  color: var(--body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Chat mode ──────────────────────────────────────────────────────────── */
+
+/*
+ * On the reflection tab the page is exactly the viewport and only the log
+ * scrolls. An outer scrollbar on a chat screen means the composer walks away
+ * from the bottom of the window, which is the thing that makes it feel like a
+ * form rather than a conversation.
+ *
+ * `min-height: 0` at every step of the flex chain is what lets the log shrink
+ * instead of pushing the composer off-screen; without it a flex child refuses
+ * to go below its content height.
+ */
+.shell.is-chat {
+  height: calc(100dvh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: var(--sm);
+}
+
+.shell.is-chat #tab-reflect {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.shell.is-chat .chat {
+  flex: 1;
+  min-height: 0;
+  margin-top: var(--sm);
+}
+
+.shell.is-chat .chat-log {
+  flex: 1;
+  min-height: 120px;
+  max-height: none;
+}
+
+/* The keyboard legend is the first thing to go when height is scarce. */
+.shell.is-chat .keys {
+  display: none;
+}
+
+/* The day's figures belong to the record, and the read paragraph already gives
+   the conversation its context. Reclaiming their height is worth more here
+   than restating the day beside a chat about it. */
+.shell.is-chat .specs,
+.shell.is-chat .rule {
+  display: none;
+}
+
+.shell.is-chat .hero {
+  padding-bottom: 0;
+}
+
+/* ── The three, inside the chat ─────────────────────────────────────────── */
+
+/* Sits between the log and the composer, so submitting is the last thing in
+   the conversation rather than a panel somewhere else on the page. */
+.three {
+  border-top: 1px solid var(--hairline);
+  padding: var(--sm);
+  background: var(--canvas);
+}
+
+.three-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--xs);
+  padding-bottom: var(--xs);
+}
+
+.three-row {
+  display: block;
+  padding-bottom: var(--xs);
+}
+
+.three-row .label {
+  display: block;
+  padding-bottom: var(--xxxs);
+}
+
+.three-row textarea {
+  display: block;
+  width: 100%;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: var(--xxs) var(--xs);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.three-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sm);
+  padding-top: var(--xxs);
+}
+
+.chat-draft {
+  appearance: none;
+  flex: 0 0 auto;
+  height: 40px;
+  padding: 0 var(--xs);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.chat-draft:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.chat-draft:disabled {
+  color: var(--hairline);
+  cursor: default;
+}
+
+/* ── Reflection chat ───────────────────────────────────────────────────── */
+
+/* A window, bounded by hairlines rather than a lifted panel: the log scrolls
+   inside it and the composer is fixed to its foot, so the reply box does not
+   walk down the page as the conversation grows. */
+.chat {
+  display: flex;
+  flex-direction: column;
+  max-width: 72ch;
+  margin-top: var(--lg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  background: var(--canvas);
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sm);
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: var(--sm);
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline) transparent;
+}
+
+.chat-log:empty {
+  display: none;
+}
+
+.msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 88%;
+}
+
+.msg-role {
+  padding-bottom: var(--xxxs);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.msg-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The agent speaks plainly on the canvas. Your own words sit in a block,
+   aligned right, because they are the half that becomes the record. */
+.msg[data-role='agent'] .msg-text {
+  color: var(--body);
+}
+
+.msg[data-role='person'] {
+  align-self: flex-end;
+}
+
+.msg[data-role='person'] .msg-text {
+  padding: var(--xxs) var(--xs);
+  background: var(--canvas-elevated);
+  color: var(--ink);
+}
+
+/* Thinking, in the shape of the message it will become. */
+.chat-thinking {
+  padding: 0 var(--sm) var(--sm);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  height: 15px;
+}
+
+.dots i {
+  width: 5px;
+  height: 5px;
+  background: var(--muted);
+  animation: dot 1.2s ease-in-out infinite;
+}
+
+.dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dots i {
+    animation: none;
+    opacity: 0.55;
+  }
+}
+
+.chat-intro {
+  margin: 0;
+  padding: var(--sm);
+}
+
+.chat-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--xxs);
+  padding: var(--xxs);
+  border-top: 1px solid var(--hairline);
+}
+
+.chat-composer textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 180px;
+  border: 0;
+  border-radius: var(--r-none);
+  background: none;
+  padding: var(--xxs) var(--xs);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: none;
+}
+
+.chat-composer textarea:focus-visible {
+  outline: none;
+}
+
+.chat-composer textarea::placeholder {
+  color: var(--muted);
+}
+
+/* Square and sharp, the size of the line it sits beside. */
+.chat-send {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--r-none);
+  background: var(--primary);
+  color: var(--on-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.chat-send:active {
+  background: var(--primary-active);
+}
+
+.chat-send:disabled {
+  background: var(--canvas-elevated);
+  color: var(--muted);
+  cursor: default;
+}
+
+.chat-hint {
+  margin: var(--xxs) 0 0;
+  max-width: 72ch;
+}
+
+/* ── The three ──────────────────────────────────────────────────────────── */
+
+.takeaways {
+  padding-top: var(--lg);
+  max-width: 68ch;
+}
+
+.takeaway {
+  display: block;
+  padding-bottom: var(--xs);
+}
+
+.takeaway .label {
+  display: block;
+  padding-bottom: var(--xxxs);
+}
+
+.takeaway input {
+  display: block;
+  width: 100%;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: var(--xxs) var(--xs);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.takeaway input::placeholder {
+  color: var(--muted);
+}
+
+/* ── Reflection ─────────────────────────────────────────────────────────── */
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: var(--xs);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+textarea::placeholder {
+  color: var(--muted);
+}
+
+.energy {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  margin-top: var(--xs);
+}
+
+.energy-scale {
+  display: flex;
+  gap: var(--xxxs);
+}
+
+.energy-scale button {
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.energy-scale button[aria-pressed='true'] {
+  background: var(--canvas-elevated);
+  border-color: var(--muted);
+  color: var(--ink);
+}
+
+/* ── Actions ────────────────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  padding-top: var(--lg);
+}
+
+.btn {
+  appearance: none;
+  height: 48px;
+  padding: 14px var(--md);
+  border: 0;
+  border-radius: var(--r-none); /* sharp corners are the brand button */
+  background: var(--primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.btn:active {
+  background: var(--primary-active);
+}
+
+.btn[disabled] {
+  background: var(--canvas-elevated);
+  color: var(--muted-soft);
+  cursor: default;
+}
+
+.btn.outline {
+  background: none;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  padding: 13px 31px;
+}
+
+.btn.outline[disabled] {
+  border-color: var(--hairline);
+  color: var(--muted-soft);
+}
+
+.badge {
+  display: inline-block;
+  padding: var(--xxxs) 12px;
+  border-radius: var(--r-full); /* the only pill in the system */
+  background: var(--canvas-elevated);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+#provenance {
+  padding-top: var(--xs);
+  margin: 0;
+}
+
+.note {
+  padding-top: var(--sm);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.note.warn {
+  color: var(--semantic-warning);
+}
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--xs);
+  padding-top: var(--xxl);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.keys kbd {
+  font: inherit;
+  color: var(--body);
+  border: 1px solid var(--hairline);
+  padding: 1px 5px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ── Loading ────────────────────────────────────────────────────────────── */
+
+/* First paint only. Once content exists, a reload or a navigation dims what is
+   already there instead of replacing it with bars, which reads as the page
+   working rather than the page emptying. */
+.shell.is-loading > *:not(.skeleton) {
+  display: none;
+}
+
+.shell:not(.is-loading) .skeleton {
+  display: none;
+}
+
+.skeleton .rule {
+  margin: var(--md) 0;
+}
+
+.sk {
+  background: var(--hairline);
+  border-radius: var(--r-none);
+  animation: sk-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes sk-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.sk-date {
+  width: 220px;
+  height: 12px;
+}
+
+.sk-specs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sm);
+}
+
+.sk-num {
+  width: 64px;
+  height: 44px;
+}
+
+.sk-tag {
+  width: 84px;
+  height: 10px;
+  margin-top: var(--xs);
+}
+
+.sk-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xs);
+}
+
+.sk-line {
+  width: 100%;
+  height: 14px;
+}
+
+.sk-line.short {
+  width: 62%;
+}
+
+.skeleton-goals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xs);
+}
+
+@media (max-width: 640px) {
+  .sk-specs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Work in progress reads as a dimming of the whole field, not a spinner. */
+.busy {
+  opacity: 0.45;
+  transition: opacity 120ms linear;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .topnav {
+    padding: 0 var(--xs);
+  }
+
+  .nav-right {
+    gap: var(--xs);
+  }
+
+  .today-jump {
+    padding-left: var(--xs);
+  }
+
+  /* The header gets tight on a phone; the date is already in the page body. */
+  .datefield-wrap {
+    display: none;
+  }
+
+  .shell {
+    padding: var(--lg) var(--xs) var(--xl);
+  }
+
+  .specs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .spec-value {
+    font-size: 36px;
+    letter-spacing: -0.36px;
+  }
+
+  .covered a {
+    grid-template-columns: 1fr;
+    gap: var(--xxxs);
+  }
+
+  .sources a {
+    grid-template-columns: 1fr;
+    gap: var(--xxxs);
+  }
+
+  .sources .what {
+    white-space: normal;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+}
