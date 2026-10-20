@@ -58,12 +58,6 @@
   height: 40px;
 }
 
-.settings-more {
-  margin: var(--lg) 0 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-
 @media (max-width: 640px) {
   .settings {
     grid-template-columns: 1fr;

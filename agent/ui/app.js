@@ -760,6 +760,27 @@ function countNode(key, value) {
  * none. The header is where a source says what it is and how it is doing —
  * the board and its link, or whether Slack is connected.
  */
+/**
+ * The shared empty state (theme.css): a muted title, and a caption under it.
+ * `caption` may hold markup, such as a <span class="kbd">.
+ */
+function emptyState(flipKey, { title, caption }) {
+  const box = document.createElement('div');
+  box.className = 'empty-state';
+  box.dataset.flip = flipKey;
+  const heading = document.createElement('p');
+  heading.className = 'empty-title';
+  heading.textContent = title;
+  box.append(heading);
+  if (caption) {
+    const note = document.createElement('p');
+    note.className = 'empty-caption';
+    note.innerHTML = caption;
+    box.append(note);
+  }
+  return box;
+}
+
 function section({ key, iconName, name, href, sub, warn: isWarn, count, items, empty, rowOpts }) {
   const group = document.createElement('section');
   group.className = 'group';
@@ -796,12 +817,8 @@ function section({ key, iconName, name, href, sub, warn: isWarn, count, items, e
 
   group.append(head, list);
   if (!items.length && empty) {
-    const p = document.createElement('p');
-    p.className = 'empty';
-    p.dataset.flip = `e-${key}`;
     // Under a filter, an empty list says so rather than claiming a clear plate.
-    p.innerHTML = filtering() ? 'Nothing here matches the filters.' : empty;
-    group.append(p);
+    group.append(emptyState(`e-${key}`, filtering() ? { title: 'Nothing here matches the filters.' } : empty));
   }
   return group;
 }
@@ -875,7 +892,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
       warn: failed,
       count: items.length,
       items,
-      empty: 'Nothing of yours is open on this board.',
+      empty: { title: 'Nothing of yours is open on this board.' },
       // A card on two boards appears under both; the first copy drawn keeps
       // the plain key, so it is the one that travels when the section changes.
       rowOpts: (item) => {
@@ -907,7 +924,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
         warn: failed,
         count: pulls.length,
         items: pulls,
-        empty: 'No open PRs of yours.',
+        empty: { title: 'No open PRs of yours.' },
       }),
     );
   }
@@ -922,7 +939,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
         warn: failed,
         count: issues.length,
         items: issues,
-        empty: 'Every issue of yours is on a board.',
+        empty: { title: 'Every issue of yours is on a board.' },
       }),
     );
   }
@@ -935,7 +952,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
         sub: sub('Added by you'),
         count: tasks.length,
         items: tasks,
-        empty: 'No tasks of your own. Add one above.',
+        empty: { title: 'No tasks of your own.', caption: 'Type one in the box above, or press N.' },
       }),
     );
   }
@@ -957,7 +974,10 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
       ),
       count: slack.length,
       items: slack,
-      empty: 'Nothing from Slack. React <span class="kbd">:knife_fork_plate:</span> to a message to put it here.',
+      empty: {
+        title: 'Nothing from Slack.',
+        caption: 'React <span class="kbd">:knife_fork_plate:</span> to a message, or mention @Daily Plate, to put it here.',
+      },
     }),
   );
   return sections;

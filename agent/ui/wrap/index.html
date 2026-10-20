@@ -105,10 +105,13 @@
           <span class="caption" id="slack-count"></span>
         </div>
         <div class="feedback-list" id="slack-list"></div>
-        <p class="caption" id="slack-empty" hidden>
-          Nothing marked yet. In any channel the agent can see, react
-          <strong>:brain:</strong> to a message worth keeping.
-        </p>
+        <div class="empty-state" id="slack-empty" hidden>
+          <p class="empty-title">Nothing marked yet.</p>
+          <p class="empty-caption">
+            In any channel the agent can see, react <strong>:brain:</strong> to a
+            message worth keeping.
+          </p>
+        </div>
       </section>
     </main>
 
@@ -168,10 +171,12 @@
           <div class="sk sk-line short"></div>
         </div>
         <div class="goals" id="goal-list"></div>
-        <p class="caption" id="goals-empty" hidden>
-          Nothing set yet. Wraps will read your days without a direction to
-          measure them against.
-        </p>
+        <div class="empty-state" id="goals-empty" hidden>
+          <p class="empty-title">No goals set yet.</p>
+          <p class="empty-caption">
+            Wraps will read your days without a direction to measure them against.
+          </p>
+        </div>
       </section>
     </main>
 
@@ -222,7 +227,7 @@
       <hr class="rule" id="specs-rule" hidden />
 
       <div id="tab-summary">
-      <p class="hero-empty" id="empty" hidden>Nothing wrapped yet.</p>
+      <p class="empty-state empty-title" id="empty" hidden>Nothing wrapped yet.</p>
 
       <section class="section" id="did-section" hidden>
               <div class="section-head"><span class="label">What you did</span></div>
@@ -365,7 +370,9 @@
         </div>
 
         <div class="sources" id="sources"></div>
-        <p class="caption" id="sources-empty" hidden>Nothing matches that filter.</p>
+        <div class="empty-state" id="sources-empty" hidden>
+          <p class="empty-title">Nothing matches that filter.</p>
+        </div>
       </section>
       </div>
 

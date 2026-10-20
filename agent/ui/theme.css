@@ -276,3 +276,78 @@ body {
   border-color: var(--hairline);
   background: var(--surface-soft);
 }
+
+/* ── The empty state, everywhere ────────────────────────────────────────── */
+/*
+ * One shape for "nothing here yet" on every page: a muted title, the actions
+ * that would fill it, and a caption under them. Each part is optional except
+ * the title.
+ */
+
+.empty-state {
+  padding-top: var(--lg);
+}
+
+.empty-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.195px;
+  color: var(--muted);
+}
+
+.empty-caption {
+  margin: var(--xs) 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* The brand button: sharp, uppercase, Rosso Corsa; outline is the second action. */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  padding-top: var(--lg);
+}
+
+.btn {
+  appearance: none;
+  height: 48px;
+  padding: 14px var(--md);
+  border: 0;
+  border-radius: var(--r-none); /* sharp corners are the brand button */
+  background: var(--primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.btn:active {
+  background: var(--primary-active);
+}
+
+.btn[disabled] {
+  background: var(--canvas-elevated);
+  color: var(--muted-soft);
+  cursor: default;
+}
+
+.btn.outline {
+  background: none;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  padding: 13px 31px;
+}
+
+.btn.outline[disabled] {
+  border-color: var(--hairline);
+  color: var(--muted-soft);
+}

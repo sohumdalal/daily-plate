@@ -1105,12 +1105,6 @@ a.title:hover {
   background-size: 100% 1px;
 }
 
-.empty {
-  margin: 0;
-  padding: var(--xs) 0;
-  border-top: 1px solid var(--hairline);
-  color: var(--muted);
-}
 
 .kbd {
   color: var(--body);

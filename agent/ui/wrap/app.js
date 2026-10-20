@@ -291,10 +291,13 @@ function renderCovered(view) {
   }
   el.coveredSection.hidden = false;
   if (!days.length) {
-    const p = document.createElement('p');
-    p.className = 'caption';
-    p.textContent = 'No days wrapped in this period yet.';
-    el.covered.replaceChildren(p);
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    const title = document.createElement('p');
+    title.className = 'empty-title';
+    title.textContent = 'No days wrapped in this period yet.';
+    empty.append(title);
+    el.covered.replaceChildren(empty);
     return;
   }
   el.covered.replaceChildren(
