@@ -99,17 +99,12 @@ const lastStates = new Map();
 const openNotes = new Set();
 const noteDrafts = new Map();
 
+/** From shell.js, so both tabs say it the same way. */
+const { ago } = window.DailyPlate;
+
 function rank(status) {
   const i = COLUMN_ORDER.indexOf(status);
   return i === -1 ? COLUMN_ORDER.length : i;
-}
-
-function ago(iso) {
-  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
 }
 
 function wait(ms) {

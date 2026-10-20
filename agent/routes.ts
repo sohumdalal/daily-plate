@@ -12,6 +12,7 @@
  *   DELETE /api/items/:id/notes/:n  remove that note
  *   GET   /api/unfurl?url=          { url, title, site, icon } — a link's preview card
  *   GET   /api/export      every item as stored, for scripts/import-plate.ts
+ *   GET   /api/me          { login, name } — whose plate this is, for the account menu
  */
 
 import { Hono } from 'hono';
@@ -39,6 +40,11 @@ async function plateBody() {
 }
 
 routes.get('/api/plate', async (c) => c.json(await plateBody()));
+
+routes.get('/api/me', (c) => {
+  const login = assignee()?.login || config.github.username;
+  return c.json({ login, name: assignee()?.name || login });
+});
 
 routes.get('/api/export', async (c) => {
   c.header('content-disposition', 'attachment; filename="daily-plate-items.json"');

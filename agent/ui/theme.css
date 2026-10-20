@@ -78,7 +78,7 @@ body {
   color: var(--ink);
 }
 
-/* ── Plate | Wrap, and the theme switch ─────────────────────────────────── */
+/* ── Plate | Wrap ───────────────────────────────────────────────────────── */
 
 .apptabs {
   display: flex;
@@ -104,19 +104,175 @@ body {
 }
 
 .apptab:focus-visible,
-.theme-toggle:focus-visible {
+.account-button:focus-visible,
+.account-item:focus-visible,
+.theme-option:focus-visible,
+.line-button:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
-.theme-toggle {
-  font: 600 11px/1 var(--sans);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--body);
+/* ── Refresh, and when it last read, beside the date on both tabs ──────── */
+
+.when {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+}
+
+.read-at:empty {
+  display: none;
+}
+
+.when .line-button {
+  height: 28px;
+}
+
+/* An outlined uppercase button: Refresh on both tabs, Add on the plate. */
+.line-button {
+  height: 32px;
+  padding: 0 var(--xs);
   background: none;
   border: 1px solid var(--hairline);
   border-radius: var(--r-none);
-  padding: var(--xxs) var(--xs);
+  color: var(--body);
   cursor: pointer;
+  font: 600 11px/1 var(--sans);
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+
+.line-button:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.line-button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* ── The account menu at the top right ──────────────────────────────────── */
+
+.account {
+  position: relative;
+}
+
+.account-button {
+  display: block;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--r-full);
+  cursor: pointer;
+}
+
+.account-avatar {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-full);
+  background: var(--surface-soft);
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + var(--xxs));
+  right: 0;
+  z-index: 20;
+  width: 240px;
+  padding: var(--xs);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+}
+
+.account-head {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  padding-bottom: var(--xs);
+}
+
+.account-head .account-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.account-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.account-name,
+.account-login {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.account-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.account-login {
+  color: var(--body);
+}
+
+.account-sep {
+  height: 1px;
+  margin: var(--xxs) calc(-1 * var(--xs));
+  background: var(--hairline);
+}
+
+.account-item {
+  display: flex;
+  align-items: center;
+  gap: var(--xxs);
+  padding: var(--xxs) 0;
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.account-item:hover {
+  color: var(--primary);
+}
+
+.account-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.theme-row {
+  display: flex;
+  gap: var(--xxxs);
+  padding-top: var(--xxxs);
+}
+
+.theme-option {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-none);
+  color: var(--body);
+  cursor: pointer;
+}
+
+.theme-option:hover {
+  color: var(--ink);
+}
+
+.theme-option[aria-pressed='true'] {
+  color: var(--ink);
+  border-color: var(--hairline);
+  background: var(--surface-soft);
 }

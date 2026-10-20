@@ -84,35 +84,6 @@ body {
   gap: var(--sm);
 }
 
-.read-at:empty {
-  display: none;
-}
-
-.sync {
-  height: 32px;
-  padding: 0 var(--xs);
-  background: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-none);
-  color: var(--body);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.65px;
-  text-transform: uppercase;
-}
-
-.sync:hover:not(:disabled) {
-  color: var(--ink);
-  border-color: var(--muted);
-}
-
-.sync:disabled {
-  color: var(--muted);
-  cursor: default;
-}
-
 /* A red hairline that runs along the nav's bottom rule while the boards are
    read. Off, it is simply not there. */
 .progress {
@@ -1153,10 +1124,6 @@ a.title:hover {
 
   .nav-right {
     gap: var(--xs);
-  }
-
-  .read-at {
-    display: none;
   }
 
   .shell {

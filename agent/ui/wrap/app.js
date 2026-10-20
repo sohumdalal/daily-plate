@@ -101,8 +101,12 @@ const el = {
   energy: $('energy'),
   wrap: $('wrap'),
   collect: $('collect'),
+  readAt: $('read-at'),
   note: $('note'),
 };
+
+/** From shell.js, so both tabs say it the same way. */
+const { ago } = window.DailyPlate;
 
 const TABS = ['summary', 'reflect', 'sources'];
 
@@ -470,6 +474,8 @@ function render() {
       ? 'Where to improve tomorrow'
       : `Where to improve next ${state.period}`;
   el.collect.hidden = state.period !== 'day';
+  el.readAt.textContent =
+    state.period === 'day' && view.collectedAt ? `Read ${ago(view.collectedAt)}` : '';
 
   applyTab();
   maybeOpenReflection(view);

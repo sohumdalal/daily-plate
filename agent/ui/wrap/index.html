@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="/theme.css" />
     <link rel="stylesheet" href="/wrap/app.css" />
-    <script src="/theme.js"></script>
+    <script src="/shell.js"></script>
   </head>
   <body>
     <nav class="topnav">
@@ -80,7 +80,7 @@
         <button class="today-jump" id="today-jump" title="Today's reflection (T)">
           Today
         </button>
-        <button class="theme-toggle" type="button" data-theme-toggle>Dark</button>
+        <div class="account" data-account></div>
       </div>
     </nav>
 
@@ -202,8 +202,12 @@
             <button id="prev" title="Previous (←)">&larr;</button>
             <button id="next" title="Next (→)">&rarr;</button>
           </div>
-          <span class="label" id="date-label"></span>
-          <span class="badge" id="today-badge" hidden>Today</span>
+          <div class="when">
+            <span class="label" id="date-label"></span>
+            <span class="badge" id="today-badge" hidden>Today</span>
+            <button class="line-button" id="collect" title="Re-read Claude Code and GitHub for the day">Refresh</button>
+            <span class="label read-at" id="read-at"></span>
+          </div>
           <div class="tabs" id="tabs">
             <button data-tab="summary" aria-current="true">Summary</button>
             <button data-tab="reflect">Reflection</button>
@@ -265,7 +269,6 @@
 
       <div class="actions">
         <button class="btn" id="wrap">Wrap the day</button>
-        <button class="btn outline" id="collect">Refresh sources</button>
       </div>
         <p class="caption" id="provenance" hidden></p>
       </div>

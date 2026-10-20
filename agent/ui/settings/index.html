@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Daily Plate — Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/theme.css" />
+    <!-- The Plate tab's sheet carries the top bar and page frame this page shares. -->
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/settings/settings.css" />
+    <script src="/shell.js"></script>
+  </head>
+  <body>
+    <nav class="topnav">
+      <span class="wordmark"><span class="tick" aria-hidden="true"></span>Daily Plate</span>
+      <div class="apptabs">
+        <a class="apptab" href="/">Plate</a>
+        <a class="apptab" href="/wrap/">Wrap</a>
+      </div>
+      <div class="nav-right">
+        <div class="account" data-account></div>
+      </div>
+    </nav>
+
+    <main class="shell">
+      <header class="hero">
+        <p class="label">Settings</p>
+      </header>
+
+      <!-- One section per area. A new setting gets its own section and a link
+           in the list on the left. -->
+      <div class="settings">
+        <nav class="settings-nav" aria-label="Settings sections">
+          <a href="#account" aria-current="true">Account</a>
+        </nav>
+
+        <div class="settings-body">
+          <section class="settings-section" id="account">
+            <h2 class="settings-title">Account</h2>
+            <p class="settings-lede">Whose plate this is, from your GitHub profile.</p>
+            <div class="settings-row">
+              <img class="account-avatar" id="me-avatar" alt="" />
+              <div class="account-who">
+                <span class="account-name" id="me-name">—</span>
+                <span class="account-login" id="me-login"></span>
+              </div>
+            </div>
+          </section>
+
+          <p class="settings-more">More settings will go here.</p>
+        </div>
+      </div>
+    </main>
+
+    <script src="/settings/settings.js"></script>
+  </body>
+</html>

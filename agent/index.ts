@@ -18,12 +18,14 @@ app.onError((err, c) => {
 app.route('/', routes);
 app.route('/api/wrap', wrapRoutes);
 
-// Two tabs of static files, Plate at / and Wrap at /wrap/, sharing theme.css.
-// No build step, no bundler, no framework.
+// Static pages: Plate at /, Wrap at /wrap/ and Settings at /settings/, sharing
+// theme.css and shell.js. No build step, no bundler, no framework.
 app.get('/wrap', (c) => c.redirect('/wrap/'));
+app.get('/settings', (c) => c.redirect('/settings/'));
 app.use('/*', serveStatic({ root: './agent/ui' }));
 app.get('/', serveStatic({ root: './agent/ui', path: 'index.html' }));
 app.get('/wrap/', serveStatic({ root: './agent/ui', path: 'wrap/index.html' }));
+app.get('/settings/', serveStatic({ root: './agent/ui', path: 'settings/index.html' }));
 
 // Bind the HTTP server FIRST so the platform's port-80 ingress comes up
 // immediately. Database problems must never block binding or crash the

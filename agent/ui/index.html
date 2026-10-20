@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="/theme.css" />
     <link rel="stylesheet" href="/app.css" />
-    <script src="/theme.js"></script>
+    <script src="/shell.js"></script>
   </head>
   <body>
     <nav class="topnav">
@@ -22,9 +22,7 @@
         <a class="apptab" href="/wrap/">Wrap</a>
       </div>
       <div class="nav-right">
-        <button class="theme-toggle" type="button" data-theme-toggle>Dark</button>
-        <span class="label read-at" id="read-at"></span>
-        <button class="sync" id="sync" type="button" title="Re-read GitHub (R)">Refresh</button>
+        <div class="account" data-account></div>
       </div>
       <div class="progress" id="progress" aria-hidden="true"></div>
     </nav>
@@ -34,7 +32,11 @@
         <!-- The day on the left, whose plate it is on the right: every card
              below is one assigned to this person. -->
         <div class="hero-top" data-flip="date">
-          <p class="label" id="date">—</p>
+          <div class="when">
+            <p class="label" id="date">—</p>
+            <button class="line-button" id="sync" type="button" title="Re-read GitHub (R)">Refresh</button>
+            <span class="label read-at" id="read-at"></span>
+          </div>
           <p class="label" id="assignee" hidden></p>
         </div>
         <div class="specs">
@@ -47,7 +49,7 @@
         <form class="add" id="add">
           <input id="add-title" type="text" maxlength="2000" autocomplete="off"
                  placeholder="Add a task to the plate (N)" aria-label="New task" />
-          <button class="sync" type="submit">Add</button>
+          <button class="line-button" type="submit">Add</button>
         </form>
         <!-- Repo, section and state chips. One of each can be on at a time,
              and they combine. -->

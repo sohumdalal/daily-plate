@@ -223,8 +223,9 @@ a deploy-form control with no flag.
 
 Both tabs use the shared Ferrari design system in `../DESIGN.md` (linked here
 as `DESIGN.md`), from one set of tokens in `agent/ui/theme.css`. Light is the
-default; the switch in the top bar turns on the design file's dark palette,
-remembered per browser. Same Inter, sharp corners, hairlines and spacing. The
+default. The account menu at the top right (`agent/ui/shell.js`) switches to the
+design file's dark palette, or to System, remembered per browser, and links to
+Settings at `/settings/`. Same Inter, sharp corners, hairlines and spacing. The
 counts across the top use the system's `spec-cell` treatment.
 
 The GitHub and Slack marks are Lucide's, vendored into `agent/ui/icons/` from
