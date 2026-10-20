@@ -479,10 +479,10 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     meta.append(span('', ago(item.addedAt)));
   }
 
-  const title = document.createElement(item.url ? 'a' : 'span');
-  title.className = 'title';
-  title.textContent = item.title;
+  const title = item.url ? document.createElement('a') : linked('title', item.title);
   if (item.url) {
+    title.className = 'title';
+    title.textContent = item.title;
     title.href = item.url;
     title.target = '_blank';
     title.rel = 'noopener';
@@ -551,7 +551,7 @@ function notesPanel(item) {
     remove.title = 'Delete this note';
     remove.setAttribute('aria-label', 'Delete this note');
     remove.addEventListener('click', () => removeNote(item, note.id));
-    li.append(span('note-text', note.text), span('label note-at', ago(note.at)), remove);
+    li.append(linked('note-text', note.text), span('label note-at', ago(note.at)), remove);
     list.append(li);
   }
 
@@ -577,6 +577,66 @@ function notesPanel(item) {
 
   panel.append(list, input);
   return panel;
+}
+
+/** A URL in a note, less the punctuation that ends its sentence. */
+const URL_RE = /https?:\/\/[^\s<>"]+[^\s<>".,;:!?)\]'}]/g;
+/** Link previews by URL: a card once read, a promise while reading. Outlives a render. */
+const unfurls = new Map();
+
+/** Text, a note or a task, with its links live. */
+function linked(className, text) {
+  const node = span(className, '');
+  let at = 0;
+  for (const m of text.matchAll(URL_RE)) {
+    node.append(text.slice(at, m.index), noteLink(m[0]));
+    at = m.index + m[0].length;
+  }
+  node.append(text.slice(at));
+  return node;
+}
+
+/** A link that reads as its host and path, then as its page's icon and title once the server has read them. */
+function noteLink(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.title = url;
+  a.textContent = shortUrl(url);
+  const fill = (u) => {
+    if (!u?.title) return;
+    a.className = 'unfurl';
+    a.replaceChildren(span('unfurl-title', u.title));
+    if (u.icon) {
+      const img = document.createElement('img');
+      img.src = u.icon;
+      img.alt = '';
+      img.onerror = () => img.remove();
+      a.prepend(img);
+    }
+  };
+  const known = unfurls.get(url);
+  if (known && !(known instanceof Promise)) fill(known);
+  else {
+    if (!known) {
+      unfurls.set(
+        url,
+        request(`/api/unfurl?url=${encodeURIComponent(url)}`)
+          .catch(() => ({ url }))
+          .then((u) => (unfurls.set(url, u), u)),
+      );
+    }
+    unfurls.get(url).then(fill);
+  }
+  return a;
+}
+
+/** A URL as its host and path, with no query, cut to a readable length. */
+function shortUrl(href) {
+  const u = new URL(href);
+  const text = (u.host + u.pathname).replace(/^www\./, '').replace(/\/$/, '');
+  return text.length > 40 ? `${text.slice(0, 39)}…` : text;
 }
 
 /** A note box grows with what is typed in it. */

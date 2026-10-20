@@ -1069,6 +1069,40 @@ a.state:hover span {
   overflow-wrap: anywhere;
 }
 
+.note-text a,
+span.title a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+}
+
+.note-text a:hover,
+span.title a:hover {
+  text-decoration-color: currentColor;
+}
+
+/* A read link: its page's icon and title, in place of the URL. */
+a.unfurl {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  max-width: 100%;
+  vertical-align: bottom;
+}
+
+.unfurl img {
+  width: 14px;
+  height: 14px;
+  align-self: center;
+}
+
+.unfurl-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .note-at {
   white-space: nowrap;
 }

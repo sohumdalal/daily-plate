@@ -10,9 +10,11 @@
  *   DELETE /api/items/:id   delete a task of your own
  *   POST  /api/items/:id/notes      { text: string } — add a note to an item
  *   DELETE /api/items/:id/notes/:n  remove that note
+ *   GET   /api/unfurl?url=          { url, title, site, icon } — a link's preview card
  */
 
 import { Hono } from 'hono';
+import ogs from 'open-graph-scraper';
 import { config, readiness } from './config.ts';
 import * as store from './store.ts';
 import { slackConnected } from './slack.ts';
@@ -86,4 +88,29 @@ routes.delete('/api/items/:id/notes/:note', async (c) => {
   if (!Number.isInteger(id)) return c.json({ error: 'not found' }, 404);
   const item = await store.deleteNote(id, c.req.param('note'));
   return item ? c.json(item) : c.json({ error: 'not found' }, 404);
+});
+
+/** Link previews, read once per URL for the life of the process. */
+const unfurls = new Map<string, Promise<{ url: string; title?: string; site?: string; icon?: string }>>();
+
+function unfurl(url: string) {
+  let card = unfurls.get(url);
+  if (!card) {
+    card = ogs({ url, timeout: 5 })
+      .then(({ result: r }) => ({
+        url,
+        title: r.ogTitle || r.twitterTitle || undefined,
+        site: r.ogSiteName || new URL(url).hostname.replace(/^www\./, ''),
+        icon: r.favicon ? new URL(r.favicon, url).href : undefined,
+      }))
+      .catch(() => ({ url }));
+    unfurls.set(url, card);
+  }
+  return card;
+}
+
+routes.get('/api/unfurl', async (c) => {
+  const url = c.req.query('url') ?? '';
+  if (!/^https?:\/\//.test(url)) return c.json({ error: 'expected ?url=http(s)://…' }, 400);
+  return c.json(await unfurl(url));
 });
