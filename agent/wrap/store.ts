@@ -508,6 +508,31 @@ export async function addSlackFeedback(input: {
   return toSlackFeedback(rows[0]!);
 }
 
+/**
+ * Names each `<@U…>` in the captures' text as Slack itself would, as
+ * `<@U…|Sohum>`. The agent holds no Slack token to look anyone up, so the
+ * names are the authors the adapter attached to earlier captures. Someone
+ * never seen as an author keeps the bare id.
+ */
+async function nameMentions(list: SlackFeedback[]): Promise<SlackFeedback[]> {
+  const MENTION = /<@([A-Z0-9]+)>/g;
+  if (!list.some((f) => f.text.includes('<@'))) return list;
+  const rows = await db()<{ author_id: string; author_name: string }[]>`
+    SELECT DISTINCT ON (author_id) author_id, author_name
+      FROM slack_feedback
+     WHERE user_id = ${USER} AND author_id <> '' AND author_name <> ''
+     ORDER BY author_id, created_at DESC
+  `;
+  const names = new Map(rows.map((r) => [r.author_id, r.author_name]));
+  return list.map((f) => ({
+    ...f,
+    text: f.text.replace(MENTION, (tag, id: string) => {
+      const name = names.get(id);
+      return name ? `<@${id}|${name}>` : tag;
+    }),
+  }));
+}
+
 export async function listSlackFeedback(limit = 200): Promise<SlackFeedback[]> {
   const rows = await db()<SlackFeedbackRow[]>`
     SELECT ${db().unsafe(SLACK_COLUMNS)}
@@ -516,7 +541,7 @@ export async function listSlackFeedback(limit = 200): Promise<SlackFeedback[]> {
      ORDER BY day DESC, created_at DESC
      LIMIT ${limit}
   `;
-  return rows.map(toSlackFeedback);
+  return nameMentions(rows.map(toSlackFeedback));
 }
 
 /** Captures inside a span, for the day's prompt and for rollups. */
@@ -530,7 +555,7 @@ export async function slackFeedbackBetween(
      WHERE user_id = ${USER} AND day BETWEEN ${from} AND ${to}
      ORDER BY day, created_at
   `;
-  return rows.map(toSlackFeedback);
+  return nameMentions(rows.map(toSlackFeedback));
 }
 
 type GoalRow = {
