@@ -1068,7 +1068,7 @@ function render() {
   const allDone = data.items.filter((i) => i.doneAt);
   const done = shown(allDone).sort((a, b) => b.doneAt.localeCompare(a.doneAt));
 
-  $('date').textContent = new Date(`${data.today}T12:00:00`).toLocaleDateString(undefined, {
+  $('date').textContent = new Date(`${data.today}T12:00:00`).toLocaleDateString('en-GB', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',

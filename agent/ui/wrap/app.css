@@ -1192,22 +1192,6 @@ textarea::placeholder {
   margin: 0;
 }
 
-.keys {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--xs);
-  padding-top: var(--xxl);
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.keys kbd {
-  font: inherit;
-  color: var(--body);
-  border: 1px solid var(--hairline);
-  padding: 1px 5px;
-}
-
 /* ── Loading ────────────────────────────────────────────────────────────── */
 
 /* While a period's view is read, its skeleton stands in for it (Mova draws
@@ -1343,11 +1327,6 @@ textarea::placeholder {
   .tabs {
     flex-basis: 100%;
     margin-left: 0;
-  }
-
-  /* No keyboard on a phone to use them with. */
-  .keys {
-    display: none;
   }
 
   .today-jump {

@@ -1519,7 +1519,9 @@ window.Mova?.skeleton(el.slackLoading, 'feedback');
     else if (!server.github) note('GitHub is not configured — the day will be Claude only.', true);
   } catch (err) {
     note(`Cannot reach the agent: ${err.message}`, true);
-    state.today = new Date().toISOString().slice(0, 10);
+    // The agent's own day is unknown, so this browser's local day stands in.
+    const now = new Date();
+    state.today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   }
   if (!location.hash) go('day', state.today, true);
   else applyHash();

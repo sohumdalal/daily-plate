@@ -221,6 +221,31 @@ body {
   }
 }
 
+/* ── The keyboard legend at the foot of a page ──────────────────────────── */
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--xs);
+  padding-top: var(--xxl);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.keys kbd {
+  font: inherit;
+  color: var(--body);
+  border: 1px solid var(--hairline);
+  padding: 1px 5px;
+}
+
+/* No keyboard on a phone to use them with. */
+@media (hover: none) {
+  .keys {
+    display: none;
+  }
+}
+
 /* ── Notes: one line of status or warning under what it is about ────────── */
 
 .note {
