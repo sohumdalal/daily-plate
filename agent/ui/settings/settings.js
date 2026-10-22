@@ -3,8 +3,6 @@
  * setting adds a section to index.html and its wiring here.
  */
 (async () => {
-  // The Plate tab's sheet keeps .shell hidden until a page marks itself ready.
-  document.body.classList.add('ready');
   const me = await fetch('/api/me')
     .then((res) => (res.ok ? res.json() : null))
     .catch(() => null);

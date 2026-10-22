@@ -10,32 +10,6 @@
  * the one CTA, and the marker on "where you grew".
  */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  background: var(--canvas);
-}
-
-body {
-  margin: 0;
-  background: var(--canvas);
-  color: var(--body);
-  font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
 /* ── Type roles ─────────────────────────────────────────────────────────── */
 
 .display-lg {
@@ -47,15 +21,6 @@ body {
   margin: 0;
 }
 
-.label {
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: 1.1px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
 .nav-link {
   font-size: 13px;
   font-weight: 600;
@@ -64,51 +29,26 @@ body {
   text-transform: uppercase;
 }
 
-.caption {
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
 /* ── Chrome ─────────────────────────────────────────────────────────────── */
-
-.topnav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sm);
-  height: 64px;
-  padding: 0 var(--lg);
-  border-bottom: 1px solid var(--hairline);
-  position: relative; /* for the progress line along this rule */
-}
 
 .brand {
   position: relative;
 }
 
-.wordmark {
-  display: flex;
-  align-items: center;
-  gap: var(--xxs);
+/* The wordmark is the Wrap tab's menu button. Its tick pivots to horizontal
+   when the menu is open — the mark is the disclosure arrow. */
+button.wordmark {
   padding: var(--xxs) 0;
   background: none;
   border: 0;
-  color: var(--ink);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.65px;
-  text-transform: uppercase;
 }
 
-/* The one mark that carries the accent, at the size of a Cavallino. It pivots
-   to horizontal when the menu is open — the mark is the disclosure arrow. */
 .wordmark .tick {
-  width: 3px;
-  height: 14px;
-  background: var(--primary);
   transition: transform 140ms ease;
 }
 
@@ -120,7 +60,7 @@ body {
   position: absolute;
   top: calc(100% + var(--xxs));
   left: 0;
-  z-index: 20;
+  z-index: var(--z-menu);
   min-width: 176px;
   padding: var(--xxxs);
   background: var(--canvas);
@@ -151,12 +91,6 @@ body {
 
 .brandmenu button[aria-current='true'] {
   color: var(--primary);
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: var(--sm);
 }
 
 .periods {
@@ -205,7 +139,7 @@ body {
   position: absolute;
   top: calc(100% + var(--xxs));
   right: 0;
-  z-index: 20;
+  z-index: var(--z-menu);
   width: 268px;
   padding: var(--xs);
   background: var(--canvas);
@@ -370,12 +304,6 @@ body {
 .periods button[aria-current='true'] {
   color: var(--ink);
   border-bottom-color: var(--primary);
-}
-
-.shell {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: var(--xl) var(--lg) var(--super);
 }
 
 /* ── The hero: the day itself ───────────────────────────────────────────── */
@@ -1414,17 +1342,6 @@ textarea::placeholder {
   margin: 0;
 }
 
-.note {
-  padding-top: var(--sm);
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
-.note.warn {
-  color: var(--semantic-warning);
-}
-
 .keys {
   display: flex;
   flex-wrap: wrap;
@@ -1439,10 +1356,6 @@ textarea::placeholder {
   color: var(--body);
   border: 1px solid var(--hairline);
   padding: 1px 5px;
-}
-
-[hidden] {
-  display: none !important;
 }
 
 /* ── Loading ────────────────────────────────────────────────────────────── */
@@ -1538,14 +1451,6 @@ textarea::placeholder {
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  .topnav {
-    padding: 0 var(--xs);
-  }
-
-  .nav-right {
-    gap: var(--xs);
-  }
-
   .today-jump {
     padding-left: var(--xs);
   }
@@ -1553,10 +1458,6 @@ textarea::placeholder {
   /* The header gets tight on a phone; the date is already in the page body. */
   .datefield-wrap {
     display: none;
-  }
-
-  .shell {
-    padding: var(--lg) var(--xs) var(--xl);
   }
 
   .specs {

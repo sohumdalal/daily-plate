@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Daily Plate — Settings</title>
+    <meta name="description" content="What is on your plate today, and a written record of what you did." />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#181818" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Settings — Daily Plate</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,14 +17,12 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     />
     <link rel="stylesheet" href="/theme.css" />
-    <!-- The Plate tab's sheet carries the top bar and page frame this page shares. -->
-    <link rel="stylesheet" href="/app.css" />
     <link rel="stylesheet" href="/settings/settings.css" />
     <script src="/shell.js"></script>
   </head>
   <body>
     <nav class="topnav">
-      <span class="wordmark"><span class="tick" aria-hidden="true"></span>Daily Plate</span>
+      <a class="wordmark" href="/"><span class="tick" aria-hidden="true"></span>Daily Plate</a>
       <div class="apptabs">
         <a class="apptab" href="/">Plate</a>
         <a class="apptab" href="/wrap/">Wrap</a>

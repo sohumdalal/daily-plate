@@ -1,14 +1,19 @@
 /*
  * The one theme both tabs share, from ../../DESIGN.md (Ferrari).
  *
- * Light is the default. Dark is opt-in from the switch in the top bar, and is
- * the design file's own dark palette: Rosso Corsa on the near-black canvas.
- * theme.js sets data-theme on <html> before first paint.
+ * Light is the default. Dark is opt-in from the account menu, and is the
+ * design file's own dark palette: Rosso Corsa on the near-black canvas.
+ * shell.js sets data-theme on <html> before first paint.
+ *
+ * Below the tokens is everything the pages share: the base, the top bar, the
+ * page column, and the components (buttons, notes, empty and error states).
+ * A page's own sheet adds only what is that page's.
  */
 
 :root {
   --primary: #da291c;          /* Rosso Corsa */
   --primary-active: #b01e0a;
+  --primary-hover: #c4251a;
   --on-primary: #ffffff;
   --ink: #181818;              /* body-on-light */
   --ink-rgb: 24, 24, 24;       /* --ink, for the charts' translucent marks */
@@ -44,6 +49,14 @@
 
   --sans: 'Inter', -apple-system, system-ui, sans-serif;
 
+  --page-width: 1000px;
+  --nav-height: 64px;
+
+  /* Stacking, lowest first: a raised row, the sticky bar, a menu over it. */
+  --z-raised: 1;
+  --z-nav: 10;
+  --z-menu: 20;
+
   /* One curve for everything: quick off the mark, long settle. */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
@@ -53,6 +66,7 @@
 :root[data-theme='dark'] {
   --primary: #da291c;
   --primary-active: #b01e0a;
+  --primary-hover: #e5392c;
   --on-primary: #ffffff;
   --ink: #ffffff;
   --ink-rgb: 255, 255, 255;
@@ -75,9 +89,128 @@
   color-scheme: dark;
 }
 
+/* ── Base ───────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
   background: var(--canvas);
+}
+
+body {
+  margin: 0;
+  color: var(--body);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.caption {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* ── The top bar, on every page ─────────────────────────────────────────── */
+
+/* It stays at the top as the page scrolls under it. */
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  background: var(--canvas);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sm);
+  height: var(--nav-height);
+  padding: 0 var(--lg);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--xxs);
   color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.wordmark .tick {
+  width: 3px;
+  height: 14px;
+  background: var(--primary);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+}
+
+/* ── The page column ────────────────────────────────────────────────────── */
+
+.shell {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: var(--xl) var(--lg) var(--super);
+}
+
+@media (max-width: 640px) {
+  .topnav {
+    padding: 0 var(--xs);
+  }
+
+  .nav-right {
+    gap: var(--xs);
+  }
+
+  .shell {
+    padding: var(--lg) var(--xs) var(--xl);
+  }
+}
+
+/* ── Notes: one line of status or warning under what it is about ────────── */
+
+.note {
+  margin: 0;
+  padding-top: var(--sm);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.note.warn {
+  color: var(--semantic-warning);
 }
 
 /* ── Plate | Wrap ───────────────────────────────────────────────────────── */
@@ -181,7 +314,7 @@ body {
   position: absolute;
   top: calc(100% + var(--xxs));
   right: 0;
-  z-index: 20;
+  z-index: var(--z-menu);
   width: 240px;
   padding: var(--xs);
   background: var(--canvas);
@@ -317,6 +450,9 @@ body {
 
 .btn {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 48px;
   padding: 14px var(--md);
   border: 0;
@@ -329,7 +465,12 @@ body {
   line-height: 1;
   letter-spacing: 1.4px;
   text-transform: uppercase;
+  text-decoration: none;
   cursor: pointer;
+}
+
+.btn:hover:not([disabled]) {
+  background: var(--primary-hover);
 }
 
 .btn:active {
@@ -342,7 +483,8 @@ body {
   cursor: default;
 }
 
-.btn.outline {
+.btn.outline,
+.btn.outline:hover:not([disabled]) {
   background: none;
   border: 1px solid var(--ink);
   color: var(--ink);

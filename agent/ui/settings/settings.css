@@ -1,5 +1,9 @@
 /* The Settings page: a list of sections on the left, the section on the right. */
 
+.hero {
+  padding-bottom: var(--lg);
+}
+
 .settings {
   display: grid;
   grid-template-columns: 160px 1fr;

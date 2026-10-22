@@ -8,87 +8,10 @@
  * text, which no mark can be mistaken for.
  */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  background: var(--canvas);
-}
-
-body {
-  margin: 0;
-  color: var(--body);
-  font-family: var(--sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.label {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: 1.1px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-/* ── Chrome ─────────────────────────────────────────────────────────────── */
-
-/* The nav stays at the top as the plate scrolls under it. */
-.topnav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--canvas);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  /* The same gap as the Wrap tab's bar, so the tabs do not move between pages. */
-  gap: var(--sm);
-  height: 64px;
-  padding: 0 var(--lg);
-  border-bottom: 1px solid var(--hairline);
-}
-
-.wordmark {
-  display: flex;
-  align-items: center;
-  gap: var(--xxs);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.65px;
-  text-transform: uppercase;
-}
-
-.wordmark .tick {
-  width: 3px;
-  height: 14px;
-  background: var(--primary);
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: var(--sm);
-}
-
 /* ── The plate ──────────────────────────────────────────────────────────── */
 
-.shell,
 .plate-skeleton {
-  max-width: 1000px;
+  max-width: var(--page-width);
   margin: 0 auto;
   padding: var(--xl) var(--lg) var(--super);
 }
@@ -96,7 +19,7 @@ body {
 /* Over the hidden plate, in the plate's own column, until it arrives. */
 .plate-skeleton {
   position: absolute;
-  top: 64px;
+  top: var(--nav-height);
   left: 0;
   right: 0;
 }
@@ -304,18 +227,6 @@ body:not(.ready) .shell {
 
 .filter-clear:hover {
   color: var(--ink);
-}
-
-.note {
-  margin: 0;
-  padding-top: var(--xs);
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
-.note.warn {
-  color: var(--semantic-warning);
 }
 
 .group {
@@ -1088,17 +999,6 @@ a.title:hover {
 }
 
 @media (max-width: 640px) {
-  .topnav {
-    padding: 0 var(--xs);
-  }
-
-  .nav-right {
-    gap: var(--xs);
-  }
-
-  .shell {
-    padding: var(--md) var(--xs) var(--xl);
-  }
 
   .specs {
     grid-template-columns: repeat(2, 1fr);
