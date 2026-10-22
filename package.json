@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "bun run build:ui && bun --watch scripts/dev.ts",
     "start": "bun agent/index.ts",
-    "build:ui": "rm -rf agent/ui/mova/dist && bun build agent/ui/mova/src/index.jsx --outdir agent/ui/mova/dist --splitting --format esm --production --entry-naming '[name].[ext]' && tailwindcss -c agent/ui/mova/tailwind.config.cjs -i agent/ui/mova/src/mova.css -o agent/ui/mova/dist/mova.css --minify",
+    "build:ui": "rm -rf agent/ui/mova/dist && bun build agent/mova/src/index.jsx --outdir agent/ui/mova/dist --splitting --format esm --production --entry-naming '[name].[ext]' && tailwindcss -c agent/mova/tailwind.config.cjs -i agent/mova/src/mova.css -o agent/ui/mova/dist/mova.css --minify && cp agent/mova/LICENSE.* agent/ui/mova/dist/",
+
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit && bun scripts/check-ui.ts",
     "nightly": "bun scripts/nightly.ts",

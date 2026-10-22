@@ -1,5 +1,8 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
+import { compress } from 'hono/compress';
+import { etag } from 'hono/etag';
+import { secureHeaders } from 'hono/secure-headers';
 import { config, isDev } from './config.ts';
 import { describeTarget, ping } from './db/client.ts';
 import { runMigrations } from './db/migrations.ts';
@@ -10,6 +13,28 @@ import { wrapRoutes } from './wrap/routes.ts';
 
 const app = new Hono();
 
+app.use(compress());
+app.use(etag());
+app.use(
+  secureHeaders({
+    // Framing stays allowed: the platform may show the app inside its own UI.
+    xFrameOptions: false,
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      // Recharts and Motion set inline styles; Inter comes from Google Fonts.
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ['https://fonts.gstatic.com'],
+      // Avatars and link previews come from GitHub, Slack and any linked site.
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  }),
+);
+
 app.onError((err, c) => {
   console.error('[error]', err);
   return c.json({ error: err instanceof Error ? err.message : 'internal error' }, 500);
@@ -19,13 +44,37 @@ app.route('/', routes);
 app.route('/api/wrap', wrapRoutes);
 
 // Static pages: Plate at /, Wrap at /wrap/ and Settings at /settings/, sharing
-// theme.css and shell.js. No build step, no bundler, no framework.
+// theme.css and shell.js. The one build is the Mova bundle (agent/mova).
+//
+// Mova's chunks are named by content hash, so they are cached for good. Every
+// other file keeps its name across deploys, so the browser revalidates it
+// against its ETag on each load.
+const cacheFor = (path: string) =>
+  /\/mova\/dist\/index-[a-z0-9]+\.js$/.test(path)
+    ? 'public, max-age=31536000, immutable'
+    : 'no-cache';
+
 app.get('/wrap', (c) => c.redirect('/wrap/'));
 app.get('/settings', (c) => c.redirect('/settings/'));
-app.use('/*', serveStatic({ root: './agent/ui' }));
+app.use(
+  '/*',
+  serveStatic({
+    root: './agent/ui',
+    onFound: (path, c) => {
+      c.header('Cache-Control', cacheFor(path));
+    },
+  }),
+);
 app.get('/', serveStatic({ root: './agent/ui', path: 'index.html' }));
 app.get('/wrap/', serveStatic({ root: './agent/ui', path: 'wrap/index.html' }));
 app.get('/settings/', serveStatic({ root: './agent/ui', path: 'settings/index.html' }));
+
+// An unknown API path is an error for the caller; an unknown page is a page.
+const notFoundPage = Bun.file('./agent/ui/404.html');
+app.notFound(async (c) => {
+  if (c.req.path.startsWith('/api/')) return c.json({ error: 'not found' }, 404);
+  return c.html(await notFoundPage.text(), 404);
+});
 
 // Bind the HTTP server FIRST so the platform's port-80 ingress comes up
 // immediately. Database problems must never block binding or crash the

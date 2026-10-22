@@ -23,6 +23,7 @@ function render(el, node) {
   let root = roots.get(el);
   if (!root) {
     el.replaceChildren();
+    el.classList.add('mova');
     root = createRoot(el);
     roots.set(el, root);
   }
@@ -82,7 +83,7 @@ function tabs(container) {
   const host = document.createElement('span');
   host.hidden = true;
   container.append(host);
-  container.classList.add('mova-tabs');
+  container.classList.add('mova', 'mova-tabs');
   const root = createRoot(host);
   roots.set(container, root);
   root.render(
@@ -96,7 +97,11 @@ function tabs(container) {
 let rollups;
 const latest = new WeakMap();
 async function rollup(el, stats) {
-  rollups ??= import('./rollups/index.jsx');
+  // A failed load (a deploy replaced the chunk) is retried on the next call.
+  rollups ??= import('./rollups/index.jsx').catch((err) => {
+    rollups = null;
+    throw err;
+  });
   latest.set(el, stats);
   const { Rollup, hasActivity } = await rollups;
   // Paging quickly can resolve calls out of order; only the newest renders.
