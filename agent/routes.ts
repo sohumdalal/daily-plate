@@ -24,6 +24,7 @@ import { Hono } from 'hono';
 import ogs from 'open-graph-scraper';
 import { config, readiness } from './config.ts';
 import * as notifications from './notifications.ts';
+import { personName, slackPeople, withNames } from './people.ts';
 import * as store from './store.ts';
 import { slackConnected } from './slack.ts';
 import { assignee, lastSync, syncBoards } from './sync.ts';
@@ -33,15 +34,24 @@ export const routes = new Hono();
 
 routes.get('/healthz', (c) => c.json({ ok: true }));
 
+/** A Slack item with its people named rather than shown by id. */
+function named(people: Map<string, string>) {
+  return (item: store.Item): store.Item =>
+    item.source === 'mention' || item.source === 'reaction'
+      ? { ...item, title: withNames(item.title, people), author: personName(item.author, people) }
+      : item;
+}
+
 async function plateBody() {
   const today = dayOf(new Date(), config.timezone);
+  const people = await slackPeople();
   return {
     today,
     state: { ...readiness(), slackConnected: slackConnected() },
     sync: lastSync(),
     assignee: assignee(),
-    items: await store.plate(today, config.timezone),
-    history: await store.history(today, config.timezone),
+    items: (await store.plate(today, config.timezone)).map(named(people)),
+    history: (await store.history(today, config.timezone)).map(named(people)),
   };
 }
 
@@ -81,7 +91,7 @@ routes.patch('/api/items/:id', async (c) => {
     return c.json({ error: 'expected { done: boolean }' }, 400);
   }
   const item = await store.setDone(id, body.done);
-  return item ? c.json(item) : c.json({ error: 'not found' }, 404);
+  return item ? c.json(named(await slackPeople())(item)) : c.json({ error: 'not found' }, 404);
 });
 
 routes.delete('/api/items/:id', async (c) => {
@@ -98,14 +108,14 @@ routes.post('/api/items/:id/notes', async (c) => {
     return c.json({ error: `expected { text: string }, 1 to ${MAX_TEXT} characters` }, 400);
   }
   const item = await store.addNote(id, text);
-  return item ? c.json(item, 201) : c.json({ error: 'not found' }, 404);
+  return item ? c.json(named(await slackPeople())(item), 201) : c.json({ error: 'not found' }, 404);
 });
 
 routes.delete('/api/items/:id/notes/:note', async (c) => {
   const id = Number(c.req.param('id'));
   if (!Number.isInteger(id)) return c.json({ error: 'not found' }, 404);
   const item = await store.deleteNote(id, c.req.param('note'));
-  return item ? c.json(item) : c.json({ error: 'not found' }, 404);
+  return item ? c.json(named(await slackPeople())(item)) : c.json({ error: 'not found' }, 404);
 });
 
 /** Link previews, read once per URL for the life of the process. */
@@ -134,10 +144,13 @@ routes.get('/api/unfurl', async (c) => {
 });
 
 async function notificationsBody() {
+  const people = await slackPeople();
   return {
     state: { ...readiness(), slackConnected: slackConnected() },
     sync: notifications.lastMentionSync(),
-    items: await notifications.list(),
+    items: (await notifications.list()).map((n) =>
+      n.source === 'slack' ? { ...n, body: withNames(n.body, people), author: personName(n.author, people) } : n,
+    ),
     unread: await notifications.unreadCount(),
   };
 }

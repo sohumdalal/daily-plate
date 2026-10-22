@@ -509,21 +509,27 @@ export async function addSlackFeedback(input: {
 }
 
 /**
- * Names each `<@U…>` in the captures' text as Slack itself would, as
- * `<@U…|Sohum>`. The agent holds no Slack token to look anyone up, so the
- * names are the authors the adapter attached to earlier captures. Someone
- * never seen as an author keeps the bare id.
+ * Each Slack id the adapter has named, as the author of a capture, by its
+ * latest name. The agent holds no Slack token to look anyone else up.
  */
-async function nameMentions(list: SlackFeedback[]): Promise<SlackFeedback[]> {
-  const MENTION = /<@([A-Z0-9]+)>/g;
-  if (!list.some((f) => f.text.includes('<@'))) return list;
+export async function slackAuthorNames(): Promise<Map<string, string>> {
   const rows = await db()<{ author_id: string; author_name: string }[]>`
     SELECT DISTINCT ON (author_id) author_id, author_name
       FROM slack_feedback
      WHERE user_id = ${USER} AND author_id <> '' AND author_name <> ''
      ORDER BY author_id, created_at DESC
   `;
-  const names = new Map(rows.map((r) => [r.author_id, r.author_name]));
+  return new Map(rows.map((r) => [r.author_id, r.author_name]));
+}
+
+/**
+ * Names each `<@U…>` in the captures' text as Slack itself would, as
+ * `<@U…|Sohum>`. Someone never seen as an author keeps the bare id.
+ */
+async function nameMentions(list: SlackFeedback[]): Promise<SlackFeedback[]> {
+  const MENTION = /<@([A-Z0-9]+)>/g;
+  if (!list.some((f) => f.text.includes('<@'))) return list;
+  const names = await slackAuthorNames();
   return list.map((f) => ({
     ...f,
     text: f.text.replace(MENTION, (tag, id: string) => {
