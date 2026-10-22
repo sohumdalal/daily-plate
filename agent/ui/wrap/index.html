@@ -234,6 +234,16 @@
         </div>
       </header>
 
+      <!-- The view did not load: why, and a way on. -->
+      <div class="state-error" id="view-error" role="alert" hidden>
+        <p class="empty-title" id="view-error-title"></p>
+        <p class="empty-caption" id="view-error-reason"></p>
+        <div class="actions">
+          <button class="btn" id="view-retry" type="button">Try again</button>
+          <button class="btn outline" id="view-today" type="button">Go to today</button>
+        </div>
+      </div>
+
       <!-- Four spec cells. Numbers are the brand's display treatment. -->
       <section class="specs" id="specs" hidden></section>
 
@@ -398,7 +408,7 @@
       <div class="keys">
         <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> move</span>
         <span><kbd>D</kbd> <kbd>W</kbd> <kbd>M</kbd> <kbd>Y</kbd> period</span>
-        <span><kbd>&#9166;</kbd> wrap</span>
+        <span><kbd>&#8984;</kbd> <kbd>&#9166;</kbd> wrap</span>
         <span><kbd>R</kbd> reflect</span>
         <span><kbd>T</kbd> today</span>
       </div>

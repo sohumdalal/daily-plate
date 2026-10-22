@@ -166,6 +166,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--xxs);
+  white-space: nowrap;
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
@@ -203,6 +204,16 @@ body {
 
   .nav-right {
     gap: var(--xs);
+  }
+
+  .apptabs {
+    margin-left: var(--xs);
+  }
+
+  /* On a phone the mark alone is the brand, so the tabs and account fit. */
+  .wordmark {
+    font-size: 0;
+    gap: 0;
   }
 
   .shell {

@@ -105,6 +105,11 @@ const el = {
   energy: $('energy'),
   wrap: $('wrap'),
   charts: $('charts'),
+  viewError: $('view-error'),
+  viewErrorTitle: $('view-error-title'),
+  viewErrorReason: $('view-error-reason'),
+  viewRetry: $('view-retry'),
+  viewToday: $('view-today'),
   collect: $('collect'),
   readAt: $('read-at'),
   note: $('note'),
@@ -389,6 +394,16 @@ function scrollChatToEnd() {
   });
 }
 
+/** The line above an empty conversation; `working` gives it Mova's shimmer. */
+let introShown = '';
+function intro(text, working) {
+  if (introShown === text) return;
+  introShown = text;
+  window.Mova?.release(el.reflectIntro);
+  if (working && window.Mova) window.Mova.shimmer(el.reflectIntro, text);
+  else el.reflectIntro.textContent = text;
+}
+
 function renderThread(view) {
   const turns = view.turns ?? [];
   el.thread.replaceChildren(
@@ -416,6 +431,10 @@ function renderThread(view) {
   const waiting = state.reflecting;
   el.chatThinking.hidden = !waiting;
   el.reflectIntro.hidden = turns.length > 0 || waiting;
+  // The conversation opens from the wrap, so without one there is nothing to
+  // wait for: say what would start it instead of shimmering forever.
+  if (!view.wrap) intro(`Nothing to reflect on yet. Wrap the ${view.period} first, and the conversation starts from it.`, false);
+  else intro(view.period === 'day' ? 'Reading your day and your recent ones…' : 'Reading your days…', true);
   el.reflectHint.hidden = turns.length === 0;
   // Nothing to answer until it has asked.
   el.reflection.disabled = turns.length === 0 || waiting;
@@ -705,7 +724,11 @@ async function api(path, options) {
   return body;
 }
 
+/** Counts loads, so only the newest one's answer is shown when paging quickly. */
+let loads = 0;
+
 async function load() {
+  const seq = ++loads;
   // A different period or key empties to its skeleton; the same one, read
   // again, keeps what is on screen.
   const fresh = state.view?.period !== state.period || state.view?.key !== state.key;
@@ -716,7 +739,11 @@ async function load() {
   busy(true);
   progress(true);
   try {
-    state.view = await api(`/api/view/${state.period}/${state.key}`);
+    const view = await api(`/api/view/${state.period}/${state.key}`);
+    if (seq !== loads) return;
+    state.view = view;
+    el.shell.classList.remove('failed');
+    el.viewError.hidden = true;
     render();
     restorePlace();
     if (focusReflectionOnLoad) {
@@ -725,11 +752,31 @@ async function load() {
       applyTab();
       focusReflection();
     }
+  } catch (err) {
+    if (seq === loads) viewFailed(err);
   } finally {
-    el.shell.classList.remove('is-loading');
-    busy(false);
     progress(false);
+    if (seq === loads) {
+      el.shell.classList.remove('is-loading');
+      busy(false);
+    }
   }
+}
+
+/** The view did not load: say why, and offer it again or today instead. */
+function viewFailed(err) {
+  state.view = null;
+  el.shell.classList.add('failed');
+  el.viewErrorTitle.textContent = `This ${state.period} did not load.`;
+  el.viewErrorReason.textContent = sentence(err.message);
+  el.viewError.hidden = false;
+  note(null);
+}
+
+/** An error message as a sentence: capital first, full stop last. */
+function sentence(text) {
+  const t = text || 'Unknown error';
+  return `${t[0].toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? '' : '.'}`;
 }
 
 /** `button`, when given, is the one that started this, and shows its progress. */
@@ -740,11 +787,17 @@ async function run(path, pending, body, button) {
   note(pending, false, true);
   if (button) buttonState(button.node, 'loading', { pending: button.pending });
   let outcome = 'success';
+  const at = `${state.period}/${state.key}`;
   try {
     const view = await api(path, {
       method: 'POST',
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
+    // Moved on while it worked: the answer is for a page no longer shown.
+    if (at !== `${state.period}/${state.key}`) {
+      note(`${view.label ?? at} is wrapped.`);
+      return;
+    }
     state.view = view;
     render();
     if (view.empty)
@@ -974,6 +1027,10 @@ function applyMode() {
   el.goalsView.hidden = !goals;
   el.feedbackView.hidden = !feedback;
   el.shell.hidden = !wrap;
+  // The one status line goes with the page on screen, so a failure on Goals
+  // or Feedback is seen there rather than inside a hidden page.
+  const page = goals ? el.goalsView : feedback ? el.feedbackView : el.shell;
+  page.insertBefore(el.note, page.querySelector(':scope > .keys'));
   el.goalsTab.setAttribute('aria-current', String(goals));
   el.feedbackTab.setAttribute('aria-current', String(feedback));
   el.datefield.closest('.datefield-wrap').hidden = !wrap;
@@ -1280,6 +1337,8 @@ el.next.addEventListener('click', () => {
 });
 
 el.wrap.addEventListener('click', wrapNow);
+el.viewRetry.addEventListener('click', () => load());
+el.viewToday.addEventListener('click', () => go(state.period, keyForToday(state.period, state.today)));
 el.collect.addEventListener('click', collectNow);
 
 el.reflectSend.addEventListener('click', sendReflection);
@@ -1319,7 +1378,8 @@ document.addEventListener('keydown', (e) => {
   // Outside them the jump to today still works.
   if (state.mode !== 'wrap') {
     if (isTyping(e.target)) return;
-    if (e.key === 'Escape') history.back();
+    // Back to the period you were on; history.back() could leave the site.
+    if (e.key === 'Escape') go(state.period, state.key ?? keyForToday(state.period, state.today));
     if (e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
       goToTodaysReflection();
@@ -1345,19 +1405,29 @@ document.addEventListener('keydown', (e) => {
     openBrandMenu(false);
     return;
   }
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // Every other field keeps its keys: the search, the three, the goal form.
+  if (isTyping(e.target)) return;
+  // Writing a wrap is a model call, so it takes a deliberate chord.
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    wrapNow();
+    return;
+  }
+  if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+  // A focused button or link answers Enter and Space itself; letters still work.
+  if (e.target.closest?.('button, a, [role="menuitem"]') && (e.key === 'Enter' || e.key === ' ')) return;
 
   const periods = { d: 'day', w: 'week', m: 'month', y: 'year' };
   const period = periods[e.key.toLowerCase()];
 
   if (e.key === 'ArrowLeft') el.prev.click();
   else if (e.key === 'ArrowRight') el.next.click();
-  else if (e.key === 'Enter') wrapNow();
   else if (e.key.toLowerCase() === 't') {
     e.preventDefault();
     goToTodaysReflection();
   } else if (e.key.toLowerCase() === 'r') {
     e.preventDefault();
+    setTab('reflect');
     el.reflection.focus();
   } else if (period) go(period, keyContaining(period, state.key, state.today));
 });
@@ -1370,11 +1440,10 @@ window.addEventListener('hashchange', applyHash);
 window.Mova?.tabs(el.periods);
 window.Mova?.tabs(el.tabs);
 window.Mova?.typing(el.chatThinking.querySelector('.dots'));
-// Mova's loading shapes for the goals and the Slack list, and its shimmer on
-// the line shown while the conversation opens.
+// Mova's loading shapes for the goals and the Slack list.
 window.Mova?.skeleton(el.goalsLoading, 'goals');
 window.Mova?.skeleton(el.slackLoading, 'feedback');
-window.Mova?.shimmer(el.reflectIntro, el.reflectIntro.textContent.trim());
+
 
 (async () => {
   try {

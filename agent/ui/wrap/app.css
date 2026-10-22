@@ -1367,6 +1367,15 @@ textarea::placeholder {
   display: none;
 }
 
+/* With no view to show, the error stands in for everything below the bar. */
+.shell.failed > :not(.hero, #view-error, #note, .keys, .skeleton) {
+  display: none;
+}
+
+.shell.failed .hero {
+  display: none;
+}
+
 .shell:not(.is-loading) .skeleton {
   display: none;
 }
@@ -1451,6 +1460,46 @@ textarea::placeholder {
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
+  /* The bar takes two rows: brand, tabs and account, then the periods. */
+  .topnav {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--nav-height);
+    column-gap: var(--xs);
+    padding-top: var(--xxs);
+  }
+
+  .topnav .nav-right {
+    display: contents;
+  }
+
+  button.wordmark {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .periods {
+    order: 10;
+    flex-basis: 100%;
+    justify-content: space-between;
+    padding-bottom: var(--xxs);
+  }
+
+  /* The date and stepper, then the tabs on their own row. */
+  .hero-date {
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  /* No keyboard on a phone to use them with. */
+  .keys {
+    display: none;
+  }
+
   .today-jump {
     padding-left: var(--xs);
   }
