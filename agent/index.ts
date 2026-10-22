@@ -8,7 +8,7 @@ import { describeTarget, ping } from './db/client.ts';
 import { runMigrations } from './db/migrations.ts';
 import { startMentionSync } from './notifications.ts';
 import { routes } from './routes.ts';
-import { startSlackIngestion } from './slack.ts';
+import { startSlack } from './slack.ts';
 import { startBoardSync } from './sync.ts';
 import { wrapRoutes } from './wrap/routes.ts';
 
@@ -107,7 +107,7 @@ void (async () => {
         // All three write to the database, so they wait for the schema.
         startBoardSync();
         startMentionSync();
-        void startSlackIngestion();
+        void startSlack();
       } catch (err) {
         console.error('[boot] database initialization failed after connect:', err);
       }

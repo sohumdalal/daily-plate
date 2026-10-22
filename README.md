@@ -119,15 +119,15 @@ with the name read once from `GITHUB_USERNAME`'s GitHub profile.
 
 ## Slack
 
-Both paths ride the Astro messaging sidecar. The agent needs no Slack token of
-its own.
+Every path rides the Astro messaging sidecar. The agent needs no Slack token
+of its own.
 
 | Path | What it does | Needs |
 |---|---|---|
 | Reaction 🍽️ | Any message you react `:knife_fork_plate:` to goes on the plate; removing the reaction takes it off | "Actionable Reactions" includes `knife_fork_plate` at deploy |
 | Reaction 🧠 | Any message reacted `:brain:` to is recorded as feedback for that day's wrap | "Actionable Reactions" includes `brain` at deploy |
 | Mention of you | A message containing `<@SLACK_USER_ID>` goes on the plate | `SLACK_USER_ID`, and the channel under "Observe Channels" at deploy |
-| `@Daily Plate` | The message goes on the plate, unless it is a command: `what's on my plate` (optionally `from slack`, `github`, `prs`, `issues`, `tasks`), `add task …`, and in a plated message's thread `rename to …`, `note …`, `done`, `undo`, `remove this`. `help` lists them | Nothing more (`agent/commands.ts`) |
+| `@Daily Plate`, or a DM to it | The assistant answers (see below) | The `default` gateway model entry in `astropods.yml` |
 
 With `SLACK_USER_ID` set, only your own reactions count. Without it, mention
 capture is off and anyone's reaction counts.
@@ -141,6 +141,48 @@ with user scopes and has not been built.
 A reaction gets a reply in Slack ("Added to Sohum's plate for Monday, October
 19"), so you can tell a capture from a channel the app was never invited to. A
 mention of you gets no reply.
+
+### The assistant
+
+Mentioning `@Daily Plate`, or messaging it directly, is talking to a Mastra
+agent (`agent/assistant/`), built the way Capcom is. It works out what you
+want before it acts:
+
+- "hi", "thanks", "how are you": a short reply, and nothing goes on the plate.
+- "what's on my plate", "anything from Slack?": it reads the plate and answers.
+- "can you review this", "plate this": the message goes on the plate. In a
+  thread, it can plate the message the thread started from instead.
+- "add a task …": a task of your own.
+- In the thread of a plated message: "done", "undo", "rename to …",
+  "note …", "remove this".
+- When it cannot tell, it asks. Answer by mentioning it again in the thread.
+
+It changes the plate only through its tools (`agent/assistant/tools.ts`), and
+says only what a tool confirmed. It talks through the Astro AI gateway, which
+the `default` model entry in `astropods.yml` turns on; without the gateway, as
+on a laptop, it uses `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. It remembers
+the last turns of each thread, in a local file that a restart clears.
+
+`serve()` from `@astropods/adapter-mastra` holds the connection to the
+sidecar and would give every message to the model, so `agent/slack.ts`
+patches the bridge as Capcom does: only mentions of Daily Plate and DMs reach
+the model, and reactions and observed messages are handled with no model call.
+
+### Traces
+
+Both kinds of model call show on the Astropods Traces page, through the
+collector the platform runs beside the agent (`OTEL_EXPORTER_OTLP_ENDPOINT`):
+
+- Each assistant turn, traced by `serve()`: the agent, model, tool and step
+  spans, with the sender and the Slack thread.
+- Each wrap and reflection reply, as `wrap day 2026-10-22` or
+  `reflection week 2026-W43`, with the model, tokens, prompt and reply
+  (`agent/telemetry.ts`).
+
+Outbound HTTP is not traced. Capcom found that every request became a trace of
+its own, with no user and no cost, burying the real ones.
+
+### The sidecar
 
 The agent reads the sidecar address from `GRPC_SERVER_ADDR`, which Astro
 injects. Plain `bun run dev` has no sidecar, so Slack capture is off and the
@@ -236,7 +278,8 @@ a deploy-form control with no flag.
 2. `daily-plate-db` → **Shared** → the store the laptop's `POSTGRES_URL` names
 3. `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `GITHUB_APP_INSTALLATION_ID`
    from a GitHub App installed on the org (see [The boards](#the-boards))
-4. `ANTHROPIC_API_KEY` from the vault, and `ANTHROPIC_MODEL`
+4. `ANTHROPIC_API_KEY` from the vault, and `ANTHROPIC_MODEL`, for the Wrap
+   tab. The assistant's gateway model needs nothing in the form
 5. Under the Slack toggle: "Actionable Reactions" = `knife_fork_plate, brain`,
    and "Observe Channels" = the channel ids to watch for mentions
 6. `SLACK_USER_ID` = your Slack member id

@@ -234,6 +234,7 @@ are binding here too:\n${feedback.map((f) => `  - ${f.note}`).join('\n')}`
     user,
     schema: ReplySchema,
     maxTokens: 2048,
+    trace: { name: `reflection ${period} ${key}`, session: `${period}:${key}` },
   });
 
   const takeaways: Takeaways = {

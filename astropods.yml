@@ -80,6 +80,11 @@ agent:
 models:
   anthropic:
     provider: anthropic
+  # → ASTRO_GATEWAY_URL, ASTRO_GATEWAY_API_KEY and MODEL_DEFAULT, for the Slack
+  # assistant, which talks through the Astro AI gateway as Capcom does.
+  default:
+    provider: gateway
+    models: [claude-sonnet-4-6]
 
 # Bind to the shared store Daily Wrap used, so the laptop's nightly job and the
 # deployed agent read and write the same days.

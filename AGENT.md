@@ -16,7 +16,7 @@ capabilities:
   - Clears a card from the plate when the board moves it to Done
   - Puts any Slack message you react to with a plate emoji on the plate, and takes it off when you remove the emoji
   - Puts Slack messages that @-mention you in observed channels on the plate
-  - Puts any Slack message that @-mentions Daily Plate on the plate
+  - Answers @-mentions and DMs in Slack, and plates, adds or clears only what you ask
   - Takes tasks you type in yourself, and your notes on any item
   - Writes each day back as a short wrap from Claude Code, GitHub, Slack feedback and what you cleared, rolled up into weeks, months and years
   - "Records any Slack message you react to with :brain: as feedback for that day's wrap"

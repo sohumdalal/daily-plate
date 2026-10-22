@@ -1,6 +1,10 @@
 /**
- * Slack ingestion, two ways onto the plate.
+ * Slack: one connection to the messaging sidecar, and four ways in.
  *
+ *   Talk      @-mention Daily Plate, or message it directly, and the assistant
+ *             answers (assistant/agent.ts). It tells a greeting from an ask,
+ *             reads the plate, plates a message, adds a task, and changes a
+ *             plated message from its thread.
  *   Reaction  React :knife_fork_plate: to any message in a channel the app is
  *             in, and remove it to take the message off. :brain: records
  *             feedback for the Wrap tab instead (wrap/feedback.ts).
@@ -9,23 +13,29 @@
  *   Mention   A message that mentions SLACK_USER_ID, in a channel listed in
  *             `observe_channel_ids` (or in a thread the app can see). The
  *             adapter forwards those messages whole; this file keeps the ones
- *             naming you. A message that @-mentions Daily Plate itself goes on
- *             the plate too, whoever sent it, unless it is a command
- *             (commands.ts): read, add a task, or change a plated message.
- *             A mention of you is also kept on the Notifications tab.
+ *             naming you, on the plate and on the Notifications tab.
+ *
+ * `serve()` from @astropods/adapter-mastra owns the connection, and traces
+ * each assistant turn. It would hand every message to the model, so the
+ * bridge is patched, as Capcom's is: only talk reaches the assistant, and
+ * everything else is handled here with no model call.
  *
  * The bot only sees channels it was invited to and never sees DMs between
  * people, so a mention elsewhere has to be reacted onto the plate instead.
  *
- * Same sidecar handshake as Daily Wrap: the sidecar only exists when deployed
- * with messaging on, or locally under `ast project start`, and every failure
- * is logged and dropped so the screen works without Slack.
+ * The sidecar only exists when deployed with messaging on, or locally under
+ * `ast project start`, and every failure is logged and dropped so the screen
+ * works without Slack.
  */
 
 import { connect } from 'node:net';
-import { MessagingClient, type AgentResponse, type Message } from '@astropods/messaging';
+import { MessagingBridge } from '@astropods/adapter-core';
+import { serve } from '@astropods/adapter-mastra';
+import type { Message, MessagingClient } from '@astropods/messaging';
+import { assistant } from './assistant/agent.ts';
+import { ownerName } from './assistant/tools.ts';
+import { setTurn } from './assistant/turns.ts';
 import { config } from './config.ts';
-import { answer, plateOwner } from './commands.ts';
 import * as notifications from './notifications.ts';
 import * as store from './store.ts';
 import { captureFeedback, FEEDBACK_EMOJI } from './wrap/feedback.ts';
@@ -46,6 +56,8 @@ export function slackConnected(): boolean {
 
 /** Longest text kept as a plate item's title. The link has the rest. */
 const MAX_TITLE = 280;
+
+type Stream = ReturnType<MessagingClient['createConversationStream']>;
 
 /** A gRPC channel connects lazily, so probe the port once before streaming. */
 async function sidecarPresent(address: string): Promise<boolean> {
@@ -87,7 +99,7 @@ function titleOf(text: string): string {
 
 /** `Added to Sohum's plate for Monday, October 19. 5 open.` */
 function platedReply(isNew: boolean, open: number): string {
-  const who = plateOwner();
+  const who = `${ownerName()}'s`;
   const day = new Intl.DateTimeFormat('en-US', {
     timeZone: config.timezone,
     weekday: 'long',
@@ -98,200 +110,198 @@ function platedReply(isNew: boolean, open: number): string {
 }
 
 /** START, DELTA, END: the adapter only posts a buffered DELTA on END. */
-function say(
-  conversation: ReturnType<MessagingClient['createConversationStream']>,
-  conversationId: string,
-  text: string,
-): void {
-  conversation.sendContentChunk(conversationId, { type: 'START', content: '' });
-  conversation.sendContentChunk(conversationId, { type: 'DELTA', content: text });
-  conversation.sendContentChunk(conversationId, { type: 'END', content: '' });
+function say(stream: Stream | null, conversationId: string, text: string): void {
+  if (!stream || !conversationId) return;
+  stream.sendContentChunk(conversationId, { type: 'START', content: '' });
+  stream.sendContentChunk(conversationId, { type: 'DELTA', content: text });
+  stream.sendContentChunk(conversationId, { type: 'END', content: '' });
 }
 
-export async function startSlackIngestion(): Promise<void> {
-  if (!SIDECAR) {
-    console.log('[slack] GRPC_SERVER_ADDR is unset — no messaging sidecar, Slack capture off');
-    return;
-  }
-  if (!(await sidecarPresent(SIDECAR))) {
-    console.log(`[slack] no messaging sidecar at ${SIDECAR} — Slack capture off`);
-    return;
-  }
+/** An @-mention of Daily Plate, a DM to it, or the playground: someone talking to the assistant. */
+function isTalk(message: Message): boolean {
+  if (message.platform === 'web') return true;
+  const kind = message.platformContext?.eventKind;
+  return kind === 'EVENT_KIND_APP_MENTION' || kind === 'EVENT_KIND_DM';
+}
 
-  let client: MessagingClient;
-  try {
-    client = new MessagingClient(SIDECAR);
-    await client.connectWithRetry({ maxRetries: 5 });
-  } catch (err) {
-    console.log(
-      `[slack] could not reach the sidecar at ${SIDECAR} — Slack capture off ` +
-        `(${err instanceof Error ? err.message : String(err)})`,
-    );
-    return;
-  }
-
-  const conversation = client.createConversationStream();
-
-  // The sidecar only registers a stream once the agent speaks first.
-  conversation.sendAgentConfig({
-    systemPrompt: 'Daily Plate puts Slack messages aimed at you on your plate.',
-    tools: [],
-  });
-
-  connected = true;
+/**
+ * A reaction or an observed message, handled with no model. `reply` posts in
+ * the message's thread.
+ */
+async function handle(message: Message, reply: (text: string) => void): Promise<void> {
   const me = config.slack.userId;
-  console.log(
-    `[slack] registered with the sidecar via ${SIDECAR} — ` +
-      (me ? `capturing reactions and mentions of <@${me}>` : 'capturing reactions; set SLACK_USER_ID for mentions'),
-  );
+  const ctx = message.platformContext ?? ({} as NonNullable<Message['platformContext']>);
+  const content = message.content ?? '';
+  const channel = ctx.channelName ? `#${ctx.channelName}` : ctx.channelId ?? '';
+  const link = permalink(ctx.workspaceId ?? '', ctx.channelId ?? '', ctx.messageId ?? '');
+  const extra = ctx.platformData ?? {};
 
-  conversation.on('error', (err: Error) => {
-    connected = false;
-    console.error('[slack] stream gave up:', err.message);
-  });
-
-  conversation.on('response', (resp: AgentResponse) => {
-    const message = resp.incomingMessage;
-    if (message) void handle(message);
-  });
-
-  async function handle(message: Message): Promise<void> {
-    const ctx = message.platformContext ?? ({} as NonNullable<Message['platformContext']>);
-    console.log(
-      `[slack] inbound ${ctx.eventKind ?? 'unknown'} channel=${ctx.channelName || ctx.channelId || '?'}`,
-    );
-
-    const content = message.content ?? '';
-    const channel = ctx.channelName ? `#${ctx.channelName}` : ctx.channelId ?? '';
-    const link = permalink(ctx.workspaceId ?? '', ctx.channelId ?? '', ctx.messageId ?? '');
-    const extra = ctx.platformData ?? {};
-
-    if (ctx.eventKind === 'EVENT_KIND_REACTION') {
-      const removal = content.match(REMOVAL_HEADER);
-      if (removal) {
-        // Taking feedback back is not a thing the wrap does; only a plate reaction undoes.
-        if (FEEDBACK_EMOJI.has(removal[1]!)) return;
-        const reactor = ctx.userId || removal[2]!;
-        if (me && reactor !== me) return;
-        const removed = await store.removeSlackItem(`${ctx.channelId}:${ctx.messageId}`, ['reaction']);
-        console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} reaction from ${channel || '?'}`);
-        return;
-      }
-      const parsed = parseReaction(content);
-      if (!parsed?.text) {
-        console.warn('[slack] reaction arrived with no readable message text');
-        return;
-      }
-      if (FEEDBACK_EMOJI.has(parsed.emoji)) {
-        const reply = await captureFeedback(message, parsed, link).catch((err) => {
+  if (ctx.eventKind === 'EVENT_KIND_REACTION') {
+    const removal = content.match(REMOVAL_HEADER);
+    if (removal) {
+      // Taking feedback back is not a thing the wrap does; only a plate reaction undoes.
+      if (FEEDBACK_EMOJI.has(removal[1]!)) return;
+      const reactor = ctx.userId || removal[2]!;
+      if (me && reactor !== me) return;
+      const removed = await store.removeSlackItem(`${ctx.channelId}:${ctx.messageId}`, ['reaction']);
+      console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} reaction from ${channel || '?'}`);
+      return;
+    }
+    const parsed = parseReaction(content);
+    if (!parsed?.text) {
+      console.warn('[slack] reaction arrived with no readable message text');
+      return;
+    }
+    if (FEEDBACK_EMOJI.has(parsed.emoji)) {
+      reply(
+        await captureFeedback(message, parsed, link).catch((err) => {
           console.error('[slack] could not store the feedback:', err);
           return 'Could not record that one. It is still in Slack, so react again later.';
-        });
-        if (message.conversationId) say(conversation, message.conversationId, reply);
-        return;
-      }
-      // platformContext.userId is always the raw U…; message.user.id may be
-      // rewritten to a WorkOS id once a Slack account is linked.
-      const reactor = ctx.userId || parsed.reactor;
-      if (me && reactor !== me) return;
+        }),
+      );
+      return;
+    }
+    // platformContext.userId is always the raw U…; message.user.id may be
+    // rewritten to a WorkOS id once a Slack account is linked.
+    const reactor = ctx.userId || parsed.reactor;
+    if (me && reactor !== me) return;
 
-      await save(message, {
+    // A reaction needs a visible result, or it is indistinguishable from a
+    // channel the app was never invited to.
+    try {
+      const { item, isNew } = await store.addSlackItem({
         source: 'reaction',
         externalId: `${ctx.channelId}:${ctx.messageId}`,
         title: titleOf(parsed.text),
         url: link,
         context: channel,
         author: extra.author_name || extra.author_id || '',
-      }, true);
-      return;
+      });
+      console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} reaction from ${item.context || '?'}`);
+      if (isNew) reply(platedReply(isNew, await store.openCount()));
+    } catch (err) {
+      console.error('[slack] could not store the message:', err);
+      reply('Could not plate that one. React again later.');
     }
+    return;
+  }
 
-    // The adapter strips every <@…> from an app mention, and puts a transcript
-    // of the thread first when it is in one, so the last paragraph is the ask.
-    if (ctx.eventKind === 'EVENT_KIND_APP_MENTION') {
-      const text = content.startsWith('[slack_thread_summary]')
-        ? content.slice(content.lastIndexOf('\n\n') + 2)
-        : content;
-      // A command (see commands.ts) gets its answer; anything else is plated.
-      const reply = await answer({ text, channelId: ctx.channelId ?? '', threadRootId: ctx.threadRootId ?? '' }).catch(
-        (err) => {
-          console.error('[slack] command failed:', err);
-          return 'Something went wrong. Try again later.';
-        },
-      );
-      if (reply !== null) {
-        console.log(`[slack] answered a command in ${channel || '?'}`);
-        if (message.conversationId) say(conversation, message.conversationId, reply);
-        return;
-      }
-      await save(message, {
+  // Observed top-level messages and thread replies both carry the raw text,
+  // mentions intact as <@U…>. Replying in somebody else's thread to say you
+  // were mentioned is noise, so these get none.
+  if (
+    me &&
+    (ctx.eventKind === 'EVENT_KIND_OBSERVED' || ctx.eventKind === 'EVENT_KIND_THREAD_REPLY') &&
+    content.includes(`<@${me}>`) &&
+    ctx.userId !== me
+  ) {
+    const externalId = `${ctx.channelId}:${ctx.messageId}`;
+    try {
+      const { item, isNew } = await store.addSlackItem({
         source: 'mention',
-        externalId: `${ctx.channelId}:${ctx.messageId}`,
-        title: titleOf(text) || 'Mentioned Daily Plate',
-        url: link,
-        context: channel,
-        author: ctx.userId ?? '',
-      }, true);
-      return;
-    }
-
-    // Observed top-level messages and thread replies both carry the raw text,
-    // mentions intact as <@U…>.
-    if (
-      me &&
-      (ctx.eventKind === 'EVENT_KIND_OBSERVED' || ctx.eventKind === 'EVENT_KIND_THREAD_REPLY') &&
-      content.includes(`<@${me}>`) &&
-      ctx.userId !== me
-    ) {
-      await save(message, {
-        source: 'mention',
-        externalId: `${ctx.channelId}:${ctx.messageId}`,
+        externalId,
         title: titleOf(content),
         url: link,
         context: channel,
         author: ctx.userId ?? '',
-      }, false);
-      // The Notifications tab keeps it too, read or not, after the plate clears it.
-      await notifications
-        .add([
-          {
-            source: 'slack',
-            kind: 'mention',
-            externalId: `${ctx.channelId}:${ctx.messageId}`,
-            title: channel,
-            body: titleOf(content.replaceAll(`<@${me}>`, '@you')),
-            url: link,
-            context: channel,
-            author: extra.author_name || '',
-            at: new Date(Number(ctx.messageId) * 1000 || Date.now()).toISOString(),
-          },
-        ])
-        .catch((err) => console.error('[slack] could not store the notification:', err));
-    }
-  }
-
-  async function save(
-    message: Message,
-    input: Parameters<typeof store.addSlackItem>[0],
-    reply: boolean,
-  ): Promise<void> {
-    try {
-      const { item, isNew } = await store.addSlackItem(input);
-      console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} ${item.source} from ${item.context || '?'}`);
-      // A reaction needs a visible result, or it is indistinguishable from a
-      // channel the app was never invited to. A mention gets none: replying in
-      // somebody else's thread to say you were mentioned is noise. An app
-      // mention always gets one: the reply clears its "thinking" status.
-      const appMention = message.platformContext?.eventKind === 'EVENT_KIND_APP_MENTION';
-      if (reply && (isNew || appMention) && message.conversationId) {
-        const open = await store.openCount();
-        say(conversation, message.conversationId, platedReply(isNew, open));
-      }
+      });
+      console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} mention from ${item.context || '?'}`);
     } catch (err) {
       console.error('[slack] could not store the message:', err);
-      if (reply && message.conversationId) {
-        say(conversation, message.conversationId, 'Could not plate that one. React again later.');
-      }
     }
+    // The Notifications tab keeps it too, read or not, after the plate clears it.
+    await notifications
+      .add([
+        {
+          source: 'slack',
+          kind: 'mention',
+          externalId,
+          title: channel,
+          body: titleOf(content.replaceAll(`<@${me}>`, '@you')),
+          url: link,
+          context: channel,
+          author: extra.author_name || '',
+          at: new Date(Number(ctx.messageId) * 1000 || Date.now()).toISOString(),
+        },
+      ])
+      .catch((err) => console.error('[slack] could not store the notification:', err));
   }
+}
+
+const PATCHED = Symbol.for('daily-plate/bridge-patched');
+
+/**
+ * Route each message before the bridge gives it to the model. Patches the
+ * prototype, since `serve()` builds the bridge inside and never hands it out.
+ * Idempotent, and only works while adapter-mastra and this file share one
+ * copy of adapter-core: package.json pins both to the same version.
+ */
+export function patchBridge(): void {
+  const proto = MessagingBridge.prototype as unknown as {
+    handleMessage(message: Message): void;
+    start(): Promise<void>;
+    stream: Stream | null;
+    [PATCHED]?: boolean;
+  };
+  if (proto[PATCHED]) return;
+
+  const toModel = proto.handleMessage;
+  proto.handleMessage = function (this: typeof proto, message: Message) {
+    const ctx = message.platformContext;
+    console.log(`[slack] inbound ${ctx?.eventKind ?? message.platform ?? 'unknown'} channel=${ctx?.channelName || ctx?.channelId || '?'}`);
+    if (!isTalk(message)) {
+      const stream = this.stream;
+      void handle(message, (text) => say(stream, message.conversationId, text)).catch((err) =>
+        console.error('[slack] could not handle the message:', err),
+      );
+      return;
+    }
+    if (ctx) {
+      setTurn(message.conversationId, {
+        channelId: ctx.channelId ?? '',
+        channel: ctx.channelName ? `#${ctx.channelName}` : ctx.channelId ?? '',
+        messageId: ctx.messageId ?? '',
+        threadRootId: ctx.threadRootId ?? '',
+        workspaceId: ctx.workspaceId ?? '',
+        userId: ctx.userId ?? '',
+      });
+    }
+    toModel.call(this, message);
+  };
+
+  const start = proto.start;
+  proto.start = async function (this: typeof proto) {
+    await start.call(this);
+    connected = true;
+    const me = config.slack.userId;
+    console.log(
+      `[slack] registered with the sidecar via ${SIDECAR} — ` +
+        (me ? `capturing reactions and mentions of <@${me}>` : 'capturing reactions; set SLACK_USER_ID for mentions'),
+    );
+    this.stream?.on('error', (err: Error) => {
+      connected = false;
+      console.error('[slack] stream gave up:', err.message);
+    });
+  };
+  proto[PATCHED] = true;
+}
+
+export async function startSlack(): Promise<void> {
+  if (!SIDECAR) {
+    console.log('[slack] GRPC_SERVER_ADDR is unset — no messaging sidecar, Slack off');
+    return;
+  }
+  if (!(await sidecarPresent(SIDECAR))) {
+    console.log(`[slack] no messaging sidecar at ${SIDECAR} — Slack off`);
+    return;
+  }
+  if (process.env.ASTRO_GATEWAY_URL) {
+    console.log(`[slack] the assistant talks through the AI gateway with ${process.env.MODEL_DEFAULT ?? 'its default model'}`);
+  } else if (config.llm.anthropicKey) {
+    console.log(`[slack] the assistant talks to Anthropic with ${config.llm.model}`);
+  } else {
+    console.warn('[slack] no AI gateway and no ANTHROPIC_API_KEY — the assistant cannot answer mentions');
+  }
+  patchBridge();
+  serve(assistant, { serverAddress: SIDECAR });
 }

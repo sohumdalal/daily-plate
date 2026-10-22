@@ -563,7 +563,12 @@ export async function writeDayWrap(
 ): Promise<Wrap> {
   const { system, user } = await buildDayPrompt(opts);
 
-  const { value, model } = await generate({ system, user, schema: WrapSchema });
+  const { value, model } = await generate({
+    system,
+    user,
+    schema: WrapSchema,
+    trace: { name: `wrap day ${opts.day}`, session: `day:${opts.day}` },
+  });
 
   return store.saveWrap(
     { period: 'day', key: opts.day, model, ...value },
@@ -633,6 +638,7 @@ export async function writeRollup(
       grew: z.array(z.string().min(1).max(PROSE_MAX)).max(3),
     }),
     maxTokens: 8192,
+    trace: { name: `wrap ${period} ${key}`, session: `${period}:${key}` },
   });
 
   return store.saveWrap({ period, key, model, ...value }, reason);
