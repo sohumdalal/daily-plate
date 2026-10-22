@@ -8,3 +8,6 @@ scratch/
 
 # shared design system lives one level up at apps/DESIGN.md
 DESIGN.md
+
+# built by `bun run build:ui`
+agent/ui/mova/dist/

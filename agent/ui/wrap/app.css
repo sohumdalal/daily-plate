@@ -80,6 +80,7 @@ body {
   height: 64px;
   padding: 0 var(--lg);
   border-bottom: 1px solid var(--hairline);
+  position: relative; /* for the progress line along this rule */
 }
 
 .brand {
@@ -372,7 +373,7 @@ body {
 }
 
 .shell {
-  max-width: 840px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: var(--xl) var(--lg) var(--super);
 }
@@ -1446,9 +1447,9 @@ textarea::placeholder {
 
 /* ── Loading ────────────────────────────────────────────────────────────── */
 
-/* First paint only. Once content exists, a reload or a navigation dims what is
-   already there instead of replacing it with bars, which reads as the page
-   working rather than the page emptying. */
+/* While a period's view is read, its skeleton stands in for it (Mova draws
+   it in the period's shape). An action on the open view does not empty the
+   page; it shows its state on its button and the progress line. */
 .shell.is-loading > *:not(.skeleton) {
   display: none;
 }
@@ -1533,11 +1534,6 @@ textarea::placeholder {
   }
 }
 
-/* Work in progress reads as a dimming of the whole field, not a spinner. */
-.busy {
-  opacity: 0.45;
-  transition: opacity 120ms linear;
-}
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 

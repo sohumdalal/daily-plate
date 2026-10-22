@@ -7,6 +7,7 @@
  *   POST /view/:period/:key/wrap    write the wrap
  *   PUT  /reflection/:period/:key   save the reflection
  *   GET  /index/:period             keys that have something on them
+ *   GET  /stats/:period/:key        a rollup's chart numbers, one row per day
  */
 
 import { Hono } from 'hono';
@@ -25,6 +26,7 @@ import {
   type Period,
 } from '../time.ts';
 import { nextReflectionTurn } from './reflect.ts';
+import { dayStats, statsRange } from './stats.ts';
 import { hasActivity, NoDaysToRollUp, writeDayWrap, writeRollup } from './wrap.ts';
 import type { Goal } from './types.ts';
 import {
@@ -398,5 +400,27 @@ wrapRoutes.get('/index/:period', async (c) => {
     period,
     // Today's key always appears, so the screen has somewhere to start.
     keys: [...new Set([keyFor(period, today(config.timezone)), ...keys])].sort().reverse(),
+  });
+});
+
+wrapRoutes.get('/stats/:period/:key', async (c) => {
+  const t = target(c.req.param('period'), c.req.param('key'));
+  if (!t || t.period === 'day') return c.json({ error: 'bad period or key' }, 400);
+  const range = statsRange(t.period, t.key);
+  const [days, wraps, months] = await Promise.all([
+    store.getDays(range.from, range.to),
+    store.getWrapsBetween('day', range.from, range.to),
+    // A year reads its months as chapters, where they have been wrapped.
+    t.period === 'year'
+      ? store.getWrapsBetween('month', `${t.key}-01`, `${t.key}-12`)
+      : Promise.resolve([]),
+  ]);
+  return c.json({
+    ...t,
+    span: spanOf(t.period, t.key),
+    range,
+    today: today(config.timezone),
+    days: dayStats(days, wraps, config.timezone),
+    months: months.map((w) => ({ key: w.key, headline: w.headline })),
   });
 });

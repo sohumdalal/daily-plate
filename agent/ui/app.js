@@ -1157,22 +1157,34 @@ async function load() {
   }
 }
 
+/**
+ * Mova draws the button's working, done and failed states when its bundle has
+ * loaded (agent/ui/mova). Without it, the label alone says what is happening.
+ */
+function syncState(state) {
+  const button = $('sync');
+  if (window.Mova) window.Mova.button(button, { state, label: 'Refresh', pending: 'Reading', done: 'Read' });
+  else button.textContent = state === 'loading' ? 'Reading…' : 'Refresh';
+}
+
 async function sync() {
   if (busy) return;
   busy = true;
   $('sync').disabled = true;
-  $('sync').textContent = 'Reading…';
-  $('progress').classList.add('on');
+  syncState('loading');
+  window.Mova?.progress($('progress'), true);
+  let outcome = 'success';
   try {
     data = await request('/api/sync', { method: 'POST' });
     render();
   } catch (err) {
     warn(`Could not refresh: ${err.message}`);
+    outcome = 'error';
   } finally {
     busy = false;
     $('sync').disabled = false;
-    $('sync').textContent = 'Refresh';
-    $('progress').classList.remove('on');
+    syncState(outcome);
+    window.Mova?.progress($('progress'), false);
   }
 }
 
@@ -1232,6 +1244,8 @@ async function addTask(e) {
   const title = input.value.trim();
   if (!title) return;
   input.disabled = true;
+  addState('loading');
+  let outcome = 'success';
   try {
     const item = await request('/api/items', {
       method: 'POST',
@@ -1244,10 +1258,17 @@ async function addTask(e) {
     else render();
   } catch (err) {
     warn(`Could not add that task: ${err.message}`);
+    outcome = 'error';
   } finally {
     input.disabled = false;
+    addState(outcome);
     input.focus();
   }
+}
+
+/** The Add button's states, from Mova when its bundle has loaded. */
+function addState(state) {
+  window.Mova?.button($('add-submit'), { state, label: 'Add', pending: 'Adding', done: 'Added' });
 }
 
 /** The item as the server now has it, wherever it is kept on the page. */
@@ -1316,6 +1337,12 @@ document.addEventListener('keydown', (e) => {
   }
   if (key === 'r') sync();
   if (key === 'escape') clearFilters();
+});
+
+// Mova's loading shape until the first plate arrives. A module, so it loads
+// after this script; the first frame without it is blank, as it always was.
+addEventListener('DOMContentLoaded', () => {
+  if (!document.body.classList.contains('ready')) window.Mova?.skeleton($('plate-skeleton'), 'plate');
 });
 
 load();

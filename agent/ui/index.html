@@ -12,7 +12,9 @@
     />
     <link rel="stylesheet" href="/theme.css" />
     <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/mova/dist/mova.css" />
     <script src="/shell.js"></script>
+    <script src="/mova/dist/index.js" type="module"></script>
   </head>
   <body>
     <nav class="topnav">
@@ -24,9 +26,12 @@
       <div class="nav-right">
         <div class="account" data-account></div>
       </div>
-      <div class="progress" id="progress" aria-hidden="true"></div>
+      <!-- Mova's progress line, while the boards are read. -->
+      <div class="mova-progress" id="progress" aria-hidden="true"></div>
     </nav>
 
+    <!-- Mova's loading shape, until the first plate arrives. -->
+    <div class="plate-skeleton" id="plate-skeleton" aria-hidden="true"></div>
     <main class="shell">
       <header class="hero">
         <!-- The day on the left, whose plate it is on the right: every card
@@ -49,7 +54,7 @@
         <form class="add" id="add">
           <input id="add-title" type="text" maxlength="2000" autocomplete="off"
                  placeholder="Add a task to the plate (N)" aria-label="New task" />
-          <button class="line-button" type="submit">Add</button>
+          <button class="line-button" id="add-submit" type="submit">Add</button>
         </form>
         <!-- Repo, section and state chips. One of each can be on at a time,
              and they combine. -->

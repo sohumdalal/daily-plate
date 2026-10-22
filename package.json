@@ -5,8 +5,9 @@
   "private": true,
   "description": "Daily Plate \u2014 what is on your plate today, and the wrap of what you did.",
   "scripts": {
-    "dev": "bun --watch scripts/dev.ts",
+    "dev": "bun run build:ui && bun --watch scripts/dev.ts",
     "start": "bun agent/index.ts",
+    "build:ui": "rm -rf agent/ui/mova/dist && bun build agent/ui/mova/src/index.jsx --outdir agent/ui/mova/dist --splitting --format esm --production --entry-naming '[name].[ext]' && tailwindcss -c agent/ui/mova/tailwind.config.cjs -i agent/ui/mova/src/mova.css -o agent/ui/mova/dist/mova.css --minify",
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit && bun scripts/check-ui.ts",
     "nightly": "bun scripts/nightly.ts",
@@ -26,6 +27,12 @@
   },
   "devDependencies": {
     "@types/bun": "^1.1.14",
+    "framer-motion": "11.11.17",
+    "lucide-react": "0.460.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "recharts": "2.12.7",
+    "tailwindcss": "3.4.17",
     "typescript": "^5.9.3"
   }
 }

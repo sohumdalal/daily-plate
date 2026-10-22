@@ -84,49 +84,25 @@ body {
   gap: var(--sm);
 }
 
-/* A red hairline that runs along the nav's bottom rule while the boards are
-   read. Off, it is simply not there. */
-.progress {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity 200ms var(--ease);
-}
-
-.progress::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 30%;
-  background: var(--primary);
-  transform: translateX(-100%);
-}
-
-.progress.on {
-  opacity: 1;
-}
-
-.progress.on::after {
-  animation: sweep 1100ms var(--ease) infinite;
-}
-
-@keyframes sweep {
-  to {
-    transform: translateX(340%);
-  }
-}
-
 /* ── The plate ──────────────────────────────────────────────────────────── */
 
-.shell {
-  max-width: 840px;
+.shell,
+.plate-skeleton {
+  max-width: 1000px;
   margin: 0 auto;
   padding: var(--xl) var(--lg) var(--super);
+}
+
+/* Over the hidden plate, in the plate's own column, until it arrives. */
+.plate-skeleton {
+  position: absolute;
+  top: 64px;
+  left: 0;
+  right: 0;
+}
+
+.ready .plate-skeleton {
+  display: none;
 }
 
 .hero {

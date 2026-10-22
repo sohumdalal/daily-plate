@@ -11,6 +11,7 @@
   --primary-active: #b01e0a;
   --on-primary: #ffffff;
   --ink: #181818;              /* body-on-light */
+  --ink-rgb: 24, 24, 24;       /* --ink, for the charts' translucent marks */
   --body: #666666;             /* 5.7:1 on white; #969696 is 3:1 */
   --muted: #666666;
   --muted-soft: #767676;       /* 4.5:1 on white; the dark palette's #8f8f8f is 3.3:1 */
@@ -54,6 +55,7 @@
   --primary-active: #b01e0a;
   --on-primary: #ffffff;
   --ink: #ffffff;
+  --ink-rgb: 255, 255, 255;
   --body: #969696;
   --muted: #8f8f8f;            /* the design's #666666 is 3:1 on this canvas */
   --muted-soft: #8f8f8f;

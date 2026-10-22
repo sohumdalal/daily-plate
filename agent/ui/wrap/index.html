@@ -12,7 +12,11 @@
     />
     <link rel="stylesheet" href="/theme.css" />
     <link rel="stylesheet" href="/wrap/app.css" />
+    <link rel="stylesheet" href="/mova/dist/mova.css" />
     <script src="/shell.js"></script>
+    <!-- Mova's charts and states. Before app.js, which is also a module, so
+         window.Mova is set by the time it runs. -->
+    <script src="/mova/dist/index.js" type="module"></script>
   </head>
   <body>
     <nav class="topnav">
@@ -82,6 +86,8 @@
         </button>
         <div class="account" data-account></div>
       </div>
+      <!-- Mova's progress line, while anything is read. -->
+      <div class="mova-progress" id="progress" aria-hidden="true"></div>
     </nav>
 
     <main class="shell" id="feedback-view" hidden>
@@ -104,6 +110,7 @@
           <span class="label">Marked in Slack</span>
           <span class="caption" id="slack-count"></span>
         </div>
+        <div id="slack-loading" hidden></div>
         <div class="feedback-list" id="slack-list"></div>
         <div class="empty-state" id="slack-empty" hidden>
           <p class="empty-title">Nothing marked yet.</p>
@@ -181,9 +188,9 @@
     </main>
 
     <main class="shell is-loading" id="shell">
-      <!-- Shown until the first view arrives. Matches the real page's shape so
-           the content does not jump when it replaces this. -->
-      <div class="skeleton" aria-hidden="true">
+      <!-- Shown until a period's view arrives. Mova redraws it in the shape of
+           the period being opened; this markup is the shape without Mova. -->
+      <div class="skeleton" id="skeleton" aria-hidden="true">
         <div class="sk sk-date"></div>
         <hr class="rule" />
         <div class="sk-specs">
@@ -227,6 +234,9 @@
       <hr class="rule" id="specs-rule" hidden />
 
       <div id="tab-summary">
+      <!-- A week, month or year's charts, drawn by Mova from /api/wrap/stats. -->
+      <section class="section charts" id="charts" hidden></section>
+
       <p class="empty-state empty-title" id="empty" hidden>Nothing wrapped yet.</p>
 
       <section class="section" id="did-section" hidden>

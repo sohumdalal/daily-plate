@@ -33,6 +33,7 @@ const el = {
   brand: $('brand'),
   brandmenu: $('brandmenu'),
   goalForm: $('goal-form'),
+  goalAdd: $('goal-form').querySelector('button[type="submit"]'),
   goalTitle: $('goal-title'),
   goalCategory: $('goal-category'),
   goalHorizon: $('goal-horizon'),
@@ -41,6 +42,9 @@ const el = {
   goalList: $('goal-list'),
   goalsEmpty: $('goals-empty'),
   goalsLoading: $('goals-loading'),
+  slackLoading: $('slack-loading'),
+  skeleton: $('skeleton'),
+  progress: $('progress'),
   periods: $('periods'),
   todayJump: $('today-jump'),
   datefield: $('datefield'),
@@ -100,6 +104,7 @@ const el = {
   takeImprove: $('take-improve'),
   energy: $('energy'),
   wrap: $('wrap'),
+  charts: $('charts'),
   collect: $('collect'),
   readAt: $('read-at'),
   note: $('note'),
@@ -470,7 +475,9 @@ function render() {
   // No future — a day that hasn't happened has nothing to wrap.
   el.next.disabled = view.key >= keyForToday(state.period, state.today);
 
-  el.wrap.textContent = state.period === 'day' ? 'Wrap the day' : `Wrap the ${state.period}`;
+  buttonState(el.wrap, 'idle', {
+    label: state.period === 'day' ? 'Wrap the day' : `Wrap the ${state.period}`,
+  });
   // Forward-looking, so it names the period that comes next, not this one.
   el.grewLabel.textContent =
     state.period === 'day'
@@ -485,9 +492,33 @@ function render() {
   renderSpecs(view);
   renderWrap(view);
   renderCovered(view);
+  renderCharts(view);
   renderSources(view);
   renderReflection(view);
   renderProvenance(view);
+}
+
+/**
+ * A rollup's charts. Their numbers are a second request, so the written wrap
+ * never waits on them, and without the Mova bundle the section stays hidden.
+ */
+async function renderCharts(view) {
+  const mova = window.Mova;
+  if (!mova || view.period === 'day') {
+    el.charts.hidden = true;
+    mova?.rollup(el.charts, null);
+    return;
+  }
+  el.charts.hidden = false;
+  mova.skeleton(el.charts, 'charts', view.period);
+  try {
+    const stats = await api(`/api/stats/${view.period}/${view.key}`);
+    if (state.view?.period === view.period && state.view?.key === view.key) {
+      await mova.rollup(el.charts, stats);
+    }
+  } catch {
+    el.charts.hidden = true;
+  }
 }
 
 function goalRow(goal) {
@@ -552,6 +583,10 @@ function goalRow(goal) {
 }
 
 async function loadSlackFeedback() {
+  // The shape only while there is nothing to show; a refresh keeps the list.
+  const blank = el.slackList.childElementCount === 0;
+  el.slackLoading.hidden = !blank;
+  progress(true);
   try {
     const { feedback } = await api('/api/feedback/slack');
     el.slackCount.textContent = feedback.length ? `${feedback.length}` : '';
@@ -595,6 +630,9 @@ async function loadSlackFeedback() {
     );
   } catch (err) {
     note(err.message, true);
+  } finally {
+    el.slackLoading.hidden = true;
+    progress(false);
   }
 }
 
@@ -603,6 +641,7 @@ async function loadGoals() {
   const blank = el.goalList.childElementCount === 0;
   el.goalsLoading.hidden = !blank;
   el.goalsEmpty.hidden = true;
+  progress(true);
   try {
     const { goals } = await api('/api/goals');
     el.goalList.replaceChildren(...goals.map(goalRow));
@@ -611,6 +650,7 @@ async function loadGoals() {
     note(err.message, true);
   } finally {
     el.goalsLoading.hidden = true;
+    progress(false);
   }
 }
 
@@ -623,17 +663,33 @@ async function patchGoal(id, patch) {
   }
 }
 
-function note(message, warn = false) {
+/** `working` says it with Mova's shimmer, for something still in progress. */
+function note(message, warn = false, working = false) {
+  window.Mova?.release(el.note);
   el.note.hidden = !message;
-  el.note.textContent = message ?? '';
   el.note.className = warn ? 'note warn' : 'note';
+  if (working && message && window.Mova) window.Mova.shimmer(el.note, message);
+  else el.note.textContent = message ?? '';
+}
+
+/**
+ * Mova draws a button's working, done and failed states when its bundle has
+ * loaded. Without it the button keeps a plain label, as it always did.
+ */
+function buttonState(node, state, labels = {}) {
+  if (window.Mova) window.Mova.button(node, { state, ...labels });
+  else if (labels.label) node.textContent = labels.label;
 }
 
 function busy(on) {
   state.busy = on;
-  el.shell.classList.toggle('busy', on);
   el.wrap.disabled = on;
   el.collect.disabled = on;
+}
+
+/** Mova's progress line along the nav, while anything is read. */
+function progress(on) {
+  window.Mova?.progress(el.progress, on);
 }
 
 // ── Server ─────────────────────────────────────────────────────────────────
@@ -649,12 +705,16 @@ async function api(path, options) {
   return body;
 }
 
-/** True until the first view has rendered, which is the only time bars beat dimming. */
-let firstPaint = true;
-
 async function load() {
-  if (firstPaint) el.shell.classList.add('is-loading');
-  else busy(true);
+  // A different period or key empties to its skeleton; the same one, read
+  // again, keeps what is on screen.
+  const fresh = state.view?.period !== state.period || state.view?.key !== state.key;
+  if (fresh) {
+    window.Mova?.skeleton(el.skeleton, state.period === 'day' ? 'day' : 'rollup', state.period);
+    el.shell.classList.add('is-loading');
+  }
+  busy(true);
+  progress(true);
   try {
     state.view = await api(`/api/view/${state.period}/${state.key}`);
     render();
@@ -667,15 +727,19 @@ async function load() {
     }
   } finally {
     el.shell.classList.remove('is-loading');
-    if (!firstPaint) busy(false);
-    firstPaint = false;
+    busy(false);
+    progress(false);
   }
 }
 
-async function run(path, pending, body) {
+/** `button`, when given, is the one that started this, and shows its progress. */
+async function run(path, pending, body, button) {
   if (state.busy) return;
   busy(true);
-  note(pending);
+  progress(true);
+  note(pending, false, true);
+  if (button) buttonState(button.node, 'loading', { pending: button.pending });
+  let outcome = 'success';
   try {
     const view = await api(path, {
       method: 'POST',
@@ -689,12 +753,17 @@ async function run(path, pending, body) {
           ? 'Nothing recorded for this day — nothing to wrap.'
           : `No days wrapped in this ${state.period} yet — wrap some days first.`,
       );
-    else if (view.errors?.length) note(view.errors.join(' · '), true);
-    else note(null);
+    else if (view.errors?.length) {
+      note(view.errors.join(' · '), true);
+      outcome = 'error';
+    } else note(null);
   } catch (err) {
     note(err.message, true);
+    outcome = 'error';
   } finally {
     busy(false);
+    progress(false);
+    if (button) buttonState(button.node, outcome, { done: button.done });
   }
 }
 
@@ -702,12 +771,19 @@ const wrapNow = () =>
   run(
     `/api/view/${state.period}/${state.key}/wrap`,
     state.period === 'day' ? 'Reading the day, then writing it…' : 'Reading the days…',
+    undefined,
+    { node: el.wrap, pending: 'Writing', done: 'Wrapped' },
   );
 
 const collectNow = () =>
-  run(`/api/view/${state.period}/${state.key}/collect`, 'Re-reading Claude and GitHub…');
+  run(
+    `/api/view/${state.period}/${state.key}/collect`,
+    'Re-reading Claude and GitHub…',
+    undefined,
+    { node: el.collect, pending: 'Reading', done: 'Read' },
+  );
 
-/** Patch fields on the reflection without touching the rest. */
+/** Patch fields on the reflection without touching the rest. True if it saved. */
 async function patchReflection(patch) {
   try {
     const { reflection } = await api(`/api/reflection/${state.period}/${state.key}`, {
@@ -716,18 +792,22 @@ async function patchReflection(patch) {
     });
     if (state.view) state.view.reflection = reflection;
     renderReflection(state.view);
+    return true;
   } catch (err) {
     note(err.message, true);
+    return false;
   }
 }
 
 async function saveThree() {
   el.threeStatus.textContent = 'Saving…';
-  await patchReflection({
+  buttonState(el.threeSave, 'loading', { pending: 'Saving' });
+  const saved = await patchReflection({
     good: el.takeGood.value.trim(),
     bad: el.takeBad.value.trim(),
     improve: el.takeImprove.value.trim(),
   });
+  buttonState(el.threeSave, saved ? 'success' : 'error', { done: 'Saved' });
 }
 
 /**
@@ -947,6 +1027,7 @@ el.goalForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const title = el.goalTitle.value.trim();
   if (!title) return;
+  buttonState(el.goalAdd, 'loading', { pending: 'Adding' });
   try {
     await api('/api/goals', {
       method: 'POST',
@@ -962,8 +1043,10 @@ el.goalForm.addEventListener('submit', async (e) => {
     el.goalHorizon.value = 'year';
     el.goalTitle.focus();
     loadGoals();
+    buttonState(el.goalAdd, 'success', { done: 'Added' });
   } catch (err) {
     note(err.message, true);
+    buttonState(el.goalAdd, 'error');
   }
 });
 
@@ -1282,6 +1365,16 @@ document.addEventListener('keydown', (e) => {
 window.addEventListener('hashchange', applyHash);
 
 // ── Boot ───────────────────────────────────────────────────────────────────
+
+// Mova's sliding underline on both tab rows, and its dots while a reply composes.
+window.Mova?.tabs(el.periods);
+window.Mova?.tabs(el.tabs);
+window.Mova?.typing(el.chatThinking.querySelector('.dots'));
+// Mova's loading shapes for the goals and the Slack list, and its shimmer on
+// the line shown while the conversation opens.
+window.Mova?.skeleton(el.goalsLoading, 'goals');
+window.Mova?.skeleton(el.slackLoading, 'feedback');
+window.Mova?.shimmer(el.reflectIntro, el.reflectIntro.textContent.trim());
 
 (async () => {
   try {

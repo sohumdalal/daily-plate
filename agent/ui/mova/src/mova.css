@@ -1,0 +1,213 @@
+/*
+ * Mova on Daily Plate: Tailwind's utilities for the vendored Mova sources,
+ * plus the skin that maps Mova's light and dark literals to the theme's
+ * tokens (theme.css). `bun run build:ui` writes this to /mova/dist/mova.css.
+ *
+ * There is no Tailwind preflight, because the pages have their own base
+ * styles. Mova's markup assumes preflight's border reset, so that part is
+ * applied here, inside Mova's own roots only.
+ */
+
+@tailwind components;
+@tailwind utilities;
+
+.mova *,
+.mova ::before,
+.mova ::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: var(--hairline);
+}
+
+.mova h3,
+.mova p,
+.mova ul {
+  margin: 0;
+}
+
+/* ── Chart skin: the classes the re-skinned sources use ─────────────────── */
+
+.dp-card { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); }
+.dp-card.dp-card:hover { background: var(--canvas); }
+.dp-well { background: var(--surface-soft); }
+.dp-muted { color: var(--muted); }
+.dp-ink { color: var(--ink); }
+.dp-rule { border-color: var(--hairline) !important; }
+.dp-badge { background: transparent; color: var(--body); border: 1px solid var(--hairline); }
+.dp-dot { background: var(--ink); }
+.dp-tip { background: var(--ink); color: var(--canvas); border: 0; }
+.dp-tip .dp-muted,
+.dp-tip-label { color: var(--canvas); opacity: 0.7; }
+.dp-seg { border-color: var(--hairline); }
+.dp-seg-on { background: var(--ink); color: var(--canvas); font-weight: 600; }
+
+/* ── A rollup's charts ──────────────────────────────────────────────────── */
+
+.mova-rollup .grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--xs);
+}
+
+.mova-rollup .grid2 > * {
+  min-width: 0;
+}
+
+.mova-rollup .wide {
+  grid-column: 1 / -1;
+}
+
+.mova-rollup .textcard {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.mova-rollup .textcard h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mova-rollup .list {
+  display: grid;
+  padding: 0;
+}
+
+.mova-rollup .list li {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: var(--xs);
+  padding-block: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.mova-rollup .list .when {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.mova-rollup .list a.when:hover {
+  color: var(--ink);
+}
+
+.mova-rollup .list .what {
+  max-width: 70ch;
+  min-width: 0;
+  color: var(--body);
+}
+
+.mova-rollup .quiet a {
+  color: inherit;
+}
+
+.mova-rollup .quiet {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mova-rollup .ledger {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--xs);
+}
+
+.mova-rollup .ledger ul {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--xxs);
+  padding-left: var(--xs);
+  color: var(--body);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .mova-rollup .grid2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mova-rollup .list li {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+/* ── Loading ────────────────────────────────────────────────────────────── */
+
+.mova-skeleton {
+  background: var(--hairline);
+  opacity: 0.6;
+}
+
+.mova-skeleton-card {
+  border: 1px solid var(--hairline);
+}
+
+.mova-skeleton-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mova-skeleton-rule {
+  border-top: 1px solid var(--hairline);
+}
+
+.mova-skeleton-row + .mova-skeleton-row {
+  border-top: 1px solid var(--hairline);
+}
+
+/* Along the nav's bottom rule; off, it is simply not there. */
+.mova-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  pointer-events: none;
+}
+
+.mova-shimmer-line > div {
+  background: var(--primary);
+}
+
+@media (max-width: 640px) {
+  .mova-skeleton-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── UI states ──────────────────────────────────────────────────────────── */
+
+/* The page's own tab underline gives way to the one that slides. */
+.mova-tabs button {
+  position: relative;
+}
+
+.mova-tabs button[aria-current='true'] {
+  border-bottom-color: transparent;
+}
+
+.mova-tab-indicator {
+  background: var(--primary);
+}
+
+.mova-typing span {
+  background: var(--muted);
+}
+
+.mova-shimmer {
+  color: var(--muted);
+}
+
+.mova-shimmer > span {
+  color: var(--ink);
+}
+
+/* Motion's own animations follow MotionConfig (index.jsx); this one is CSS. */
+@media (prefers-reduced-motion: reduce) {
+  .mova-submit .animate-spin {
+    animation: none !important;
+  }
+}
