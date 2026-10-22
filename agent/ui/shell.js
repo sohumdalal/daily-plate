@@ -42,7 +42,23 @@
     return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
   }
 
-  window.DailyPlate = { ago };
+  /**
+   * Who is signed in, from /api/me: one request however many parts of the
+   * page ask. Null when it fails, and the next call asks again.
+   */
+  let mine = null;
+  function me() {
+    mine ??= fetch('/api/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => null)
+      .then((who) => {
+        if (!who) mine = null;
+        return who;
+      });
+    return mine;
+  }
+
+  window.DailyPlate = { ago, me };
 
   // Lucide's sun, moon, monitor and settings, inline so they take currentColor.
   const ICONS = {
@@ -134,9 +150,7 @@
     const mount = document.querySelector('[data-account]');
     if (!mount) return;
     buildMenu(mount);
-    const me = await fetch('/api/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .catch(() => null);
-    if (me) fill(mount, me);
+    const who = await me();
+    if (who) fill(mount, who);
   });
 })();

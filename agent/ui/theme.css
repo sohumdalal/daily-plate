@@ -130,6 +130,15 @@ body {
   color: var(--muted);
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .caption {
   font-size: 12px;
   line-height: 1.4;
@@ -182,6 +191,8 @@ body {
 .shell {
   max-width: var(--page-width);
   margin: 0 auto;
+  /* A popover near the edge must never widen a phone page. */
+  overflow-x: clip;
   padding: var(--xl) var(--lg) var(--super);
 }
 
@@ -251,8 +262,13 @@ body {
 
 .when {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--xs);
+  gap: var(--xxs) var(--xs);
+}
+
+.when > .label {
+  white-space: nowrap;
 }
 
 .read-at:empty {
@@ -437,6 +453,18 @@ body {
   font-size: 12px;
   line-height: 1.4;
   color: var(--muted);
+}
+
+/*
+ * The error state: the same shape as the empty state, said as a failure,
+ * with the action that retries it. For a read that left nothing to show.
+ */
+.state-error {
+  padding-top: var(--lg);
+}
+
+.state-error .empty-title {
+  color: var(--ink);
 }
 
 /* The brand button: sharp, uppercase, Rosso Corsa; outline is the second action. */

@@ -27,7 +27,7 @@
   padding-left: var(--xs);
 }
 
-.settings-nav a[aria-current='true'] {
+.settings-nav a[aria-current='page'] {
   color: var(--ink);
   border-left-color: var(--primary);
 }
@@ -79,7 +79,13 @@
     border-bottom: 2px solid transparent;
   }
 
-  .settings-nav a[aria-current='true'] {
+  .settings-nav a[aria-current='page'] {
     border-bottom-color: var(--primary);
   }
+}
+
+#me-error {
+  display: grid;
+  justify-items: start;
+  gap: var(--xs);
 }

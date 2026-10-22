@@ -34,33 +34,32 @@
 
     <main class="shell">
       <header class="hero">
-        <p class="label">Settings</p>
+        <h1 class="label">Settings</h1>
       </header>
 
       <!-- One section per area. A new setting gets its own section and a link
            in the list on the left. -->
       <div class="settings">
         <nav class="settings-nav" aria-label="Settings sections">
-          <a href="#account" aria-current="true">Account</a>
+          <a href="#account" aria-current="page">Account</a>
         </nav>
 
         <div class="settings-body">
           <section class="settings-section" id="account">
             <h2 class="settings-title">Account</h2>
             <p class="settings-lede">Whose plate this is, from your GitHub profile.</p>
-            <div class="settings-row">
+            <div class="settings-row" id="me-row">
               <img class="account-avatar" id="me-avatar" alt="" />
               <div class="account-who">
-                <span class="account-name" id="me-name">—</span>
+                <span class="account-name" id="me-name"></span>
                 <span class="account-login" id="me-login"></span>
               </div>
             </div>
+            <div id="me-error" role="alert" hidden>
+              <p class="note warn">Your GitHub profile did not load.</p>
+              <button class="line-button" id="me-retry" type="button">Try again</button>
+            </div>
           </section>
-
-          <div class="empty-state">
-            <p class="empty-title">Nothing else to set yet.</p>
-            <p class="empty-caption">More settings will go here.</p>
-          </div>
         </div>
       </div>
     </main>

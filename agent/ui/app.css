@@ -28,6 +28,11 @@
   display: none;
 }
 
+/* With no plate to show, the error is the whole page. */
+.failed .shell > :not(#load-error) {
+  display: none;
+}
+
 .hero {
   padding-bottom: var(--lg);
 }
@@ -199,7 +204,8 @@ body:not(.ready) .shell {
 }
 
 .chip:disabled {
-  color: var(--hairline);
+  color: var(--muted-soft);
+  opacity: 0.6;
   cursor: default;
 }
 
@@ -281,7 +287,8 @@ body:not(.ready) .shell {
     transform 260ms var(--ease);
 }
 
-a.group-name:hover .go {
+a.group-name:hover .go,
+a.group-name:focus-visible .go {
   opacity: 1;
   transform: none;
 }
@@ -703,13 +710,15 @@ a.state:hover span {
   bottom: calc(100% + 4px);
   left: calc(100% - 6px);
   z-index: 5;
-  display: grid;
+  /* Out of the layout until shown: hidden, it still widened a phone page. */
+  display: none;
   gap: 4px;
+  max-width: min(280px, calc(100vw - 32px));
   padding: 6px 10px 6px 6px;
   background: var(--canvas);
   border: 1px solid var(--hairline);
   border-radius: 12px 12px 12px 3px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(var(--ink-rgb), 0.1);
   color: var(--ink);
   font-size: 12px;
   line-height: 1.5;
@@ -733,6 +742,7 @@ a.state:hover span {
 
 :is(.comments, .stack):hover .tip,
 :is(.comments, .stack):focus-within .tip {
+  display: grid;
   opacity: 1;
   visibility: visible;
   transform: none;
@@ -778,7 +788,7 @@ a.state:hover span {
 }
 
 /* A row's quiet controls at its right edge: notes, then delete for a task. */
-.actions {
+.row-actions {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -938,6 +948,32 @@ a.unfurl {
   opacity: 0;
 }
 
+/* A touch screen has no hover, so the delete is always there. */
+@media (hover: none) {
+  .note-remove {
+    opacity: 1;
+  }
+}
+
+/* A finger needs a bigger target than the marks are; the box grows, not the mark. */
+@media (pointer: coarse) {
+  .check,
+  .cross,
+  .notes-toggle,
+  .note-remove {
+    position: relative;
+  }
+
+  .check::after,
+  .cross::after,
+  .notes-toggle::after,
+  .note-remove::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+  }
+}
+
 .note-row:hover .note-remove,
 .note-remove:focus-visible {
   opacity: 1;
@@ -963,7 +999,6 @@ a.unfurl {
 .note-input:focus,
 .add input:focus {
   border-color: var(--ink);
-  outline: none;
 }
 
 .note-input::placeholder,

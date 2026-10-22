@@ -438,6 +438,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   check.innerHTML = CHECK_SVG;
   check.setAttribute('aria-pressed', String(Boolean(item.doneAt)));
   check.title = item.doneAt ? 'Put it back on the plate' : 'Clear it';
+  check.setAttribute('aria-label', `${item.doneAt ? 'Put back' : 'Clear'}: ${item.title}`);
   check.addEventListener('click', () => toggle(item.id));
 
   const body = document.createElement('div');
@@ -487,7 +488,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   if (item.work?.kind === 'pr' && item.work.comments?.length) body.append(commentChip(item.work.comments));
   // A task can also go for good. Anything synced would only come back.
   const actions = document.createElement('div');
-  actions.className = 'actions';
+  actions.className = 'row-actions';
   actions.append(notesToggle(item));
   if (item.source === 'task') {
     const cross = document.createElement('button');
@@ -495,7 +496,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     cross.type = 'button';
     cross.innerHTML = CROSS_SVG;
     cross.title = 'Delete it';
-    cross.setAttribute('aria-label', 'Delete it');
+    cross.setAttribute('aria-label', `Delete: ${item.title}`);
     cross.addEventListener('click', () => removeTask(item.id));
     actions.append(cross);
   }
@@ -517,7 +518,10 @@ function notesToggle(item) {
   button.type = 'button';
   button.className = 'notes-toggle';
   button.setAttribute('aria-expanded', String(openNotes.has(item.id)));
-  button.setAttribute('aria-label', n ? `${n} ${n === 1 ? 'note' : 'notes'}` : 'Add a note');
+  button.setAttribute(
+    'aria-label',
+    `${n ? `${n} ${n === 1 ? 'note' : 'notes'}` : 'Add a note'}: ${item.title}`,
+  );
   button.title = openNotes.has(item.id) ? 'Hide notes' : n ? 'Show notes' : 'Add a note';
   if (n) button.append(span('note-count', String(n)));
   button.insertAdjacentHTML('beforeend', CHEVRON_SVG);
@@ -966,10 +970,10 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
       name: 'Slack',
       sub: sub(
         !live
-          ? 'Not connected · connects when deployed with messaging'
+          ? 'Slack is not connected'
           : data.state.slackMentions
             ? 'Live · reactions and mentions'
-            : 'Live · reactions · set SLACK_USER_ID for mentions',
+            : 'Live · reactions',
         { live },
       ),
       count: slack.length,
@@ -1074,6 +1078,7 @@ function render() {
   });
   // Pull requests are listed but not counted: the plate is issues, tasks and Slack.
   setCount($('n-open'), all.board.length + all.issues.length + all.tasks.length + all.slack.length);
+  document.title = `(all.board.length + all.issues.length + all.tasks.length + all.slack.length) Plate — Daily Plate`;
   setCount($('n-github'), all.board.length + all.issues.length);
   setCount($('n-slack'), all.slack.length);
   setCount($('n-done'), allDone.length);
@@ -1122,7 +1127,7 @@ function refocus(id) {
 function renderChrome() {
   const me = data.assignee;
   $('assignee').hidden = !me;
-  if (me) $('assignee').replaceChildren(avatar(me.login, 'assignee-avatar'), span('', `Assigned to me · ${me.name}`));
+  if (me) $('assignee').replaceChildren(avatar(me.login, 'assignee-avatar'), span('', `Assigned to ${me.name}`));
 
   const sync = data.sync;
   $('read-at').textContent = sync ? `Read ${ago(sync.at)}` : '';
@@ -1140,22 +1145,57 @@ function warn(message) {
 
 // ── Actions ──────────────────────────────────────────────────────────────
 
+/**
+ * Every call to the API. A proxy's error page or an empty body is not JSON,
+ * so the status is the message when there is no `error` to give.
+ */
 async function request(path, init) {
-  const res = await fetch(path, init);
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error || res.statusText);
+  let res;
+  try {
+    res = await fetch(path, init);
+  } catch {
+    throw new Error(navigator.onLine ? 'the agent did not answer' : 'you are offline');
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `${res.status} ${res.statusText}`.trim());
   return body;
 }
 
+/**
+ * Bumped by every change made on this page. A read that started before one
+ * is older than what is on screen, so its result is dropped, not rendered.
+ */
+let edits = 0;
+
 async function load() {
-  if (animating) return;
+  if (animating || busy) return;
+  const at = edits;
   try {
-    data = await request('/api/plate');
+    const fresh = await request('/api/plate');
+    if (at !== edits || animating) return;
+    data = fresh;
     render();
   } catch (err) {
+    if (first) return loadFailed(err);
     warn(`Could not load the plate: ${err.message}`);
   }
 }
+
+/** The first read failed, so there is no plate to show: say so, and offer it again. */
+function loadFailed(err) {
+  document.body.classList.add('ready', 'failed');
+  window.Mova?.release($('plate-skeleton'));
+  const why = err.message || 'unknown error';
+  $('load-error-reason').textContent = `${why[0].toUpperCase()}${why.slice(1)}${/[.!?]$/.test(why) ? '' : '.'}`;
+  $('load-error').hidden = false;
+}
+
+$('load-retry').addEventListener('click', () => {
+  $('load-error').hidden = true;
+  document.body.classList.remove('ready', 'failed');
+  window.Mova?.skeleton($('plate-skeleton'), 'plate');
+  load();
+});
 
 /**
  * Mova draws the button's working, done and failed states when its bundle has
@@ -1206,6 +1246,7 @@ async function toggle(id) {
   }
   const done = !item.doneAt;
   const previous = item.doneAt;
+  edits++;
 
   animating++;
   // A card on both boards is on screen twice; both copies mark together.
@@ -1244,6 +1285,7 @@ async function addTask(e) {
   const title = input.value.trim();
   if (!title) return;
   input.disabled = true;
+  edits++;
   addState('loading');
   let outcome = 'success';
   try {
@@ -1252,7 +1294,7 @@ async function addTask(e) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ title }),
     });
-    data.items.push(item);
+    if (!data.items.some((i) => i.id === item.id)) data.items.push(item);
     input.value = '';
     if (filters.section !== ALL_SECTION && filters.section !== TASKS_SECTION) setFilter('section', TASKS_SECTION);
     else render();
@@ -1273,6 +1315,7 @@ function addState(state) {
 
 /** The item as the server now has it, wherever it is kept on the page. */
 function replaceItem(fresh) {
+  edits++;
   for (const list of [data.items, data.history ?? []]) {
     const at = list.findIndex((i) => i.id === fresh.id);
     if (at !== -1) list[at] = fresh;
@@ -1287,6 +1330,7 @@ async function removeTask(id) {
   if (!list) return;
   const at = list.findIndex((i) => i.id === id);
   const [item] = list.splice(at, 1);
+  edits++;
   render();
   try {
     await request(`/api/items/${id}`, { method: 'DELETE' });
@@ -1324,7 +1368,7 @@ async function removeNote(item, noteId) {
 $('add').addEventListener('submit', addTask);
 $('sync').addEventListener('click', sync);
 document.addEventListener('keydown', (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
   // Typing a task or a note is not a shortcut.
   if (e.target.closest('input, textarea')) {
     if (e.key === 'Escape') e.target.blur();
@@ -1335,8 +1379,10 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     $('add-title').focus();
   }
-  if (key === 'r') sync();
-  if (key === 'escape') clearFilters();
+  // Not while a button or link has the focus, where R is easy to hit by accident.
+  if (key === 'r' && !e.target.closest('button, a')) sync();
+  // Escape closes an open menu first; only then does it clear the filters.
+  if (key === 'escape' && !document.querySelector('.account-menu:not([hidden])')) clearFilters();
 });
 
 // Mova's loading shape until the first plate arrives. A module, so it loads
@@ -1346,5 +1392,13 @@ addEventListener('DOMContentLoaded', () => {
 });
 
 load();
-// Slack items arrive on their own; pick them up without a reload.
-setInterval(load, 60_000);
+// Slack items arrive on their own; pick them up without a reload. Not while a
+// note is being typed, which a render would interrupt, nor in a hidden tab,
+// which reads again as soon as it is shown.
+setInterval(() => {
+  if (document.hidden || document.activeElement?.classList.contains('note-input')) return;
+  load();
+}, 60_000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !first) load();
+});
