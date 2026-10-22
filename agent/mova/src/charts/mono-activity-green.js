@@ -62,35 +62,8 @@ function MonoActivityHeatmap({ theme = "dark", accentColor = "mono", compact = f
     () => demoData.reduce((sum, d) => sum + d.count, 0),
     [demoData]
   );
-  const colorScale = useMemo(() => {
-    switch (accentColor) {
-      case "green":
-        return {
-          bg: "#39d353",
-          badgeClass: "bg-emerald-500/20 dp-muted border-emerald-500/30",
-          badgeText: "Emerald Matrix"
-        };
-      case "blue":
-        return {
-          bg: "#3b82f6",
-          badgeClass: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-          badgeText: "Sky Blue Grid"
-        };
-      case "purple":
-        return {
-          bg: "#a855f7",
-          badgeClass: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-          badgeText: "Violet Pulse"
-        };
-      case "mono":
-      default:
-        return {
-          bg: "var(--ink)",
-          badgeClass: "dp-badge",
-          badgeText: "Monochrome Heat"
-        };
-    }
-  }, [accentColor, isDark]);
+  // Daily Plate: the theme's ink only; Mova's green, blue and purple are gone.
+  const colorScale = { bg: "var(--ink)", badgeClass: "dp-badge", badgeText: "Monochrome Heat" };
   const opacityForLevel = (lvl) => {
     switch (lvl) {
       case 0:

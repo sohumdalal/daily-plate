@@ -3,6 +3,7 @@
 // and the demo data is a prop with Mova's values as the fallback.
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedStackedBarChart.tsx
+import { REDUCED } from "../reduced.js";
 import {
   ResponsiveContainer,
   BarChart,
@@ -105,7 +106,7 @@ function MonoRoundedStackedBarChart({ theme = "dark", compact = false, data, tit
     {
       className: `relative w-full transition-all duration-300 group flex flex-col justify-between overflow-hidden p-4 sm:p-5 ${compact ? "h-[220px] sm:h-[268px]" : "min-h-[290px]"} ${"dp-card"}`,
       children: [
-        /* @__PURE__ */ jsx2("div", { className: "flex items-center justify-between mb-2", children: /* @__PURE__ */ jsxs2("div", { children: [
+        /* @__PURE__ */ jsxs2("div", { className: "flex items-center justify-between mb-2", children: [/* @__PURE__ */ jsxs2("div", { children: [
           /* @__PURE__ */ jsxs2("div", { className: "flex items-center gap-2", children: [
             /* @__PURE__ */ jsx2("span", { className: `text-xs font-semibold tracking-wider uppercase ${"dp-muted"}`, children: title ?? "Stacked Tones" }),
             /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Layers" })
@@ -114,15 +115,17 @@ function MonoRoundedStackedBarChart({ theme = "dark", compact = false, data, tit
             "160 ",
             ]), /* @__PURE__ */ jsx2("span", { className: "text-xs font-normal opacity-70", children: unit ?? "cumulative" })
           ] })
-        ] }) }),
+        ] }),
+          /* @__PURE__ */ jsx2("div", { className: "flex items-center gap-3 text-[11px] dp-muted", children: [[names?.[0] ?? "Base", "var(--ink)"], [names?.[1] ?? "Mid", "rgba(var(--ink-rgb),0.5)"], [names?.[2] ?? "Top", "rgba(var(--ink-rgb),0.2)"]].map(([n, fill]) => /* @__PURE__ */ jsxs2("span", { className: "inline-flex items-center gap-1.5", children: [/* @__PURE__ */ jsx2("span", { className: "w-2 h-2 inline-block", style: { background: fill } }), n] }, n)) })
+        ] }),
         /* @__PURE__ */ jsx2("div", { className: `relative w-full flex-1 overflow-hidden p-2 transition-colors duration-300 touch-pan-y ${"dp-well"}`, children: /* @__PURE__ */ jsx2(ResponsiveContainer, { width: "100%", height: compact ? 130 : 160, children: /* @__PURE__ */ jsxs2(BarChart, { data: STACKED_DATA, margin: { top: 12, right: 12, left: -22, bottom: 0 }, children: [
           /* @__PURE__ */ jsx2(CartesianGrid, { strokeDasharray: "2 2", vertical: false, stroke: "var(--hairline)" }),
           /* @__PURE__ */ jsx2(XAxis, { dataKey: "label", tickLine: false, axisLine: false, tick: { fontSize: 10, fill: "var(--muted)" } }),
           /* @__PURE__ */ jsx2(YAxis, { tickLine: false, axisLine: false, tick: { fontSize: 10, fill: "var(--muted)" } }),
           /* @__PURE__ */ jsx2(Tooltip, { content: /* @__PURE__ */ jsx2(DitherChartTooltipContent, { theme, indicator: "dot" }) }),
-          /* @__PURE__ */ jsx2(Bar, { dataKey: "layer1", name: names?.[0] ?? "Base", stackId: "a", fill: "var(--ink)", radius: 0, barSize: 18, isAnimationActive: !isMobile, animationDuration: isMobile ? 0 : 800 }),
-          /* @__PURE__ */ jsx2(Bar, { dataKey: "layer2", name: names?.[1] ?? "Mid", stackId: "a", fill: "rgba(var(--ink-rgb),0.5)", isAnimationActive: !isMobile, animationDuration: isMobile ? 0 : 800 }),
-          /* @__PURE__ */ jsx2(Bar, { dataKey: "layer3", name: names?.[2] ?? "Top", stackId: "a", fill: "rgba(var(--ink-rgb),0.2)", radius: 0, isAnimationActive: !isMobile, animationDuration: isMobile ? 0 : 800 })
+          /* @__PURE__ */ jsx2(Bar, { dataKey: "layer1", name: names?.[0] ?? "Base", stackId: "a", fill: "var(--ink)", radius: 0, barSize: 18, isAnimationActive: !isMobile && !REDUCED, animationDuration: isMobile ? 0 : 800 }),
+          /* @__PURE__ */ jsx2(Bar, { dataKey: "layer2", name: names?.[1] ?? "Mid", stackId: "a", fill: "rgba(var(--ink-rgb),0.5)", isAnimationActive: !isMobile && !REDUCED, animationDuration: isMobile ? 0 : 800 }),
+          /* @__PURE__ */ jsx2(Bar, { dataKey: "layer3", name: names?.[2] ?? "Top", stackId: "a", fill: "rgba(var(--ink-rgb),0.2)", radius: 0, isAnimationActive: !isMobile && !REDUCED, animationDuration: isMobile ? 0 : 800 })
         ] }) }) }),
         /* @__PURE__ */ jsxs2("div", { className: "flex items-center justify-between mt-3 pt-1 border-t dp-rule text-[11px]", children: [
           /* @__PURE__ */ jsx2("span", { className: "dp-muted", children: footL ?? "3 Monochrome Layers" }),

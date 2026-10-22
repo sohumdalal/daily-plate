@@ -3,6 +3,7 @@
 // and the demo data is a prop with Mova's values as the fallback.
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedAreaChart.tsx
+import { REDUCED } from "../reduced.js";
 import { useState as useState2, useId } from "react";
 import {
   ResponsiveContainer,
@@ -104,7 +105,8 @@ function MonoRoundedAreaChart({ theme = "dark", compact = false, data, title, ba
   const isDark = theme === "dark";
   const isMobile = useIsMobile();
   const idPrefix = useId().replace(/:/g, "");
-  const [curve, setCurve] = useState2("monotone");
+  // Daily Plate: Mova's Monotone/Natural demo switch is removed.
+  const curve = "monotone";
   const latestVal = MONO_AREA_DATA[MONO_AREA_DATA.length - 1].volume;
   return /* @__PURE__ */ jsxs2(
     "div",
@@ -122,17 +124,7 @@ function MonoRoundedAreaChart({ theme = "dark", compact = false, data, title, ba
               "% ",
               ]), /* @__PURE__ */ jsx2("span", { className: "text-xs font-normal opacity-70", children: unit ?? "peak throughput" })
             ] })
-          ] }),
-          /* @__PURE__ */ jsx2("div", { className: `p-0.5 border flex items-center gap-0.5 ${"dp-seg"}`, children: ["monotone", "natural"].map((c) => /* @__PURE__ */ jsx2(
-            "button",
-            {
-              type: "button",
-              onClick: () => setCurve(c),
-              className: `px-2.5 py-0.5 text-[11px] font-medium capitalize transition-all cursor-pointer ${curve === c ? "dp-seg-on" : "dp-muted"}`,
-              children: c
-            },
-            c
-          )) })
+          ] })
         ] }),
         /* @__PURE__ */ jsxs2("div", { className: `relative w-full flex-1 overflow-hidden p-2 transition-colors duration-300 touch-pan-y ${"dp-well"}`, children: [
           /* @__PURE__ */ jsx2("svg", { className: "absolute w-0 h-0 pointer-events-none", children: /* @__PURE__ */ jsx2("defs", { children: /* @__PURE__ */ jsxs2("linearGradient", { id: `${idPrefix}mono-area-gradient`, x1: "0", y1: "0", x2: "0", y2: "1", children: [
@@ -162,7 +154,7 @@ function MonoRoundedAreaChart({ theme = "dark", compact = false, data, title, ba
                 strokeLinecap: "round",
                 strokeLinejoin: "round",
                 fill: `url(#${idPrefix}mono-area-gradient)`,
-                isAnimationActive: !isMobile,
+                isAnimationActive: !isMobile && !REDUCED,
                 animationDuration: isMobile ? 0 : 900
               }
             )

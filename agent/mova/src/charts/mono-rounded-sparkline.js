@@ -3,6 +3,7 @@
 // and the demo data is a prop with Mova's values as the fallback.
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedSparklineChart.tsx
+import { REDUCED } from "../reduced.js";
 import { ResponsiveContainer, LineChart, Line } from "recharts";
 
 // src/hooks/useIsMobile.ts
@@ -82,7 +83,7 @@ function MonoRoundedSparklineChart({ theme = "dark", compact = false, data, titl
               strokeWidth: 2,
               strokeLinecap: "round",
               dot: (p) => p.index === row.data.length - 1 && p.value != null ? jsx("circle", { cx: p.cx, cy: p.cy, r: 4, fill: "var(--primary)", stroke: "var(--surface-soft)", strokeWidth: 2 }, p.index) : jsx("g", {}, p.index),
-              isAnimationActive: !isMobile,
+              isAnimationActive: !isMobile && !REDUCED,
               animationDuration: isMobile ? 0 : 800
             }
           ) }) }) }),

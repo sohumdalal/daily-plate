@@ -17,7 +17,7 @@
   --on-primary: #ffffff;
   --ink: #181818;              /* body-on-light */
   --ink-rgb: 24, 24, 24;       /* --ink, for the charts' translucent marks */
-  --body: #666666;             /* 5.7:1 on white; #969696 is 3:1 */
+  --body: #4a4a4a;             /* 8.9:1 on white: running text, a step above --muted */
   --muted: #666666;
   --muted-soft: #767676;       /* 4.5:1 on white; the dark palette's #8f8f8f is 3.3:1 */
   --hairline: #d2d2d2;         /* hairline-on-light */

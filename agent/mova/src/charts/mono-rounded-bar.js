@@ -3,6 +3,7 @@
 // and the demo data is a prop with Mova's values as the fallback.
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedBarChart.tsx
+import { REDUCED } from "../reduced.js";
 import { useState as useState2 } from "react";
 import {
   ResponsiveContainer,
@@ -104,8 +105,9 @@ function MonoRoundedBarChart({ theme = "dark", compact = false, data, title, bad
   const MONO_BAR_DATA = data ?? MONO_BAR_DATA__DEMO;
   const isDark = theme === "dark";
   const isMobile = useIsMobile();
-  const [layout, setLayout] = useState2("vertical");
-  const isHorizontal = layout === "horizontal";
+  // Daily Plate: Mova's Col/Row demo switch is a legend here.
+  const isHorizontal = false;
+  const LEGEND = [[names?.[0] ?? "Primary Output", "var(--ink)"], [names?.[1] ?? "Secondary Output", "rgba(var(--ink-rgb),0.2)"]];
   return /* @__PURE__ */ jsxs2(
     "div",
     {
@@ -122,16 +124,7 @@ function MonoRoundedBarChart({ theme = "dark", compact = false, data, title, bad
               ]), /* @__PURE__ */ jsx2("span", { className: "text-xs font-normal opacity-70", children: unit ?? "units built" })
             ] })
           ] }),
-          /* @__PURE__ */ jsx2("div", { className: `p-0.5 border flex items-center gap-0.5 ${"dp-seg"}`, children: ["vertical", "horizontal"].map((l) => /* @__PURE__ */ jsx2(
-            "button",
-            {
-              type: "button",
-              onClick: () => setLayout(l),
-              className: `px-2.5 py-0.5 text-[11px] font-medium capitalize transition-all cursor-pointer ${layout === l ? "dp-seg-on" : "dp-muted"}`,
-              children: l === "vertical" ? "Col" : "Row"
-            },
-            l
-          )) })
+          /* @__PURE__ */ jsx2("div", { className: "flex items-center gap-3 text-[11px] dp-muted", children: LEGEND.map(([n, fill]) => /* @__PURE__ */ jsxs2("span", { className: "inline-flex items-center gap-1.5", children: [/* @__PURE__ */ jsx2("span", { className: "w-2 h-2 inline-block", style: { background: fill } }), n] }, n)) })
         ] }),
         /* @__PURE__ */ jsx2("div", { className: `relative w-full flex-1 overflow-hidden p-2 transition-colors duration-300 touch-pan-y ${"dp-well"}`, children: /* @__PURE__ */ jsx2(ResponsiveContainer, { width: "100%", height: compact ? 130 : 160, children: /* @__PURE__ */ jsxs2(
           BarChart,
@@ -164,7 +157,7 @@ function MonoRoundedBarChart({ theme = "dark", compact = false, data, title, bad
                   fill: "var(--ink)",
                   radius: 0,
                   barSize: isHorizontal ? 12 : 16,
-                  isAnimationActive: !isMobile,
+                  isAnimationActive: !isMobile && !REDUCED,
                   animationDuration: isMobile ? 0 : 800,
                   // Daily Plate's one accent marks a single bar, e.g. the peak day.
                   children: MONO_BAR_DATA.map((d, i) => /* @__PURE__ */ jsx2(Cell, { fill: i === highlight ? "var(--primary)" : "var(--ink)" }, i))
@@ -178,7 +171,7 @@ function MonoRoundedBarChart({ theme = "dark", compact = false, data, title, bad
                   fill: "rgba(var(--ink-rgb),0.2)",
                   radius: 0,
                   barSize: isHorizontal ? 12 : 16,
-                  isAnimationActive: !isMobile,
+                  isAnimationActive: !isMobile && !REDUCED,
                   animationDuration: isMobile ? 0 : 1e3
                 }
               )

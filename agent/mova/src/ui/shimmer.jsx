@@ -2,8 +2,11 @@
 // the text as a prop: muted words, and the ink passing over them.
 
 import { motion } from 'framer-motion';
+import { REDUCED } from '../reduced.js';
 
 export function TextShimmer({ text }) {
+  // The sweep is a mask, which MotionConfig does not stop; still text instead.
+  if (REDUCED) return <span className="mova-shimmer">{text}</span>;
   return (
     <span className="mova-shimmer relative inline-block">
       {text}

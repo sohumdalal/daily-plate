@@ -239,8 +239,22 @@ function renderSpecs(view) {
   el.specsRule.hidden = false;
 }
 
-const clock = (iso) =>
-  new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+/** A time, with its date when it was not today: "14:02", or "15 Oct, 14:02". */
+const clock = (iso) => {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (at.toDateString() === new Date().toDateString()) return time;
+  return `${at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${time}`;
+};
+
+/** A day key as the tab writes dates everywhere: "Thu 15 Oct". */
+const dayLabel = (key) =>
+  new Date(`${key}T12:00:00Z`).toLocaleDateString('en-GB', {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 
 /**
  * Where this screen's contents came from and when. GitHub's commit search is
@@ -267,10 +281,13 @@ function renderWrap(view) {
   // The headline is still generated — it labels this key in a rollup's list of
   // days — but it is not rendered here, where it only restated the bullets.
   el.empty.hidden = hasWrap;
+  // A day with no wrap is an empty page; a week, month or year still has its
+  // charts above, so it says so in a line rather than a headline.
+  el.empty.className = view.period === 'day' ? 'empty-state empty-title' : 'note';
   el.empty.textContent =
     view.period === 'day'
       ? 'Nothing wrapped yet.'
-      : `Nothing wrapped for this ${view.period} yet.`;
+      : `Not wrapped yet. Wrap the ${view.period} to write what it adds up to.`;
 
   for (const [section, node, items] of [
     [el.didSection, el.did, wrap?.did ?? []],
@@ -295,7 +312,10 @@ function renderWrap(view) {
 
 function renderCovered(view) {
   const days = view.coveredDays;
-  if (!days) {
+  // A week's charts list its days with their calls, and a year's its months,
+  // so the list of days would say it twice. A month keeps it.
+  const charted = window.Mova && (view.period === 'week' || view.period === 'year');
+  if (!days || (charted && days.length)) {
     el.coveredSection.hidden = true;
     return;
   }
@@ -316,7 +336,7 @@ function renderCovered(view) {
       a.href = `#day/${d.key}`;
       const when = document.createElement('span');
       when.className = 'when';
-      when.textContent = d.key;
+      when.textContent = dayLabel(d.key);
       const what = document.createElement('span');
       what.className = 'what';
       what.textContent = d.headline;
@@ -482,20 +502,27 @@ function render() {
   const view = state.view;
   if (!view) return;
 
-  el.datefieldLabel.textContent = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'UTC',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(`${view.span.from}T12:00:00Z`));
+  // The picker names the period it is on, not only the period's first day.
+  const from = new Date(`${view.span.from}T12:00:00Z`);
+  const opts = {
+    day: { day: 'numeric', month: 'short', year: 'numeric' },
+    week: { day: 'numeric', month: 'short' },
+    month: { month: 'short', year: 'numeric' },
+    year: { year: 'numeric' },
+  }[view.period];
+  el.datefieldLabel.textContent =
+    (view.period === 'week' ? 'Week of ' : '') +
+    from.toLocaleDateString('en-GB', { timeZone: 'UTC', ...opts });
 
   el.dateLabel.textContent = view.label;
+  document.title = `${view.label} — Wrap — Daily Plate`;
   el.todayBadge.hidden = view.key !== keyForToday(state.period, state.today);
   // No future — a day that hasn't happened has nothing to wrap.
   el.next.disabled = view.key >= keyForToday(state.period, state.today);
 
+  // Writing again replaces what is there, so the button says so.
   buttonState(el.wrap, 'idle', {
-    label: state.period === 'day' ? 'Wrap the day' : `Wrap the ${state.period}`,
+    label: `${view.wrap ? 'Rewrap' : 'Wrap'} the ${state.period}`,
   });
   // Forward-looking, so it names the period that comes next, not this one.
   el.grewLabel.textContent =
@@ -601,6 +628,20 @@ function goalRow(goal) {
   return row;
 }
 
+/**
+ * Slack's markup as it reads in Slack: <@U123> is a mention, <#C1|name> a
+ * channel, <url|label> a link's label. Names the message does not carry stay
+ * generic rather than showing ids.
+ */
+function slackText(text) {
+  return text
+    .replace(/<@[A-Z0-9]+(?:\|([^>]+))?>/g, (_, name) => `@${name ?? 'someone'}`)
+    .replace(/<#[A-Z0-9]+(?:\|([^>]*))?>/g, (_, name) => `#${name || 'channel'}`)
+    .replace(/<!(here|channel|everyone)[^>]*>/g, '@$1')
+    .replace(/<([^>|]+)\|([^>]+)>/g, '$2')
+    .replace(/<([^>]+)>/g, '$1');
+}
+
 async function loadSlackFeedback() {
   // The shape only while there is nothing to show; a refresh keeps the list.
   const blank = el.slackList.childElementCount === 0;
@@ -619,9 +660,11 @@ async function loadSlackFeedback() {
         meta.className = 'feedback-meta';
         const where = document.createElement('span');
         where.className = 'where';
-        where.textContent = f.channelName ? `#${f.channelName}` : f.channelId;
-        const when = document.createElement('span');
-        when.textContent = f.day;
+        // An id is meaningless to read; a channel the agent cannot name is just Slack.
+        where.textContent = f.channelName ? `#${f.channelName}` : 'Slack';
+        const when = document.createElement('a');
+        when.href = `#day/${f.day}`;
+        when.textContent = dayLabel(f.day);
         meta.append(where, when);
         const who = f.authorName || f.authorId;
         if (who) {
@@ -641,7 +684,7 @@ async function loadSlackFeedback() {
 
         const text = document.createElement('p');
         text.className = 'feedback-text';
-        text.textContent = f.text;
+        text.textContent = slackText(f.text);
 
         item.append(meta, text);
         return item;
@@ -885,7 +928,6 @@ function maybeOpenReflection(view) {
   sendReflection();
 }
 
-/** Send a turn, or open the conversation when the box is empty. */
 /**
  * Send a turn, or open the conversation when the box is empty.
  *
@@ -979,7 +1021,7 @@ function restorePlace() {
 window.addEventListener('pagehide', rememberPlace);
 window.addEventListener('beforeunload', rememberPlace);
 
-// ── Routing// ── Routing ────────────────────────────────────────────────────────────────
+// ── Routing ────────────────────────────────────────────────────────────────
 
 function go(period, key, replace = false) {
   rememberPlace();
@@ -1027,6 +1069,8 @@ function applyMode() {
   el.goalsView.hidden = !goals;
   el.feedbackView.hidden = !feedback;
   el.shell.hidden = !wrap;
+  if (goals) document.title = 'Goals — Daily Plate';
+  if (feedback) document.title = 'Feedback — Daily Plate';
   // The one status line goes with the page on screen, so a failure on Goals
   // or Feedback is seen there rather than inside a hidden page.
   const page = goals ? el.goalsView : feedback ? el.feedbackView : el.shell;
@@ -1220,8 +1264,10 @@ function renderCalendar() {
     button.dataset.today = String(iso === state.today);
     // A day in a period the current view covers reads as selected, so the
     // calendar makes sense on a week or month view too.
+    button.setAttribute('aria-label', dayLabel(iso));
+    if (iso === state.today) button.setAttribute('aria-current', 'date');
     button.setAttribute(
-      'aria-selected',
+      'aria-pressed',
       String(
         selected !== undefined &&
           iso >= selected &&
@@ -1249,7 +1295,27 @@ function openCalendar() {
   el.calendar.hidden = false;
   el.datefield.setAttribute('aria-expanded', 'true');
   renderCalendar();
+  // Focus goes into the dialog, on the day you are on or today.
+  const days = [...el.calGrid.querySelectorAll('.cal-day')].filter((b) => !b.disabled);
+  (days.find((b) => b.getAttribute('aria-pressed') === 'true') ?? days.at(-1))?.focus();
 }
+
+/** Arrow keys move a day or a week through the grid; the page's keys wait. */
+el.calendar.addEventListener('keydown', (e) => {
+  const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+  if (e.key === 'Escape') {
+    e.stopPropagation();
+    closeCalendar();
+    el.datefield.focus();
+    return;
+  }
+  if (!step || !e.target.classList.contains('cal-day')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const days = [...el.calGrid.querySelectorAll('.cal-day')];
+  const next = days[days.indexOf(e.target) + step];
+  if (next && !next.disabled) next.focus();
+});
 
 function closeCalendar() {
   el.calendar.hidden = true;

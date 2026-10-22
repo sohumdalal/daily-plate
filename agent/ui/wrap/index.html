@@ -66,11 +66,11 @@
              which matches. Weeks start Monday here, to agree with the ISO week
              keys the rest of the app is built on. -->
         <div class="datefield-wrap">
-          <button class="datefield" id="datefield" title="Jump to a date" type="button">
+          <button class="datefield" id="datefield" title="Jump to a date" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="calendar">
             <span id="datefield-label">—</span>
             <span class="chevron" aria-hidden="true">▾</span>
           </button>
-          <div class="calendar" id="calendar" hidden>
+          <div class="calendar" id="calendar" role="dialog" aria-label="Choose a date" hidden>
             <div class="cal-head">
               <button class="cal-nav" id="cal-prev" type="button" aria-label="Previous month">
                 &larr;
@@ -99,10 +99,7 @@
     <main class="shell" id="feedback-view" hidden>
       <header class="hero">
         <div class="hero-date">
-          <span class="label">Feedback</span>
-          <div class="tabs" id="feedback-tabs">
-            <button data-source="slack" aria-current="true">Slack</button>
-          </div>
+          <h1 class="label">Feedback</h1>
         </div>
       </header>
 
@@ -130,7 +127,7 @@
 
     <main class="shell" id="goals-view" hidden>
       <header class="hero">
-        <div class="hero-date"><span class="label">Goals</span></div>
+        <div class="hero-date"><h1 class="label">Goals</h1></div>
       </header>
 
       <p class="take goals-intro">
@@ -142,6 +139,7 @@
         <form class="goal-form" id="goal-form">
           <input
             id="goal-title"
+            aria-label="Goal"
             type="text"
             placeholder="Ship a system other teams build on"
             maxlength="200"
@@ -162,6 +160,7 @@
             </select>
             <input
               id="goal-measure"
+            aria-label="How you would know"
               type="text"
               placeholder="How you'd know (optional)"
               maxlength="300"
@@ -169,6 +168,7 @@
           </div>
           <textarea
             id="goal-why"
+            aria-label="Why it matters"
             rows="2"
             maxlength="1000"
             placeholder="Why does this matter to you? The answer keeps it from becoming someone else's goal."
@@ -221,7 +221,7 @@
             <button id="next" title="Next (→)">&rarr;</button>
           </div>
           <div class="when">
-            <span class="label" id="date-label"></span>
+            <h1 class="label" id="date-label"></h1>
             <span class="badge" id="today-badge" hidden>Today</span>
             <button class="line-button" id="collect" title="Re-read Claude Code and GitHub for the day">Refresh</button>
             <span class="label read-at" id="read-at"></span>
@@ -270,6 +270,7 @@
               <div class="dispute" id="dispute" hidden>
                 <textarea
                   id="dispute-note"
+            aria-label="What it got wrong"
                   placeholder="What did it get wrong about you? This is kept and applied to every wrap from here on."
                 ></textarea>
                 <div class="dispute-actions">
@@ -321,7 +322,7 @@
           <div class="three" id="three" hidden>
             <div class="three-head">
               <span class="label">Your three</span>
-              <span class="caption" id="three-status"></span>
+              <span class="caption" id="three-status" role="status"></span>
             </div>
             <label class="three-row">
               <span class="label">Went well</span>
@@ -340,11 +341,11 @@
               <div class="energy">
                 <span class="label">Energy</span>
                 <div class="energy-scale" id="energy">
-                  <button data-energy="1" aria-pressed="false">1</button>
-                  <button data-energy="2" aria-pressed="false">2</button>
-                  <button data-energy="3" aria-pressed="false">3</button>
-                  <button data-energy="4" aria-pressed="false">4</button>
-                  <button data-energy="5" aria-pressed="false">5</button>
+                  <button data-energy="1" aria-pressed="false" aria-label="Energy 1 of 5, very low">1</button>
+                  <button data-energy="2" aria-pressed="false" aria-label="Energy 2 of 5, low">2</button>
+                  <button data-energy="3" aria-pressed="false" aria-label="Energy 3 of 5, steady">3</button>
+                  <button data-energy="4" aria-pressed="false" aria-label="Energy 4 of 5, high">4</button>
+                  <button data-energy="5" aria-pressed="false" aria-label="Energy 5 of 5, very high">5</button>
                 </div>
               </div>
             </div>
@@ -353,6 +354,7 @@
           <div class="chat-composer">
             <textarea
               id="reflection"
+            aria-label="Your reply"
               rows="1"
               placeholder="Reply"
               spellcheck="true"
@@ -374,7 +376,7 @@
       <section class="section">
         <div class="section-head">
           <span class="label">Sources</span>
-          <span class="caption" id="sources-count"></span>
+          <span class="caption" id="sources-count" role="status"></span>
         </div>
 
         <!-- Derived from collected data, never from model output: every row is a
@@ -383,6 +385,7 @@
           <input
             type="search"
             id="sources-search"
+            aria-label="Search sources"
             placeholder="Filter by repo, number or title"
             autocomplete="off"
           />
@@ -403,7 +406,7 @@
       </div>
 
 
-      <p class="note" id="note" hidden></p>
+      <p class="note" id="note" role="status" aria-live="polite" hidden></p>
 
       <div class="keys">
         <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> move</span>

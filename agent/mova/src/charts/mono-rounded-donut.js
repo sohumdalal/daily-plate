@@ -3,6 +3,7 @@
 // and the demo data is a prop with Mova's values as the fallback.
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedDonutChart.tsx
+import { REDUCED } from "../reduced.js";
 import { useState as useState2 } from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 
@@ -89,8 +90,12 @@ var MONO_DONUT_DATA__DEMO = [
   { name: "Assets", value: 15, shade: "#94A3B8" },
   { name: "Other", value: 10, shade: "#64748B" }
 ];
+const fillOf = (index) => index === 0 ? "var(--ink)" : `rgba(var(--ink-rgb),${[0.65, 0.4, 0.2][index - 1] ?? 0.12})`;
 function MonoRoundedDonutChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint }) {
   const MONO_DONUT_DATA = data ?? MONO_DONUT_DATA__DEMO;
+  // Daily Plate: the centre shows the largest share until a segment is hovered,
+  // and each legend dot wears its segment's tone.
+  const top = MONO_DONUT_DATA.reduce((a, d, i) => (d.value > MONO_DONUT_DATA[a].value ? i : a), 0);
   const isDark = theme === "dark";
   const isMobile = useIsMobile();
   const [hoverIndex, setHoverIndex] = useState2(null);
@@ -129,11 +134,11 @@ function MonoRoundedDonutChart({ theme = "dark", compact = false, data, title, b
                 strokeLinecap: "round",
                 onMouseEnter: (_, idx) => setHoverIndex(idx),
                 onMouseLeave: () => setHoverIndex(null),
-                isAnimationActive: !isMobile,
+                isAnimationActive: !isMobile && !REDUCED,
                 animationDuration: isMobile ? 0 : 900,
                 children: MONO_DONUT_DATA.map((entry, index) => {
                   const isHovered = hoverIndex === index;
-                  const fillColor = index === 0 ? "var(--ink)" : `rgba(var(--ink-rgb),${[0.65, 0.4, 0.2][index - 1] ?? 0.12})`;
+                  const fillColor = fillOf(index);
                   return /* @__PURE__ */ jsx2(
                     Cell,
                     {
@@ -154,12 +159,12 @@ function MonoRoundedDonutChart({ theme = "dark", compact = false, data, title, b
             )
           ] }) }),
           /* @__PURE__ */ jsxs2("div", { className: "absolute inset-0 flex flex-col items-center justify-center pointer-events-none", children: [
-            /* @__PURE__ */ jsx2("span", { className: "text-sm font-bold tabular-nums font-sans", children: hoverIndex !== null ? `${MONO_DONUT_DATA[hoverIndex].value}%` : "100%" }),
-            /* @__PURE__ */ jsx2("span", { className: `text-[10px] ${"dp-muted"}`, children: hoverIndex !== null ? MONO_DONUT_DATA[hoverIndex].name : center ?? "Mono Arc" })
+            /* @__PURE__ */ jsx2("span", { className: "text-sm font-bold tabular-nums font-sans", children: `${MONO_DONUT_DATA[hoverIndex ?? top].value}%` }),
+            /* @__PURE__ */ jsx2("span", { className: `text-[10px] ${"dp-muted"}`, children: hoverIndex !== null ? MONO_DONUT_DATA[hoverIndex].name : MONO_DONUT_DATA[top].name ?? center })
           ] })
         ] }),
         /* @__PURE__ */ jsx2("div", { className: "flex items-center justify-around mt-3 pt-1 border-t dp-rule text-[10px]", children: MONO_DONUT_DATA.map((seg, idx) => /* @__PURE__ */ jsxs2("div", { className: "flex items-center gap-1", children: [
-          /* @__PURE__ */ jsx2("span", { className: "w-1.5 h-1.5 rounded-full dp-dot" }),
+          /* @__PURE__ */ jsx2("span", { className: "w-1.5 h-1.5 rounded-full", style: { background: fillOf(idx) } }),
           /* @__PURE__ */ jsx2("span", { className: "dp-muted", children: seg.name })
         ] }, idx)) })
       ]

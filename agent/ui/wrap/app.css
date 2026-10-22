@@ -10,25 +10,6 @@
  * the one CTA, and the marker on "where you grew".
  */
 
-/* ── Type roles ─────────────────────────────────────────────────────────── */
-
-.display-lg {
-  font-size: 36px;
-  font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -0.36px;
-  color: var(--ink);
-  margin: 0;
-}
-
-.nav-link {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: 0.65px;
-  text-transform: uppercase;
-}
-
 /* ── Chrome ─────────────────────────────────────────────────────────────── */
 
 .brand {
@@ -232,7 +213,7 @@ button.wordmark {
   border-color: var(--primary);
 }
 
-.cal-day[aria-selected='true'] {
+.cal-day[aria-pressed='true'] {
   background: var(--primary);
   border-color: var(--primary);
   color: var(--on-primary);
@@ -897,7 +878,7 @@ button.wordmark {
 }
 
 .sources a[data-kind='opened'] .kind {
-  color: var(--primary);
+  color: var(--pr);
 }
 
 .sources a[data-kind='reviewed'] .kind {
@@ -1200,8 +1181,14 @@ button.wordmark {
   resize: none;
 }
 
+/* The box has no border of its own, so focus marks the composer's rule. */
 .chat-composer textarea:focus-visible {
   outline: none;
+}
+
+.chat-composer:focus-within {
+  border-top-color: var(--ink);
+  box-shadow: inset 0 1px 0 var(--ink);
 }
 
 .chat-composer textarea::placeholder {
@@ -1240,37 +1227,6 @@ button.wordmark {
 }
 
 /* ── The three ──────────────────────────────────────────────────────────── */
-
-.takeaways {
-  padding-top: var(--lg);
-  max-width: 68ch;
-}
-
-.takeaway {
-  display: block;
-  padding-bottom: var(--xs);
-}
-
-.takeaway .label {
-  display: block;
-  padding-bottom: var(--xxxs);
-}
-
-.takeaway input {
-  display: block;
-  width: 100%;
-  background: var(--canvas);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-sm);
-  padding: var(--xxs) var(--xs);
-  color: var(--ink);
-  font: inherit;
-  font-size: 16px;
-}
-
-.takeaway input::placeholder {
-  color: var(--muted);
-}
 
 /* ── Reflection ─────────────────────────────────────────────────────────── */
 

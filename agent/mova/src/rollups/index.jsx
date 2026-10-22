@@ -23,7 +23,8 @@ const add = (k, n) => {
   t.setUTCDate(t.getUTCDate() + n);
   return K(t);
 };
-const fmt = (k, o) => D(k).toLocaleDateString('en-US', { timeZone: 'UTC', ...o });
+// en-GB, like the rest of the Wrap tab: "12 Oct", "Thu 15 Oct".
+const fmt = (k, o) => D(k).toLocaleDateString('en-GB', { timeZone: 'UTC', ...o });
 const short = (k) => fmt(k, { month: 'short', day: 'numeric' });
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const sum = (xs, f) => xs.reduce((a, x) => a + (f(x) || 0), 0);
@@ -141,27 +142,17 @@ function Week({ stats, week, theme }) {
 
   return (
     <div className="grid2">
-      <MonoRoundedKpiCardChart
-        theme={theme}
-        title="Active hours"
-        badge="Week"
-        value={`${hours(mins)} h`}
-        unit={prevMins ? `${change(mins, prevMins)} vs last week` : ''}
-        data={days.map((d) => ({ v: d.minutes }))}
-        footL={`${short(monday)} to ${short(add(monday, 6))}`}
-        footR={`${worked} working ${worked === 1 ? 'day' : 'days'}`}
-      />
       <MonoRoundedBarChart
         theme={theme}
-        title="Active minutes"
+        title="Active hours"
         badge="Day by day"
-        value={mins}
-        unit="min"
-        data={days.map((d, i) => ({ label: DOW[i], primary: d.minutes, secondary: prev[i].minutes }))}
+        value={`${hours(mins)} h`}
+        unit={prevMins ? `${change(mins, prevMins)} vs last week` : ''}
+        data={days.map((d, i) => ({ label: DOW[i], primary: hours(d.minutes), secondary: hours(prev[i].minutes) }))}
         names={['This week', 'Last week']}
         highlight={mins ? peak : -1}
-        footL={mins ? `Peak: ${DOW[peak]} ${D(days[peak].day).getUTCDate()}, ${days[peak].minutes} min` : 'No work yet'}
-        footR="Grey is last week"
+        footL={mins ? `Peak: ${DOW[peak]} ${D(days[peak].day).getUTCDate()}, ${hours(days[peak].minutes)} h` : 'No work yet'}
+        footR={`${worked} working ${worked === 1 ? 'day' : 'days'}`}
       />
       <MonoRoundedHeatmapChart
         theme={theme}
@@ -172,7 +163,7 @@ function Week({ stats, week, theme }) {
         data={heat}
         tip={(row, c) => `${row.day} ${blockName(BLOCKS[c])}: ${Math.round(row.raw[c])} min`}
         footL="2-hour blocks from 8 am"
-        footR="Darker is more minutes"
+        footR="Stronger is more minutes"
       />
       <MonoRoundedSparklineChart
         theme={theme}
@@ -288,7 +279,7 @@ function Month({ stats, week, theme }) {
           return inMonth(d.day) ? `${short(d.day)}: ${d.minutes} min${d.headline ? ` · ${d.headline}` : ''}` : `Outside ${name}`;
         }}
         footL="Rows are weeks from Monday"
-        footR="Darker is more minutes"
+        footR="Stronger is more minutes"
       />
       <MonoRoundedStackedBarChart
         theme={theme}
@@ -310,7 +301,7 @@ function Month({ stats, week, theme }) {
         data={prs.map((p) => ({ label: p.label, primary: p.add, secondary: p.del }))}
         names={['Added', 'Removed']}
         highlight={-1}
-        footL="Grey is lines removed"
+        footL={`${short(stats.span.from)} to ${short(stats.span.to)}`}
         footR="Where GitHub was read"
       />
       {ledger.length > 0 && (
@@ -400,7 +391,8 @@ function Year({ stats, at, week, theme }) {
           theme={theme}
           title="The year in squares"
           badge={year}
-          unit="active minutes"
+          value={`${hours(sum(ydays, (d) => d.minutes))} h`}
+          unit="active"
           data={contrib}
           months={monthCols}
           noun={['min', 'min']}
