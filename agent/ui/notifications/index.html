@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="What is on your plate today, and a written record of what you did." />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#181818" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Notifications — Daily Plate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/theme.css" />
+    <link rel="stylesheet" href="/notifications/notifications.css" />
+    <script src="/shell.js"></script>
+  </head>
+  <body>
+    <nav class="topnav">
+      <a class="wordmark" href="/"><span class="tick" aria-hidden="true"></span>Daily Plate</a>
+      <div class="apptabs">
+        <a class="apptab" href="/">Plate</a>
+        <a class="apptab" href="/wrap/">Wrap</a>
+        <a class="apptab" href="/notifications/" aria-current="page">Notifications</a>
+      </div>
+      <div class="nav-right">
+        <div class="account" data-account></div>
+      </div>
+    </nav>
+
+    <main class="shell">
+      <h1 class="visually-hidden">Notifications</h1>
+      <!-- The first read failed: nothing to show but why, and a way to try again. -->
+      <div class="state-error" id="load-error" role="alert" hidden>
+        <p class="empty-title">Notifications did not load.</p>
+        <p class="empty-caption" id="load-error-reason"></p>
+        <div class="actions">
+          <button class="btn" id="load-retry" type="button">Try again</button>
+        </div>
+      </div>
+
+      <header class="hero">
+        <div class="hero-top">
+          <div class="when">
+            <p class="label" id="unread-label">—</p>
+            <button class="line-button" id="sync" type="button" title="Re-read GitHub (R)">Refresh</button>
+            <span class="label read-at" id="read-at" aria-live="polite"></span>
+          </div>
+          <div class="hero-actions">
+            <div class="show" role="group" aria-label="Show">
+              <button class="line-button sm" id="show-unread" type="button" aria-pressed="true">Unread</button>
+              <button class="line-button sm" id="show-all" type="button" aria-pressed="false">All</button>
+            </div>
+            <button class="line-button sm" id="read-all" type="button" title="Mark all read (Shift+A)">Mark all read</button>
+          </div>
+        </div>
+        <!-- What cannot be read right now, said plainly. -->
+        <p class="note warn" id="provenance" role="status" aria-live="polite" hidden></p>
+      </header>
+
+      <div id="lists" aria-live="polite"></div>
+
+      <div class="keys">
+        <span><kbd>R</kbd> refresh</span>
+        <span><kbd>U</kbd> unread or all</span>
+        <span><kbd>Shift</kbd>+<kbd>A</kbd> mark all read</span>
+      </div>
+    </main>
+
+    <script src="/notifications/notifications.js"></script>
+  </body>
+</html>

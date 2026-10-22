@@ -1,0 +1,175 @@
+/* The Notifications tab: one list a day, each row a mention of you. */
+
+.hero {
+  padding-bottom: var(--md);
+}
+
+.hero-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xs);
+}
+
+.hero-actions,
+.show {
+  display: flex;
+  align-items: center;
+  gap: var(--xxs);
+}
+
+.hero-actions {
+  gap: var(--xs);
+}
+
+/* Nothing is shown until the first read arrives. */
+body:not(.ready):not(.failed) .shell > :not(#load-error) {
+  visibility: hidden;
+}
+
+/* With nothing to show, the error is the whole page. */
+.failed .shell > :not(#load-error) {
+  display: none;
+}
+
+.day + .day {
+  padding-top: var(--md);
+}
+
+.day-label {
+  padding-bottom: var(--xxs);
+}
+
+.notices {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notice {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--xs);
+  padding: var(--xs) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.notice:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Unread is the one red mark on the page. */
+.dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: var(--r-full);
+}
+
+.unread .dot {
+  background: var(--primary);
+}
+
+.notice-main {
+  display: grid;
+  gap: var(--xxxs);
+  min-width: 0;
+}
+
+.notice-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--xxs);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  background: currentColor;
+  -webkit-mask: var(--glyph) center / contain no-repeat;
+  mask: var(--glyph) center / contain no-repeat;
+}
+
+.icon-github {
+  --glyph: url('/icons/github.svg');
+}
+
+.icon-slack {
+  --glyph: url('/icons/slack.svg');
+}
+
+.notice-link {
+  display: grid;
+  gap: 2px;
+  color: var(--body);
+  text-decoration: none;
+}
+
+.notice-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--xxs);
+}
+
+.notice-who strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.notice-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  background: var(--surface-soft);
+}
+
+.notice-title {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.notice-link:hover .notice-title,
+.notice-link:hover .notice-who strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.notice-body {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* Read rows step back, so the unread ones lead. */
+.notice:not(.unread) .notice-title,
+.notice:not(.unread) .notice-who strong {
+  color: var(--body);
+  font-weight: 500;
+}
+
+@media (pointer: coarse) {
+  .notice-toggle {
+    height: 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

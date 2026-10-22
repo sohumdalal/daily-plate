@@ -33,6 +33,7 @@ const PAGES: Page[] = [
   { dir: 'agent/ui', js: 'app.js', css: ['app.css'] },
   { dir: 'agent/ui/wrap', js: 'app.js', css: ['app.css'] },
   { dir: 'agent/ui/settings', js: 'settings.js', css: ['settings.css'] },
+  { dir: 'agent/ui/notifications', js: 'notifications.js', css: ['notifications.css'] },
 ];
 
 const failures: string[] = [];

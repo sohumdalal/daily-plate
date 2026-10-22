@@ -13,10 +13,12 @@ repository: "github:sohumdalal/daily-plate"
 
 # Daily Plate
 
-An Astropods agent with two tabs. **Plate** keeps one list of what is on your
+An Astropods agent with three tabs. **Plate** keeps one list of what is on your
 plate today. **Wrap** keeps the record of what you did: each day written back
 as a few bullets, rolled up into weeks, months and years. Daily Wrap was its own
 agent until it merged in here; see [The Wrap tab](#the-wrap-tab).
+**Notifications** lists every time someone @-mentioned you; see
+[The Notifications tab](#the-notifications-tab).
 
 Three sources feed the plate:
 
@@ -178,6 +180,26 @@ From cron, with an explicit `PATH`:
 Under `~/Desktop`, macOS may block cron from the folder until `/usr/sbin/cron`
 has Full Disk Access.
 
+## The Notifications tab
+
+Every time someone @-mentions you, newest first and grouped by day, each one
+unread until you open it or mark it read. The tab carries the unread count on
+every page.
+
+- **GitHub.** A comment, a review, a comment on a line of a PR, or the body
+  of a new issue or PR that names `@GITHUB_USERNAME`, in any repo of
+  `GITHUB_ORGS`. Read every two minutes, or on Refresh. A quoted line or code
+  that names you does not count, nor does anything you wrote yourself.
+  GitHub's own notifications API answers only a person's token, and the
+  deployed agent is a GitHub App, so the issues and PRs that mention you are
+  searched instead. After a restart the first read looks back seven days.
+- **Slack.** A message that mentions `SLACK_USER_ID` in an observed channel,
+  as it arrives. It still goes on the plate as well; clearing it there leaves
+  it here.
+
+`R` refreshes, `U` switches between Unread and All, and `Shift+A` marks
+everything read.
+
 ## Local development
 
 Needs Bun. With `POSTGRES_URL` in `.env.local`, this checkout reads and writes
@@ -187,7 +209,7 @@ the shared database the deployed agent serves; without it, Postgres on
 ```bash
 bun install
 bun run dev            # http://localhost:3003, migrations run on boot
-bun run check          # typecheck, then the Wrap tab's UI checks
+bun run check          # typecheck, then every page's UI checks
 bun run prompt [day]   # print the prompt a day would be wrapped with; reads only
 ```
 

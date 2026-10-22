@@ -13,11 +13,17 @@
  *   GET   /api/unfurl?url=          { url, title, site, icon } — a link's preview card
  *   GET   /api/export      every item as stored, for scripts/import-plate.ts
  *   GET   /api/me          { login, name } — whose plate this is, for the account menu
+ *   GET   /api/notifications            every mention of you, newest first, and the last GitHub read
+ *   GET   /api/notifications/unread     { unread } — for the count on the tab
+ *   POST  /api/notifications/sync       re-read GitHub's mentions now
+ *   POST  /api/notifications/read       mark every notification read
+ *   PATCH /api/notifications/:id        { read: boolean } — mark one read, or unread again
  */
 
 import { Hono } from 'hono';
 import ogs from 'open-graph-scraper';
 import { config, readiness } from './config.ts';
+import * as notifications from './notifications.ts';
 import * as store from './store.ts';
 import { slackConnected } from './slack.ts';
 import { assignee, lastSync, syncBoards } from './sync.ts';
@@ -125,4 +131,39 @@ routes.get('/api/unfurl', async (c) => {
   const url = c.req.query('url') ?? '';
   if (!/^https?:\/\//.test(url)) return c.json({ error: 'expected ?url=http(s)://…' }, 400);
   return c.json(await unfurl(url));
+});
+
+async function notificationsBody() {
+  return {
+    state: { ...readiness(), slackConnected: slackConnected() },
+    sync: notifications.lastMentionSync(),
+    items: await notifications.list(),
+    unread: await notifications.unreadCount(),
+  };
+}
+
+routes.get('/api/notifications', async (c) => c.json(await notificationsBody()));
+
+routes.get('/api/notifications/unread', async (c) =>
+  c.json({ unread: await notifications.unreadCount() }),
+);
+
+routes.post('/api/notifications/sync', async (c) => {
+  await notifications.syncMentions();
+  return c.json(await notificationsBody());
+});
+
+routes.post('/api/notifications/read', async (c) => {
+  await notifications.readAll();
+  return c.json(await notificationsBody());
+});
+
+routes.patch('/api/notifications/:id', async (c) => {
+  const id = Number(c.req.param('id'));
+  const body = await c.req.json<{ read?: unknown }>().catch(() => ({}) as { read?: unknown });
+  if (!Number.isInteger(id) || typeof body.read !== 'boolean') {
+    return c.json({ error: 'expected { read: boolean }' }, 400);
+  }
+  const item = await notifications.setRead(id, body.read);
+  return item ? c.json(item) : c.json({ error: 'not found' }, 404);
 });

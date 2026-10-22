@@ -6,6 +6,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { config, isDev } from './config.ts';
 import { describeTarget, ping } from './db/client.ts';
 import { runMigrations } from './db/migrations.ts';
+import { startMentionSync } from './notifications.ts';
 import { routes } from './routes.ts';
 import { startSlackIngestion } from './slack.ts';
 import { startBoardSync } from './sync.ts';
@@ -43,8 +44,9 @@ app.onError((err, c) => {
 app.route('/', routes);
 app.route('/api/wrap', wrapRoutes);
 
-// Static pages: Plate at /, Wrap at /wrap/ and Settings at /settings/, sharing
-// theme.css and shell.js. The one build is the Mova bundle (agent/mova).
+// Static pages: Plate at /, Wrap at /wrap/, Notifications at /notifications/
+// and Settings at /settings/, sharing theme.css and shell.js. The one build is
+// the Mova bundle (agent/mova).
 //
 // Mova's chunks are named by content hash, so they are cached for good. Every
 // other file keeps its name across deploys, so the browser revalidates it
@@ -56,6 +58,7 @@ const cacheFor = (path: string) =>
 
 app.get('/wrap', (c) => c.redirect('/wrap/'));
 app.get('/settings', (c) => c.redirect('/settings/'));
+app.get('/notifications', (c) => c.redirect('/notifications/'));
 app.use(
   '/*',
   serveStatic({
@@ -68,6 +71,7 @@ app.use(
 app.get('/', serveStatic({ root: './agent/ui', path: 'index.html' }));
 app.get('/wrap/', serveStatic({ root: './agent/ui', path: 'wrap/index.html' }));
 app.get('/settings/', serveStatic({ root: './agent/ui', path: 'settings/index.html' }));
+app.get('/notifications/', serveStatic({ root: './agent/ui', path: 'notifications/index.html' }));
 
 // An unknown API path is an error for the caller; an unknown page is a page.
 const notFoundPage = Bun.file('./agent/ui/404.html');
@@ -100,8 +104,9 @@ void (async () => {
       try {
         await runMigrations();
         console.log('[db] connected — migrations applied');
-        // Both write to `items`, so they wait for the schema.
+        // All three write to the database, so they wait for the schema.
         startBoardSync();
+        startMentionSync();
         void startSlackIngestion();
       } catch (err) {
         console.error('[boot] database initialization failed after connect:', err);

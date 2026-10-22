@@ -305,6 +305,31 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
         UNIQUE (user_id, channel_id, message_ts, emoji, reactor_id);
     `,
   },
+  {
+    // The Notifications tab: each time someone @-mentioned you, on GitHub or
+    // in Slack. external_id is the comment or message itself, so a re-read
+    // finds the row it already stored.
+    id: '0010_notifications',
+    sql: `
+      CREATE TABLE IF NOT EXISTS notifications (
+        id           BIGSERIAL PRIMARY KEY,
+        user_id      TEXT NOT NULL DEFAULT 'default',
+        source       TEXT NOT NULL CHECK (source IN ('github','slack')),
+        kind         TEXT NOT NULL DEFAULT '',
+        external_id  TEXT NOT NULL,
+        title        TEXT NOT NULL DEFAULT '',
+        body         TEXT NOT NULL DEFAULT '',
+        url          TEXT NOT NULL DEFAULT '',
+        context      TEXT NOT NULL DEFAULT '',
+        author       TEXT NOT NULL DEFAULT '',
+        at           TIMESTAMPTZ NOT NULL,
+        read_at      TIMESTAMPTZ,
+        added_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (user_id, source, external_id)
+      );
+      CREATE INDEX IF NOT EXISTS notifications_recent ON notifications(user_id, at DESC);
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

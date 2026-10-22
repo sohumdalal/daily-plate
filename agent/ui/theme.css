@@ -260,7 +260,7 @@ body {
   color: var(--semantic-warning);
 }
 
-/* ── Plate | Wrap ───────────────────────────────────────────────────────── */
+/* ── Plate | Wrap | Notifications ──────────────────────────────────────── */
 
 .apptabs {
   display: flex;
@@ -283,6 +283,43 @@ body {
 .apptab[aria-current='page'] {
   color: var(--ink);
   border-bottom-color: var(--primary);
+}
+
+.apptab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Unread notifications, on the tab itself. */
+.apptab-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  font: 600 10px/16px var(--sans);
+  letter-spacing: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* On a phone a bell stands for Notifications, so the bar keeps to one row. */
+@media (max-width: 640px) {
+  .apptab[href='/notifications/'] {
+    font-size: 0;
+    gap: 2px;
+  }
+
+  .apptab[href='/notifications/']::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    background: currentColor;
+    -webkit-mask: url('/icons/bell.svg') center / contain no-repeat;
+    mask: url('/icons/bell.svg') center / contain no-repeat;
+  }
 }
 
 .apptab:focus-visible,

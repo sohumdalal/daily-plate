@@ -12,6 +12,7 @@
  *             naming you. A message that @-mentions Daily Plate itself goes on
  *             the plate too, whoever sent it, unless it is a command
  *             (commands.ts): read, add a task, or change a plated message.
+ *             A mention of you is also kept on the Notifications tab.
  *
  * The bot only sees channels it was invited to and never sees DMs between
  * people, so a mention elsewhere has to be reacted onto the plate instead.
@@ -25,6 +26,7 @@ import { connect } from 'node:net';
 import { MessagingClient, type AgentResponse, type Message } from '@astropods/messaging';
 import { config } from './config.ts';
 import { answer, plateOwner } from './commands.ts';
+import * as notifications from './notifications.ts';
 import * as store from './store.ts';
 import { captureFeedback, FEEDBACK_EMOJI } from './wrap/feedback.ts';
 
@@ -249,6 +251,22 @@ export async function startSlackIngestion(): Promise<void> {
         context: channel,
         author: ctx.userId ?? '',
       }, false);
+      // The Notifications tab keeps it too, read or not, after the plate clears it.
+      await notifications
+        .add([
+          {
+            source: 'slack',
+            kind: 'mention',
+            externalId: `${ctx.channelId}:${ctx.messageId}`,
+            title: channel,
+            body: titleOf(content.replaceAll(`<@${me}>`, '@you')),
+            url: link,
+            context: channel,
+            author: extra.author_name || '',
+            at: new Date(Number(ctx.messageId) * 1000 || Date.now()).toISOString(),
+          },
+        ])
+        .catch((err) => console.error('[slack] could not store the notification:', err));
     }
   }
 

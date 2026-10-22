@@ -20,6 +20,7 @@ capabilities:
   - Takes tasks you type in yourself, and your notes on any item
   - Writes each day back as a short wrap from Claude Code, GitHub, Slack feedback and what you cleared, rolled up into weeks, months and years
   - Records any Slack message you react to with :brain: as feedback for that day's wrap
+  - Lists every GitHub comment, review or Slack message that @-mentions you on a Notifications tab, with an unread count
 integrations:
   - GitHub
   - Slack

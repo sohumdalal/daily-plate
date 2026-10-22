@@ -1,5 +1,6 @@
 /*
- * What every page shares: the theme, and the account menu at the top right.
+ * What every page shares: the theme, the account menu at the top right, and
+ * the unread count on the Notifications tab.
  *
  * Loaded in <head>, so the theme is set before the page first paints. The menu
  * is built into [data-account] once the page has loaded: your avatar, Settings,
@@ -58,7 +59,41 @@
     return mine;
   }
 
-  window.DailyPlate = { ago, me };
+  /**
+   * The unread count on the Notifications tab, on every page. Re-read every
+   * minute while the page is visible; the Notifications page sets it at once
+   * whenever its own list changes.
+   */
+  function setUnread(count) {
+    const tab = document.querySelector('.apptab[href="/notifications/"]');
+    if (!tab) return;
+    let badge = tab.querySelector('.apptab-count');
+    if (!count) {
+      badge?.remove();
+      tab.removeAttribute('aria-label');
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'apptab-count';
+      badge.setAttribute('aria-hidden', 'true');
+      tab.append(badge);
+    }
+    badge.textContent = count > 99 ? '99+' : String(count);
+    tab.setAttribute('aria-label', `Notifications, ${count} unread`);
+  }
+
+  async function readUnread() {
+    if (document.hidden) return;
+    try {
+      const res = await fetch('/api/notifications/unread');
+      if (res.ok) setUnread((await res.json()).unread);
+    } catch {
+      // Offline or the agent is down: keep the last count.
+    }
+  }
+
+  window.DailyPlate = { ago, me, setUnread };
 
   // Lucide's sun, moon, monitor and settings, inline so they take currentColor.
   const ICONS = {
@@ -147,6 +182,12 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
+    // The Notifications page counts its own list.
+    if (location.pathname !== '/notifications/') {
+      void readUnread();
+      setInterval(readUnread, 60_000);
+      document.addEventListener('visibilitychange', readUnread);
+    }
     const mount = document.querySelector('[data-account]');
     if (!mount) return;
     buildMenu(mount);
