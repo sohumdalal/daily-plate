@@ -290,7 +290,12 @@ body {
   height: 28px;
 }
 
-/* An outlined uppercase button: Refresh on both tabs, Add on the plate. */
+/*
+ * The outlined button, for every action that is not the one red CTA:
+ * Refresh, Add, Disagree, Draft, a source filter. `.sm` is the inline size;
+ * `.square` holds one glyph (the steppers, the calendar's arrows). A toggle
+ * marks its on state with aria-pressed.
+ */
 .line-button {
   height: 32px;
   padding: 0 var(--xs);
@@ -310,8 +315,31 @@ body {
 }
 
 .line-button:disabled {
-  color: var(--muted);
+  color: var(--muted-soft);
   cursor: default;
+}
+
+.line-button[aria-pressed='true'] {
+  background: var(--canvas-elevated);
+  border-color: var(--muted);
+  color: var(--ink);
+}
+
+.line-button.sm {
+  height: 24px;
+  padding: 0 var(--xxs);
+  letter-spacing: 1.1px;
+}
+
+.line-button.square {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font: 400 14px/1 var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 /* ── The account menu at the top right ──────────────────────────────────── */

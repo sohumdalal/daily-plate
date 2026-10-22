@@ -72,11 +72,11 @@
           </button>
           <div class="calendar" id="calendar" role="dialog" aria-label="Choose a date" hidden>
             <div class="cal-head">
-              <button class="cal-nav" id="cal-prev" type="button" aria-label="Previous month">
+              <button class="line-button square cal-nav" id="cal-prev" type="button" aria-label="Previous month">
                 &larr;
               </button>
               <span class="cal-month" id="cal-month"></span>
-              <button class="cal-nav" id="cal-next" type="button" aria-label="Next month">
+              <button class="line-button square cal-nav" id="cal-next" type="button" aria-label="Next month">
                 &rarr;
               </button>
             </div>
@@ -217,8 +217,8 @@
       <header class="hero">
         <div class="hero-date">
           <div class="stepper">
-            <button id="prev" title="Previous (←)">&larr;</button>
-            <button id="next" title="Next (→)">&rarr;</button>
+            <button class="line-button square" id="prev" type="button" title="Previous (←)" aria-label="Previous">&larr;</button>
+            <button class="line-button square" id="next" type="button" title="Next (→)" aria-label="Next">&rarr;</button>
           </div>
           <div class="when">
             <h1 class="label" id="date-label"></h1>
@@ -263,7 +263,7 @@
       <section class="section" id="learned-section" hidden>
               <div class="section-head">
                 <span class="label">What you learned</span>
-                <button class="disagree" id="disagree">Disagree</button>
+                <button class="line-button sm disagree" id="disagree" type="button">Disagree</button>
               </div>
               <p class="take" id="learned"></p>
 
@@ -359,7 +359,7 @@
               placeholder="Reply"
               spellcheck="true"
             ></textarea>
-            <button class="chat-draft" id="chat-draft" type="button">
+            <button class="line-button chat-draft" id="chat-draft" type="button">
               Draft my three
             </button>
             <button class="chat-send" id="reflect-send" type="button" aria-label="Send">
@@ -390,11 +390,11 @@
             autocomplete="off"
           />
           <div class="source-kinds" id="sources-kinds">
-            <button data-kind="all" aria-pressed="true">All</button>
-            <button data-kind="merged">Merged</button>
-            <button data-kind="opened">Opened</button>
-            <button data-kind="reviewed">Reviewed</button>
-            <button data-kind="commit">Commits</button>
+            <button class="line-button sm" type="button" data-kind="all" aria-pressed="true">All</button>
+            <button class="line-button sm" type="button" data-kind="merged">Merged</button>
+            <button class="line-button sm" type="button" data-kind="opened">Opened</button>
+            <button class="line-button sm" type="button" data-kind="reviewed">Reviewed</button>
+            <button class="line-button sm" type="button" data-kind="commit">Commits</button>
           </div>
         </div>
 

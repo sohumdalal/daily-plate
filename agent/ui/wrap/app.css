@@ -145,29 +145,6 @@ button.wordmark {
   color: var(--ink);
 }
 
-.cal-nav {
-  appearance: none;
-  height: 28px;
-  background: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-none);
-  color: var(--body);
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-}
-
-.cal-nav:hover:not(:disabled) {
-  color: var(--ink);
-  border-color: var(--muted);
-}
-
-.cal-nav:disabled {
-  color: var(--hairline);
-  border-color: var(--hairline);
-  cursor: default;
-}
-
 .cal-dow,
 .cal-grid {
   display: grid;
@@ -334,24 +311,6 @@ button.wordmark {
 .stepper {
   display: flex;
   gap: var(--xxxs);
-}
-
-.stepper button {
-  appearance: none;
-  background: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-none);
-  width: 28px;
-  height: 28px;
-  color: var(--body);
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-}
-
-.stepper button:disabled {
-  color: var(--hairline);
-  cursor: default;
 }
 
 /* The empty state is the blank screen. One hairline sentence, nothing else. */
@@ -739,24 +698,7 @@ button.wordmark {
 }
 
 .disagree {
-  appearance: none;
-  background: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-none);
-  padding: var(--xxxs) var(--xxs);
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1.1px;
-  text-transform: uppercase;
   margin-left: auto;
-}
-
-.disagree:hover {
-  color: var(--ink);
-  border-color: var(--muted);
 }
 
 .dispute {
@@ -809,32 +751,6 @@ button.wordmark {
 .source-kinds {
   display: flex;
   gap: var(--xxxs);
-}
-
-.source-kinds button {
-  appearance: none;
-  background: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-none);
-  padding: var(--xxxs) var(--xxs);
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-}
-
-.source-kinds button:hover {
-  color: var(--ink);
-  border-color: var(--muted);
-}
-
-.source-kinds button[aria-pressed='true'] {
-  background: var(--canvas-elevated);
-  border-color: var(--muted);
-  color: var(--ink);
 }
 
 /* ── Sources ────────────────────────────────────────────────────────────── */
@@ -919,7 +835,7 @@ button.wordmark {
  * to go below its content height.
  */
 .shell.is-chat {
-  height: calc(100dvh - 64px);
+  height: calc(100dvh - var(--nav-height));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1012,31 +928,9 @@ button.wordmark {
 }
 
 .chat-draft {
-  appearance: none;
   flex: 0 0 auto;
   height: 40px;
-  padding: 0 var(--xs);
-  background: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-none);
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
   white-space: nowrap;
-}
-
-.chat-draft:hover:not(:disabled) {
-  color: var(--ink);
-  border-color: var(--muted);
-}
-
-.chat-draft:disabled {
-  color: var(--hairline);
-  cursor: default;
 }
 
 /* ── Reflection chat ───────────────────────────────────────────────────── */
@@ -1047,7 +941,7 @@ button.wordmark {
 .chat {
   display: flex;
   flex-direction: column;
-  max-width: 72ch;
+  /* The box spans the column; each message keeps its own reading width. */
   margin-top: var(--lg);
   border: 1px solid var(--hairline);
   border-radius: var(--r-none);
@@ -1072,7 +966,7 @@ button.wordmark {
 .msg {
   display: flex;
   flex-direction: column;
-  max-width: 88%;
+  max-width: min(88%, 72ch);
 }
 
 .msg-role {
