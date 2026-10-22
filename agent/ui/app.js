@@ -501,10 +501,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     actions.append(cross);
   }
   li.append(check, body, actions);
-  if (openNotes.has(item.id)) {
-    li.classList.add('notes-open');
-    li.append(notesPanel(item));
-  }
+  if (openNotes.has(item.id)) li.append(notesPanel(item));
   return li;
 }
 
