@@ -93,7 +93,7 @@ export const config = {
     /** The raw U… id. Mentions of it are captured; only its reactions count. */
     userId: (process.env.SLACK_USER_ID ?? '').trim(),
     /** Optional. Lets the agent ask Slack for names and pictures; the sidecar keeps its own. */
-    botToken: (process.env.SLACK_BOT_TOKEN ?? '').trim(),
+    botToken: (process.env.SLACK_PROFILE_TOKEN ?? '').trim(),
   },
 };
 

@@ -109,7 +109,7 @@ function row(n) {
   link.target = '_blank';
   link.rel = 'noopener';
   const who = el('span', 'notice-who');
-  // A Slack person has a picture only once SLACK_BOT_TOKEN has looked them up.
+  // A Slack person has a picture only once SLACK_PROFILE_TOKEN has looked them up.
   const picture =
     n.source === 'github' && n.author ? `https://github.com/${encodeURIComponent(n.author)}.png?size=40` : n.authorAvatar;
   if (picture) {

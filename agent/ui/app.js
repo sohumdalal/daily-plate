@@ -475,7 +475,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
     if (item.source !== 'task') meta.append(span('where', item.context || 'Slack'));
     if (item.author) {
       const who = span('author', item.author);
-      // A picture only once SLACK_BOT_TOKEN has looked them up.
+      // A picture only once SLACK_PROFILE_TOKEN has looked them up.
       if (item.authorAvatar) {
         const img = document.createElement('img');
         img.className = 'author-avatar';

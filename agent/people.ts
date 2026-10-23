@@ -5,7 +5,7 @@
  * on the way out.
  *
  * Names come from three places, best first: Slack itself through
- * SLACK_BOT_TOKEN, which also gives each person's picture; the name the
+ * SLACK_PROFILE_TOKEN, which also gives each person's picture; the name the
  * adapter gave the author of a message you reacted to; and yours from GitHub.
  * Without the token there are no pictures, and someone never named is shown
  * without a name.
@@ -73,7 +73,7 @@ export function idsIn(...texts: string[]): string[] {
 }
 
 /**
- * Names by id. With SLACK_BOT_TOKEN, `ids` are looked up in Slack first, each
+ * Names by id. With SLACK_PROFILE_TOKEN, `ids` are looked up in Slack first, each
  * once; a slow Slack never holds a page load past LOOKUP_WAIT_MS.
  */
 export async function slackPeople(ids: string[] = []): Promise<Map<string, string>> {
@@ -107,7 +107,7 @@ export function personName(author: string, people: Map<string, string>): string 
   return people.get((match[1] || match[3])!) || match[2] || '';
 }
 
-/** The author's Slack picture, once SLACK_BOT_TOKEN has looked them up, or ''. */
+/** The author's Slack picture, once SLACK_PROFILE_TOKEN has looked them up, or ''. */
 export function personAvatar(author: string): string {
   const match = author.match(AUTHOR);
   return match ? (profiles.get((match[1] || match[3])!)?.avatar ?? '') : '';

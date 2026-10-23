@@ -53,7 +53,7 @@ agent:
         Your Slack member id (U…). A message in an observed channel that
         mentions it lands on the plate, and only your own reactions count.
         Without it, mention capture is off and anyone's reaction counts.
-    - name: SLACK_BOT_TOKEN
+    - name: SLACK_PROFILE_TOKEN
       datatype: string
       secret: true
       optional: true
