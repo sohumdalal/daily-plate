@@ -43,20 +43,12 @@ agent:
       description: A client secret generated on the same GitHub App's settings page.
     - name: TEAM
       datatype: string
-      optional: true
       description: >-
         Everyone who may sign in, comma-separated, each as
         github-login:SLACK_MEMBER_ID, such as "sohumdalal:U08TSB1BZ5H,
         jessye:U0123ABCD". The first is the owner. Their reactions go on
         their own plate, :brain: into their own wrap, and a mention of them
-        onto theirs. Without TEAM, GITHUB_USERNAME and SLACK_USER_ID make a
-        team of one.
-    - name: GITHUB_USERNAME
-      datatype: string
-      default: "sohumdalal"
-      description: >-
-        A team of one, when TEAM is empty: the GitHub handle whose plate this
-        is.
+        onto theirs.
     - name: GITHUB_PROJECTS
       datatype: string
       default: "astropods/1"
@@ -70,14 +62,6 @@ agent:
       description: >-
         Comma-separated GitHub owners whose every repo is searched for your
         open PRs and the open issues assigned to you.
-    - name: SLACK_USER_ID
-      datatype: string
-      optional: true
-      description: >-
-        A team of one, when TEAM is empty: your Slack member id (U…). A
-        message in an observed channel that mentions it lands on the plate,
-        and only your own reactions count. Without it, mention capture is off
-        and anyone's reaction counts.
     - name: SLACK_PROFILE_TOKEN
       datatype: string
       secret: true
@@ -102,13 +86,6 @@ agent:
         - claude-haiku-4-5
       default: "claude-sonnet-5"
       description: Claude model that writes the wraps.
-    - name: CLAUDE_HOME
-      datatype: string
-      optional: true
-      description: >-
-        Claude Code home directory the wrap reads days out of. Defaults to
-        `~/.claude`. Read only. A deployed agent has none, so the laptop's
-        nightly job collects the Claude half of each day.
 
 # → ANTHROPIC_API_KEY, for the Wrap tab.
 models:

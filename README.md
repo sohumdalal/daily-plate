@@ -157,8 +157,9 @@ reads or writes anyone else's.
   `bun run nightly` with `DAILY_PLATE_USER` set to your GitHub login.
 
 Without the client id and secret there is no sign-in, and everyone is the
-first member. Without `TEAM`, `GITHUB_USERNAME` and `SLACK_USER_ID` make a team
-of one, as before. Locally, `DEV_USER=<login>` skips signing in.
+first member. On a laptop, where `TEAM` is usually unset, `GITHUB_USERNAME`
+and `SLACK_USER_ID` from `.env.local` make a team of one, and
+`DEV_USER=<login>` skips signing in.
 
 ## Slack
 

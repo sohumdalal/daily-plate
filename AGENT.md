@@ -55,10 +55,8 @@ reaction.
 | `GITHUB_TOKEN` | — | `repo` + `read:project` (from `integrations.github`) |
 | `TEAM` | — | Everyone who may sign in, as `github-login:SLACK_MEMBER_ID`, comma-separated |
 | `GITHUB_APP_CLIENT_ID` / `GITHUB_APP_CLIENT_SECRET` | — | The GitHub App's OAuth client, for signing in |
-| `GITHUB_USERNAME` | `sohumdalal` | A team of one, when `TEAM` is empty |
 | `GITHUB_PROJECTS` | `astropods/1` | Boards, as `owner/number` |
 | `GITHUB_ORGS` | `astropods` | Owners whose repos are searched for your PRs and issues |
-| `SLACK_USER_ID` | — | A team of one, when `TEAM` is empty: your Slack member id |
 | `TIMEZONE` | `America/New_York` | What "cleared today" means |
 
 Postgres comes from the `knowledge.daily-plate-db` entry. Under the Slack
