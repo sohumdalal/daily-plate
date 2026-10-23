@@ -81,6 +81,17 @@ export const config = {
     /** Owners whose every repo is searched for your open PRs and issues. */
     orgs: (process.env.GITHUB_ORGS ?? 'astropods').split(',').map((s) => s.trim()).filter(Boolean),
   },
+  /** Signing in with GitHub, through the same GitHub App's OAuth client. */
+  auth: {
+    clientId: process.env.GITHUB_APP_CLIENT_ID ?? '',
+    clientSecret: process.env.GITHUB_APP_CLIENT_SECRET ?? '',
+    /** Signs the session cookie. Unset, one is made and kept in the database. */
+    sessionSecret: process.env.SESSION_SECRET ?? '',
+    /** The public URL GitHub sends people back to; the platform sets it. */
+    appUrl: (process.env.ASTRO_EXTERNAL_AGENT_URL || process.env.APP_URL || '').replace(/\/$/, ''),
+    /** Local only: be this team member without signing in. */
+    devUser: process.env.DEV_USER ?? '',
+  },
   claude: {
     /** Claude Code home the wrap reads days out of. Read-only, never written to. */
     home: process.env.CLAUDE_HOME || join(homedir(), '.claude'),
@@ -109,10 +120,10 @@ export function usesApp(): boolean {
 export function readiness() {
   return {
     timezone: config.timezone,
-    github: Boolean((config.github.token || usesApp()) && config.github.username),
+    github: Boolean(config.github.token || usesApp()),
     projects: config.github.projects.map((p) => `${p.owner}/${p.number}`),
     orgs: config.github.orgs,
-    slackMentions: Boolean(config.slack.userId),
+    signIn: Boolean(config.auth.clientId && config.auth.clientSecret),
     claudeHome: config.claude.home,
     llm: Boolean(config.llm.anthropicKey),
     model: config.llm.model,

@@ -14,18 +14,29 @@ import { Agent } from '@mastra/core/agent';
 import { LibSQLStore } from '@mastra/libsql';
 import { Memory } from '@mastra/memory';
 import { config } from '../config.ts';
+import { asUser, memberForSlack } from '../users.ts';
 import { ownerName, tools } from './tools.ts';
 import { turnOf } from './turns.ts';
 
-function instructions(sender: { name: string; isOwner: boolean; inThread: boolean }): string {
-  const owner = ownerName();
-  const plate = sender.isOwner ? 'your plate' : `${owner}'s plate`;
+/** For someone with no plate: the team is set in the deploy form, not here. */
+function strangerInstructions(name: string): string {
   return `
-You are Daily Plate, ${owner}'s assistant in Slack. The plate is ${owner}'s list of what to do
-today: cards assigned to them on GitHub boards, their open PRs and issues, Slack messages put on
-it, and tasks they typed in. Ticking an item clears it.
+You are Daily Plate, a team's assistant in Slack. Each person on the team has a plate: their list
+of what to do today. ${name || 'The person talking to you'} is not on the team, so they have no
+plate, and your tools will refuse. Say so in one or two friendly sentences, and say that whoever
+deployed Daily Plate can add them to TEAM. Answer greetings in kind.
+`.trim();
+}
 
-${sender.name || 'Someone'} is talking to you${sender.isOwner ? `, and they are ${owner}` : ''}.
+function instructions(sender: { name: string; inThread: boolean }): string {
+  const owner = ownerName();
+  const plate = 'your plate';
+  return `
+You are Daily Plate, a team's assistant in Slack. Each person on the team has their own plate:
+their list of what to do today, from cards assigned to them on GitHub boards, their open PRs and
+issues, Slack messages put on it, and tasks they typed in. Ticking an item clears it.
+
+${sender.name || owner} is talking to you, and the plate your tools read and change is theirs.
 ${sender.inThread ? 'The message is a reply in a thread.' : 'The message is not in a thread.'}
 A message can start with [slack_thread_summary]: that is the thread so far, and the last
 paragraph is the new message.
@@ -35,7 +46,7 @@ Work out what they want before you act:
   friendly way, and do nothing else. Never put a greeting or thanks on the plate.
 - A question about the plate ("what's on my plate", "anything from Slack?", "how many PRs are
   open?"): call readPlate and answer from what it returns.
-- An ask for ${owner} to do something ("can you review this", "please send the deck"), or "plate
+- An ask for them to do something ("can you review this", "please send the deck"), or "plate
   this", "add this", "save this": call plateMessage. In a thread, when the ask is the message the
   thread started from, use target thread_root.
 - "Add a task …": call addTask with the task.
@@ -87,12 +98,11 @@ export const assistant = new Agent({
   description: 'Talks about your plate in Slack, and puts on it what you ask.',
   instructions: ({ requestContext }) => {
     const turn = turnOf(requestContext);
-    const name = requestContext.get('userName');
-    return instructions({
-      name: typeof name === 'string' ? name : '',
-      isOwner: Boolean(turn && config.slack.userId && turn.userId === config.slack.userId),
-      inThread: Boolean(turn?.threadRootId),
-    });
+    const raw = requestContext.get('userName');
+    const name = typeof raw === 'string' ? raw : '';
+    const member = turn ? memberForSlack(turn.userId) : undefined;
+    if (!member) return strangerInstructions(name);
+    return asUser(member, () => instructions({ name, inThread: Boolean(turn?.threadRootId) }));
   },
   model: chatModel(),
   memory,

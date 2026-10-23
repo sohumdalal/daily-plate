@@ -4,9 +4,11 @@
  * happened, so the reply never claims more than was done.
  */
 
+import type { RequestContext } from '@mastra/core/request-context';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { config } from '../config.ts';
+import { asUser, currentMember, memberForSlack } from '../users.ts';
 import * as store from '../store.ts';
 import type { Item, Source } from '../store.ts';
 import { assignee } from '../sync.ts';
@@ -18,10 +20,22 @@ const MAX_LISTED = 25;
 /** Longest title kept, as on a reacted message. The link has the rest. */
 const MAX_TITLE = 280;
 
-/** `Sohum`, from the GitHub profile, or the handle before it is read. */
+/** The current member's first name, from their GitHub profile, or their handle before it is read. */
 export function ownerName(): string {
-  const name = assignee()?.name || config.github.username;
-  return name.split(' ')[0] || 'the owner';
+  const name = assignee()?.name || currentMember().login;
+  return name.split(' ')[0] || 'you';
+}
+
+/** Run a tool as whoever sent the message: their plate, and only theirs. */
+async function asSender<T>(
+  requestContext: RequestContext | undefined,
+  fn: (turn: NonNullable<ReturnType<typeof turnOf>>) => Promise<T>,
+): Promise<T | { ok: false; reason: string }> {
+  const turn = turnOf(requestContext);
+  if (!turn) return { ok: false, reason: 'not in a Slack message' };
+  const member = memberForSlack(turn.userId);
+  if (!member) return { ok: false, reason: 'the sender is not on the Daily Plate team, so has no plate' };
+  return asUser(member, () => fn(turn));
 }
 
 const SECTIONS: Record<string, { label: string; sources: Source[] }> = {
@@ -69,7 +83,7 @@ export const readPlate = createTool({
       .optional()
       .describe('Keep one part of the plate. Leave it out for everything.'),
   }),
-  execute: async ({ only }) => {
+  execute: async ({ only }, { requestContext }) => asSender(requestContext, async () => {
     const today = dayOf(new Date(), config.timezone);
     const section = only ? SECTIONS[only] : undefined;
     const items = (await store.plate(today, config.timezone)).filter(
@@ -84,7 +98,7 @@ export const readPlate = createTool({
       notListed: Math.max(0, open.length - MAX_LISTED),
       clearedToday: items.filter((i) => i.doneAt).map((i) => i.title),
     };
-  },
+  }),
 });
 
 export const plateMessage = createTool({
@@ -101,9 +115,7 @@ export const plateMessage = createTool({
       .min(1)
       .describe("The ask in the sender's own words, without the @-mention. The whole ask, not a summary."),
   }),
-  execute: async ({ target, title }, { requestContext }) => {
-    const turn = turnOf(requestContext);
-    if (!turn) return { ok: false, reason: 'not in a Slack message' };
+  execute: async ({ target, title }, { requestContext }) => asSender(requestContext, async (turn) => {
     if (target === 'thread_root' && !turn.threadRootId) return { ok: false, reason: 'this message is not in a thread' };
     const messageId = target === 'thread_root' ? turn.threadRootId : turn.messageId;
     const { item, isNew } = await store.addSlackItem({
@@ -112,21 +124,21 @@ export const plateMessage = createTool({
       title: shortTitle(title),
       url: permalink(turn, messageId),
       context: turn.channel,
-      author: turn.userId,
+      author: turn.userId ? `<@${turn.userId}>` : '',
     });
     console.log(`[assistant] ${isNew ? 'plated' : 'refreshed'} a message from ${turn.channel || '?'}`);
     return { ok: true, alreadyOnPlate: !isNew, title: item.title, openCount: await store.openCount() };
-  },
+  }),
 });
 
 export const addTask = createTool({
   id: 'addTask',
   description: 'Add a task of the owner’s own to the plate, with no Slack message or GitHub item behind it.',
   inputSchema: z.object({ title: z.string().min(1).max(2000) }),
-  execute: async ({ title }) => {
+  execute: async ({ title }, { requestContext }) => asSender(requestContext, async () => {
     const item = await store.addTask(title.trim());
     return { ok: true, title: item.title, openCount: await store.openCount() };
-  },
+  }),
 });
 
 export const changePlated = createTool({
@@ -138,9 +150,7 @@ export const changePlated = createTool({
     action: z.enum(['done', 'reopen', 'rename', 'note', 'remove']),
     text: z.string().optional().describe('The new title for rename, or the note for note.'),
   }),
-  execute: async ({ action, text }, { requestContext }) => {
-    const turn = turnOf(requestContext);
-    if (!turn) return { ok: false, reason: 'not in a Slack message' };
+  execute: async ({ action, text }, { requestContext }) => asSender(requestContext, async (turn) => {
     if (!turn.threadRootId) return { ok: false, reason: 'not in a thread: reply in the thread of the plated message' };
     const externalId = `${turn.channelId}:${turn.threadRootId}`;
     if ((action === 'rename' || action === 'note') && !text?.trim()) {
@@ -160,7 +170,7 @@ export const changePlated = createTool({
     if (action === 'done') await store.setDone(item.id, true);
     if (action === 'reopen') await store.setDone(item.id, false);
     return { ok: true, title: action === 'rename' ? shortTitle(text!) : item.title, openCount: await store.openCount() };
-  },
+  }),
 });
 
 export const tools = { readPlate, plateMessage, addTask, changePlated };

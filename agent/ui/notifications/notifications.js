@@ -146,7 +146,7 @@ function provenance() {
   const { state, sync } = data;
   if (!state.github) lines.push('GitHub is not set up, so GitHub mentions are not read.');
   else if (sync && !sync.ok) lines.push(`The last GitHub read failed: ${sync.error}`);
-  if (!state.slackMentions) lines.push('SLACK_USER_ID is not set, so Slack mentions are not kept.');
+  if (!state.slackMentions) lines.push('Your Slack id is not on TEAM, so your Slack mentions are not kept.');
   else if (!state.slackConnected) lines.push('Slack is not connected, so new Slack mentions do not arrive.');
   $('provenance').textContent = lines.join(' ');
   $('provenance').hidden = !lines.length;

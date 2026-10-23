@@ -13,7 +13,7 @@
  *   DELETE /api/items/:id/notes/:n  remove that note
  *   GET   /api/unfurl?url=          { url, title, site, icon } — a link's preview card
  *   GET   /api/export      every item as stored, for scripts/import-plate.ts
- *   GET   /api/me          { login, name } — whose plate this is, for the account menu
+ *   GET   /api/me          { login, name, signIn } — who is signed in, for the account menu
  *   GET   /api/notifications            every mention of you, newest first, and the last GitHub read
  *   GET   /api/notifications/unread     { unread } — for the count on the tab
  *   POST  /api/notifications/sync       re-read GitHub's mentions now
@@ -30,6 +30,12 @@ import * as store from './store.ts';
 import { slackConnected } from './slack.ts';
 import { assignee, lastSync, syncBoards } from './sync.ts';
 import { dayOf } from './time.ts';
+import { currentMember } from './users.ts';
+
+/** What the screen may say about this member's Slack: whether their mentions are kept. */
+function memberState() {
+  return { ...readiness(), slackConnected: slackConnected(), slackMentions: Boolean(currentMember().slackId) };
+}
 
 export const routes = new Hono();
 
@@ -65,7 +71,7 @@ async function plateBody() {
   const people = await peopleOf([...items, ...history]);
   return {
     today,
-    state: { ...readiness(), slackConnected: slackConnected() },
+    state: memberState(),
     sync: lastSync(),
     assignee: assignee(),
     items: items.map(named(people)),
@@ -76,8 +82,8 @@ async function plateBody() {
 routes.get('/api/plate', async (c) => c.json(await plateBody()));
 
 routes.get('/api/me', (c) => {
-  const login = assignee()?.login || config.github.username;
-  return c.json({ login, name: assignee()?.name || login });
+  const login = assignee()?.login || currentMember().login;
+  return c.json({ login, name: assignee()?.name || login, signIn: readiness().signIn });
 });
 
 routes.get('/api/export', async (c) => {
@@ -177,7 +183,7 @@ async function notificationsBody() {
   const list = await notifications.list();
   const people = await slackPeople(idsIn(...list.filter((n) => n.source === 'slack').flatMap((n) => [n.body, n.author])));
   return {
-    state: { ...readiness(), slackConnected: slackConnected() },
+    state: memberState(),
     sync: notifications.lastMentionSync(),
     items: list.map((n) =>
       n.source === 'slack'

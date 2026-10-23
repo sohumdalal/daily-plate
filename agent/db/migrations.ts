@@ -330,6 +330,18 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS notifications_recent ON notifications(user_id, at DESC);
     `,
   },
+  {
+    // Settings the agent makes for itself, such as the key that signs the
+    // session cookie, so a redeploy keeps everyone signed in.
+    id: '0011_app_config',
+    sql: `
+      CREATE TABLE IF NOT EXISTS app_config (
+        key         TEXT PRIMARY KEY,
+        value       TEXT NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

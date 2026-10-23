@@ -29,10 +29,34 @@ agent:
     - name: GITHUB_APP_INSTALLATION_ID
       datatype: string
       description: The App's installation ID on the org, from the end of the installation URL.
+    - name: GITHUB_APP_CLIENT_ID
+      datatype: string
+      optional: true
+      description: >-
+        The same GitHub App's Client ID, from its settings page. With the
+        secret, everyone signs in with GitHub and sees only their own plate.
+        Add <app url>/api/auth/callback to the App's callback URLs.
+    - name: GITHUB_APP_CLIENT_SECRET
+      datatype: string
+      secret: true
+      optional: true
+      description: A client secret generated on the same GitHub App's settings page.
+    - name: TEAM
+      datatype: string
+      optional: true
+      description: >-
+        Everyone who may sign in, comma-separated, each as
+        github-login:SLACK_MEMBER_ID, such as "sohumdalal:U08TSB1BZ5H,
+        jessye:U0123ABCD". The first is the owner. Their reactions go on
+        their own plate, :brain: into their own wrap, and a mention of them
+        onto theirs. Without TEAM, GITHUB_USERNAME and SLACK_USER_ID make a
+        team of one.
     - name: GITHUB_USERNAME
       datatype: string
       default: "sohumdalal"
-      description: GitHub handle whose assigned cards make up the plate.
+      description: >-
+        A team of one, when TEAM is empty: the GitHub handle whose plate this
+        is.
     - name: GITHUB_PROJECTS
       datatype: string
       default: "astropods/1"
@@ -50,9 +74,10 @@ agent:
       datatype: string
       optional: true
       description: >-
-        Your Slack member id (U…). A message in an observed channel that
-        mentions it lands on the plate, and only your own reactions count.
-        Without it, mention capture is off and anyone's reaction counts.
+        A team of one, when TEAM is empty: your Slack member id (U…). A
+        message in an observed channel that mentions it lands on the plate,
+        and only your own reactions count. Without it, mention capture is off
+        and anyone's reaction counts.
     - name: SLACK_PROFILE_TOKEN
       datatype: string
       secret: true

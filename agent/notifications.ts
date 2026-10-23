@@ -12,8 +12,8 @@ import { config, readiness } from './config.ts';
 import { db } from './db/client.ts';
 import { fetchMentions, type MentionKind } from './sources/mentions.ts';
 import { gh } from './sources/github.ts';
+import { asUser, currentUser, team } from './users.ts';
 
-const USER = 'default';
 const READ_EVERY_MS = 2 * 60_000;
 /** How far back the first read after a boot looks. Rows already stored keep their read state. */
 const LOOKBACK_MS = 7 * 86_400_000;
@@ -79,7 +79,7 @@ export async function add(list: Input[]): Promise<number> {
     for (const n of list) {
       const [row] = await tx<{ inserted: boolean }[]>`
         INSERT INTO notifications (user_id, source, kind, external_id, title, body, url, context, author, at)
-        VALUES (${USER}, ${n.source}, ${n.kind}, ${n.externalId}, ${n.title}, ${n.body}, ${n.url},
+        VALUES (${currentUser()}, ${n.source}, ${n.kind}, ${n.externalId}, ${n.title}, ${n.body}, ${n.url},
                 ${n.context}, ${n.author}, ${n.at})
         ON CONFLICT (user_id, source, external_id) DO UPDATE
            SET title = EXCLUDED.title, body = EXCLUDED.body
@@ -95,7 +95,7 @@ export async function list(): Promise<Notification[]> {
   const sql = db();
   const rows = await sql<Row[]>`
     SELECT ${sql.unsafe(COLUMNS)} FROM notifications
-     WHERE user_id = ${USER}
+     WHERE user_id = ${currentUser()}
      ORDER BY at DESC
      LIMIT ${LIMIT}
   `;
@@ -104,7 +104,7 @@ export async function list(): Promise<Notification[]> {
 
 export async function unreadCount(): Promise<number> {
   const [row] = await db()<{ n: number }[]>`
-    SELECT count(*)::int AS n FROM notifications WHERE user_id = ${USER} AND read_at IS NULL
+    SELECT count(*)::int AS n FROM notifications WHERE user_id = ${currentUser()} AND read_at IS NULL
   `;
   return row?.n ?? 0;
 }
@@ -114,7 +114,7 @@ export async function setRead(id: number, read: boolean): Promise<Notification |
   const rows = await sql<Row[]>`
     UPDATE notifications
        SET read_at = ${read ? sql`coalesce(read_at, now())` : null}
-     WHERE user_id = ${USER} AND id = ${id}
+     WHERE user_id = ${currentUser()} AND id = ${id}
     RETURNING ${sql.unsafe(COLUMNS)}
   `;
   return rows[0] ? toNotification(rows[0]) : null;
@@ -122,7 +122,7 @@ export async function setRead(id: number, read: boolean): Promise<Notification |
 
 export async function readAll(): Promise<number> {
   const result = await db()`
-    UPDATE notifications SET read_at = now() WHERE user_id = ${USER} AND read_at IS NULL
+    UPDATE notifications SET read_at = now() WHERE user_id = ${currentUser()} AND read_at IS NULL
   `;
   return result.count;
 }
@@ -131,43 +131,56 @@ export async function readAll(): Promise<number> {
 
 export type MentionSync = { at: string; ok: boolean; added: number; error?: string };
 
-let last: MentionSync | null = null;
-let running: Promise<MentionSync> | null = null;
-/** Where the next read starts. Unset until a read succeeds, so a failure retries the same window. */
-let since: number | null = null;
+/** Each member's last read, by login. */
+const last = new Map<string, MentionSync>();
+const running = new Map<string, Promise<MentionSync>>();
+/** Where each member's next read starts. Unset until a read succeeds, so a failure retries the same window. */
+const since = new Map<string, number>();
 
 export function lastMentionSync(): MentionSync | null {
-  return last;
+  return last.get(currentUser()) ?? null;
 }
 
-/** One read at a time; a second caller waits on the first. */
+/** The current member's read. One at a time each; a second caller waits on the first. */
 export function syncMentions(): Promise<MentionSync> {
-  running ??= (async () => {
-    const started = Date.now();
-    const at = new Date(started).toISOString();
-    try {
-      if (!readiness().github) {
-        throw new Error('GITHUB_USERNAME and a GitHub App or GITHUB_TOKEN are needed to read mentions');
-      }
-      const from = new Date((since ?? started - LOOKBACK_MS) - OVERLAP_MS);
-      const found = await fetchMentions(gh(), config.github.username, config.github.orgs, from);
-      const added = await add(found.map((m) => ({ ...m, source: 'github' as const })));
-      since = started;
-      last = { at, ok: true, added };
-      if (added) console.log(`[mentions] ${added} new on GitHub`);
-    } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      last = { at, ok: false, added: 0, error };
-      console.error('[mentions] GitHub read failed:', error);
+  const login = currentUser();
+  let read = running.get(login);
+  if (!read) {
+    read = readMentions(login).finally(() => running.delete(login));
+    running.set(login, read);
+  }
+  return read;
+}
+
+async function readMentions(login: string): Promise<MentionSync> {
+  const started = Date.now();
+  const at = new Date(started).toISOString();
+  let result: MentionSync;
+  try {
+    if (!readiness().github) {
+      throw new Error('a GitHub App or GITHUB_TOKEN is needed to read mentions');
     }
-    return last;
-  })().finally(() => {
-    running = null;
-  });
-  return running;
+    const from = new Date((since.get(login) ?? started - LOOKBACK_MS) - OVERLAP_MS);
+    const found = await fetchMentions(gh(), login, config.github.orgs, from);
+    const added = await add(found.map((m) => ({ ...m, source: 'github' as const })));
+    since.set(login, started);
+    result = { at, ok: true, added };
+    if (added) console.log(`[mentions] ${login}: ${added} new on GitHub`);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    result = { at, ok: false, added: 0, error };
+    console.error(`[mentions] GitHub read for ${login} failed:`, error);
+  }
+  last.set(login, result);
+  return result;
+}
+
+/** Everyone on the team, one after another. */
+async function readTeam(): Promise<void> {
+  for (const member of team()) await asUser(member, syncMentions);
 }
 
 export function startMentionSync(): void {
-  void syncMentions();
-  setInterval(() => void syncMentions(), READ_EVERY_MS);
+  void readTeam();
+  setInterval(() => void readTeam(), READ_EVERY_MS);
 }

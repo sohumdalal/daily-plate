@@ -17,9 +17,7 @@ import type {
   WrapReason,
   WrapVersion,
 } from './types.ts';
-
-/** Single-user today, but every row is tagged so that needn't stay true. */
-const USER = 'default';
+import { currentUser } from '../users.ts';
 
 type DayRow = {
   day: Date;
@@ -41,7 +39,7 @@ export async function getDay(day: string): Promise<DayRecord | null> {
   const rows = await db()<DayRow[]>`
     SELECT day, claude, github, collected_at
       FROM days
-     WHERE user_id = ${USER} AND day = ${day}
+     WHERE user_id = ${currentUser()} AND day = ${day}
   `;
   return rows[0] ? toDay(rows[0]) : null;
 }
@@ -50,7 +48,7 @@ export async function getDays(from: string, to: string): Promise<DayRecord[]> {
   const rows = await db()<DayRow[]>`
     SELECT day, claude, github, collected_at
       FROM days
-     WHERE user_id = ${USER} AND day BETWEEN ${from} AND ${to}
+     WHERE user_id = ${currentUser()} AND day BETWEEN ${from} AND ${to}
      ORDER BY day
   `;
   return rows.map(toDay);
@@ -103,7 +101,7 @@ export async function saveDay(
     const existing = await tx<DayRow[]>`
       SELECT day, claude, github, collected_at
         FROM days
-       WHERE user_id = ${USER} AND day = ${day}
+       WHERE user_id = ${currentUser()} AND day = ${day}
          FOR UPDATE
     `;
     const stored = existing[0];
@@ -119,7 +117,7 @@ export async function saveDay(
 
     const rows = await tx<DayRow[]>`
       INSERT INTO days (day, user_id, claude, github, collected_at)
-      VALUES (${day}, ${USER}, ${tx.json(keepClaude)}, ${tx.json(keepGithub)}, now())
+      VALUES (${day}, ${currentUser()}, ${tx.json(keepClaude)}, ${tx.json(keepGithub)}, now())
       ON CONFLICT (day, user_id) DO UPDATE
          SET claude = EXCLUDED.claude,
              github = EXCLUDED.github,
@@ -170,7 +168,7 @@ export async function getWrap(period: Period, key: string): Promise<Wrap | null>
   const rows = await db()<WrapRow[]>`
     SELECT period, key, headline, did, learned, grew, model, generated_at
       FROM wraps
-     WHERE user_id = ${USER} AND period = ${period} AND key = ${key}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key = ${key}
   `;
   return rows[0] ? toWrap(rows[0]) : null;
 }
@@ -184,7 +182,7 @@ export async function getWrapsBetween(
   const rows = await db()<WrapRow[]>`
     SELECT period, key, headline, did, learned, grew, model, generated_at
       FROM wraps
-     WHERE user_id = ${USER} AND period = ${period} AND key BETWEEN ${from} AND ${to}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key BETWEEN ${from} AND ${to}
      ORDER BY key
   `;
   return rows.map(toWrap);
@@ -208,7 +206,7 @@ export async function saveWrap(
     const rows = await tx<WrapRow[]>`
       INSERT INTO wraps (period, key, user_id, headline, did, learned, grew, model, generated_at)
       VALUES (
-        ${wrap.period}, ${wrap.key}, ${USER}, ${wrap.headline},
+        ${wrap.period}, ${wrap.key}, ${currentUser()}, ${wrap.headline},
         ${tx.json(wrap.did)}, ${tx.json(wrap.learned)}, ${tx.json(wrap.grew)},
         ${wrap.model}, now()
       )
@@ -227,12 +225,12 @@ export async function saveWrap(
       INSERT INTO wrap_versions
              (user_id, period, key, version, headline, did, learned, grew, model,
               reason, generated_at)
-      SELECT ${USER}, ${wrap.period}, ${wrap.key},
+      SELECT ${currentUser()}, ${wrap.period}, ${wrap.key},
              coalesce(max(version), 0) + 1,
              ${wrap.headline}, ${tx.json(wrap.did)}, ${tx.json(wrap.learned)},
              ${tx.json(wrap.grew)}, ${wrap.model}, ${reason}, ${saved.generatedAt}
         FROM wrap_versions
-       WHERE user_id = ${USER} AND period = ${wrap.period} AND key = ${wrap.key}
+       WHERE user_id = ${currentUser()} AND period = ${wrap.period} AND key = ${wrap.key}
     `;
 
     return saved;
@@ -250,7 +248,7 @@ export async function listWrapVersions(
     SELECT period, key, headline, did, learned, grew, model, generated_at,
            version, reason
       FROM wrap_versions
-     WHERE user_id = ${USER} AND period = ${period} AND key = ${key}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key = ${key}
      ORDER BY version DESC
   `;
   return rows.map((row) => ({
@@ -268,7 +266,7 @@ export async function countWrapVersions(
   const rows = await db()<{ n: number }[]>`
     SELECT count(*)::int AS n
       FROM wrap_versions
-     WHERE user_id = ${USER} AND period = ${period} AND key = ${key}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key = ${key}
   `;
   return rows[0]?.n ?? 0;
 }
@@ -308,7 +306,7 @@ export async function getReflection(
   const rows = await db()<ReflectionRow[]>`
     SELECT ${db().unsafe(REFLECTION_COLUMNS)}
       FROM reflections
-     WHERE user_id = ${USER} AND period = ${period} AND key = ${key}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key = ${key}
   `;
   return rows[0] ? toReflection(rows[0]) : null;
 }
@@ -321,7 +319,7 @@ export async function getReflectionsBetween(
   const rows = await db()<ReflectionRow[]>`
     SELECT ${db().unsafe(REFLECTION_COLUMNS)}
       FROM reflections
-     WHERE user_id = ${USER} AND period = ${period} AND key BETWEEN ${from} AND ${to}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key BETWEEN ${from} AND ${to}
        AND (body <> '' OR good <> '' OR bad <> '' OR improve <> '')
      ORDER BY key
   `;
@@ -344,7 +342,7 @@ export async function saveReflection(
   const rows = await sql<ReflectionRow[]>`
     INSERT INTO reflections (period, key, user_id, body, energy, good, bad, improve, updated_at)
     VALUES (
-      ${period}, ${key}, ${USER},
+      ${period}, ${key}, ${currentUser()},
       ${patch.body ?? ''}, ${patch.energy ?? null},
       ${patch.good ?? ''}, ${patch.bad ?? ''}, ${patch.improve ?? ''}, now()
     )
@@ -372,7 +370,7 @@ export async function getTurns(period: Period, key: string): Promise<ReflectionT
   const rows = await db()<TurnRow[]>`
     SELECT id, role, text, created_at
       FROM reflection_turns
-     WHERE user_id = ${USER} AND period = ${period} AND key = ${key}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key = ${key}
      ORDER BY created_at
   `;
   return rows.map((r) => ({
@@ -398,12 +396,12 @@ export async function addTurn(
   return sql.begin(async (tx) => {
     await tx`
       INSERT INTO reflection_turns (user_id, period, key, role, text)
-      VALUES (${USER}, ${period}, ${key}, ${role}, ${text})
+      VALUES (${currentUser()}, ${period}, ${key}, ${role}, ${text})
     `;
     const rows = await tx<TurnRow[]>`
       SELECT id, role, text, created_at
         FROM reflection_turns
-       WHERE user_id = ${USER} AND period = ${period} AND key = ${key}
+       WHERE user_id = ${currentUser()} AND period = ${period} AND key = ${key}
        ORDER BY created_at
     `;
     if (role === 'person') {
@@ -413,7 +411,7 @@ export async function addTurn(
         .join('\n\n');
       await tx`
         INSERT INTO reflections (period, key, user_id, body, updated_at)
-        VALUES (${period}, ${key}, ${USER}, ${body}, now())
+        VALUES (${period}, ${key}, ${currentUser()}, ${body}, now())
         ON CONFLICT (period, key, user_id) DO UPDATE
            SET body = EXCLUDED.body, updated_at = now()
       `;
@@ -489,7 +487,7 @@ export async function addSlackFeedback(input: {
     INSERT INTO slack_feedback
            (user_id, day, channel_id, channel_name, message_ts, thread_root,
             reactor_id, author_id, author_name, emoji, text, permalink)
-    VALUES (${USER}, ${input.day}, ${input.channelId}, ${input.channelName},
+    VALUES (${currentUser()}, ${input.day}, ${input.channelId}, ${input.channelName},
             ${input.messageTs}, ${input.threadRoot}, ${input.reactorId},
             ${input.authorId}, ${input.authorName},
             ${input.emoji}, ${input.text}, ${input.permalink})
@@ -516,7 +514,7 @@ export async function slackAuthorNames(): Promise<Map<string, string>> {
   const rows = await db()<{ author_id: string; author_name: string }[]>`
     SELECT DISTINCT ON (author_id) author_id, author_name
       FROM slack_feedback
-     WHERE user_id = ${USER} AND author_id <> '' AND author_name <> ''
+     WHERE user_id = ${currentUser()} AND author_id <> '' AND author_name <> ''
      ORDER BY author_id, created_at DESC
   `;
   return new Map(rows.map((r) => [r.author_id, r.author_name]));
@@ -543,7 +541,7 @@ export async function listSlackFeedback(limit = 200): Promise<SlackFeedback[]> {
   const rows = await db()<SlackFeedbackRow[]>`
     SELECT ${db().unsafe(SLACK_COLUMNS)}
       FROM slack_feedback
-     WHERE user_id = ${USER}
+     WHERE user_id = ${currentUser()}
      ORDER BY day DESC, created_at DESC
      LIMIT ${limit}
   `;
@@ -558,7 +556,7 @@ export async function slackFeedbackBetween(
   const rows = await db()<SlackFeedbackRow[]>`
     SELECT ${db().unsafe(SLACK_COLUMNS)}
       FROM slack_feedback
-     WHERE user_id = ${USER} AND day BETWEEN ${from} AND ${to}
+     WHERE user_id = ${currentUser()} AND day BETWEEN ${from} AND ${to}
      ORDER BY day, created_at
   `;
   return nameMentions(rows.map(toSlackFeedback));
@@ -599,7 +597,7 @@ export async function listGoals(): Promise<Goal[]> {
   const rows = await db()<GoalRow[]>`
     SELECT ${db().unsafe(GOAL_COLUMNS)}
       FROM goals
-     WHERE user_id = ${USER}
+     WHERE user_id = ${currentUser()}
      ORDER BY
        CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1
                    WHEN 'achieved' THEN 2 ELSE 3 END,
@@ -613,7 +611,7 @@ export async function activeGoals(): Promise<Goal[]> {
   const rows = await db()<GoalRow[]>`
     SELECT ${db().unsafe(GOAL_COLUMNS)}
       FROM goals
-     WHERE user_id = ${USER} AND status = 'active'
+     WHERE user_id = ${currentUser()} AND status = 'active'
      ORDER BY category, sort, created_at
   `;
   return rows.map(toGoal);
@@ -624,7 +622,7 @@ export async function createGoal(
 ): Promise<Goal> {
   const rows = await db()<GoalRow[]>`
     INSERT INTO goals (user_id, title, category, horizon, why, measure)
-    VALUES (${USER}, ${input.title}, ${input.category}, ${input.horizon},
+    VALUES (${currentUser()}, ${input.title}, ${input.category}, ${input.horizon},
             ${input.why}, ${input.measure})
     RETURNING ${db().unsafe(GOAL_COLUMNS)}
   `;
@@ -653,7 +651,7 @@ export async function updateGoal(
       status     = coalesce(${patch.status ?? null}::text, status),
       sort       = coalesce(${patch.sort ?? null}::int, sort),
       updated_at = now()
-     WHERE id = ${id} AND user_id = ${USER}
+     WHERE id = ${id} AND user_id = ${currentUser()}
     RETURNING ${sql.unsafe(GOAL_COLUMNS)}
   `;
   return rows[0] ? toGoal(rows[0]) : null;
@@ -661,7 +659,7 @@ export async function updateGoal(
 
 export async function deleteGoal(id: string): Promise<boolean> {
   const rows = await db()`
-    DELETE FROM goals WHERE id = ${id} AND user_id = ${USER} RETURNING id
+    DELETE FROM goals WHERE id = ${id} AND user_id = ${currentUser()} RETURNING id
   `;
   return rows.length > 0;
 }
@@ -691,7 +689,7 @@ export async function addFeedback(
 ): Promise<Feedback> {
   const rows = await db()<FeedbackRow[]>`
     INSERT INTO feedback (user_id, period, key, note)
-    VALUES (${USER}, ${period}, ${key}, ${note})
+    VALUES (${currentUser()}, ${period}, ${key}, ${note})
     RETURNING id, period, key, note, created_at
   `;
   return toFeedback(rows[0]!);
@@ -702,7 +700,7 @@ export async function getFeedback(period: Period, key: string): Promise<Feedback
   const rows = await db()<FeedbackRow[]>`
     SELECT id, period, key, note, created_at
       FROM feedback
-     WHERE user_id = ${USER} AND period = ${period} AND key = ${key}
+     WHERE user_id = ${currentUser()} AND period = ${period} AND key = ${key}
      ORDER BY created_at DESC
   `;
   return rows.map(toFeedback);
@@ -717,7 +715,7 @@ export async function recentFeedback(limit = 25): Promise<Feedback[]> {
   const rows = await db()<FeedbackRow[]>`
     SELECT id, period, key, note, created_at
       FROM feedback
-     WHERE user_id = ${USER}
+     WHERE user_id = ${currentUser()}
      ORDER BY created_at DESC
      LIMIT ${limit}
   `;
@@ -730,9 +728,9 @@ export async function recentFeedback(limit = 25): Promise<Feedback[]> {
  */
 export async function listKeys(period: Period, limit = 400): Promise<string[]> {
   const rows = await db()<{ key: string }[]>`
-    SELECT key FROM wraps       WHERE user_id = ${USER} AND period = ${period}
+    SELECT key FROM wraps       WHERE user_id = ${currentUser()} AND period = ${period}
     UNION
-    SELECT key FROM reflections WHERE user_id = ${USER} AND period = ${period} AND body <> ''
+    SELECT key FROM reflections WHERE user_id = ${currentUser()} AND period = ${period} AND body <> ''
     ORDER BY key DESC
     LIMIT ${limit}
   `;

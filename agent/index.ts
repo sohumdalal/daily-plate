@@ -3,6 +3,7 @@ import { serveStatic } from 'hono/bun';
 import { compress } from 'hono/compress';
 import { etag } from 'hono/etag';
 import { secureHeaders } from 'hono/secure-headers';
+import { authRoutes, requireMember, signInEnabled } from './auth.ts';
 import { config, isDev } from './config.ts';
 import { describeTarget, ping } from './db/client.ts';
 import { runMigrations } from './db/migrations.ts';
@@ -10,6 +11,7 @@ import { startMentionSync } from './notifications.ts';
 import { routes } from './routes.ts';
 import { startSlack } from './slack.ts';
 import { startBoardSync } from './sync.ts';
+import { claimDefaultRows, team } from './users.ts';
 import { wrapRoutes } from './wrap/routes.ts';
 
 const app = new Hono();
@@ -41,6 +43,8 @@ app.onError((err, c) => {
   return c.json({ error: err instanceof Error ? err.message : 'internal error' }, 500);
 });
 
+app.route('/api/auth', authRoutes);
+app.use(requireMember);
 app.route('/', routes);
 app.route('/api/wrap', wrapRoutes);
 
@@ -92,6 +96,12 @@ console.log(
   `Daily Plate on :${config.port} — ${config.timezone}` +
     ` — db ${describeTarget()}${isDev ? ' (dev)' : ''}`,
 );
+console.log(
+  `[team] ${team().map((m) => m.login + (m.slackId ? `:${m.slackId}` : '')).join(', ') || 'nobody (set TEAM)'}` +
+    (signInEnabled()
+      ? ' — sign in with GitHub'
+      : ` — sign-in is off (no GITHUB_APP_CLIENT_ID/SECRET), so everyone is ${team()[0]?.login ?? 'nobody'}`),
+);
 
 // The Postgres knowledge container often isn't accepting connections at the
 // instant the agent boots, so retry until reachable, then migrate. Failures
@@ -103,6 +113,7 @@ void (async () => {
     if (await ping()) {
       try {
         await runMigrations();
+        await claimDefaultRows();
         console.log('[db] connected — migrations applied');
         // All three write to the database, so they wait for the schema.
         startBoardSync();

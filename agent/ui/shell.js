@@ -44,6 +44,22 @@
   }
 
   /**
+   * A session that ends while a page is open: any API call then answers 401,
+   * and loading the page again goes through GitHub sign-in and back.
+   */
+  const send = window.fetch.bind(window);
+  window.fetch = async (...args) => {
+    const res = await send(...args);
+    if (res.status === 401 && new URL(res.url, location.href).pathname.startsWith('/api/')) location.reload();
+    return res;
+  };
+
+  async function signOut() {
+    await send('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    location.href = '/';
+  }
+
+  /**
    * Who is signed in, from /api/me: one request however many parts of the
    * page ask. Null when it fails, and the next call asks again.
    */
@@ -101,6 +117,7 @@
       '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-14.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
     dark: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
     system: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8m-4-4v4"/>',
+    signOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
     settings:
       '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
   };
@@ -122,6 +139,8 @@
     for (const img of mount.querySelectorAll('.account-avatar')) {
       if (me.login) img.src = avatarUrl(me.login);
     }
+    // Only where there is a sign-in to leave.
+    mount.querySelector('.account-signout').hidden = !me.signIn;
   }
 
   function buildMenu(mount) {
@@ -140,6 +159,7 @@
         </div>
         <div class="account-sep" role="separator"></div>
         <a class="account-item" role="menuitem" href="/settings/">${icon('settings')}Settings</a>
+        <button class="account-item account-signout" type="button" role="menuitem" hidden>${icon('signOut')}Sign out</button>
         <div class="account-sep" role="separator"></div>
         <div class="theme-row" role="group" aria-label="Theme">
           ${['light', 'dark', 'system']
@@ -161,6 +181,7 @@
       setOpen(menu.hidden);
     });
     menu.addEventListener('click', (event) => event.stopPropagation());
+    mount.querySelector('.account-signout').addEventListener('click', signOut);
     document.addEventListener('click', () => setOpen(false));
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && !menu.hidden) {

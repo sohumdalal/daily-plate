@@ -36,6 +36,7 @@ import {
   type ClaudeDay,
   type GitHubDay,
 } from './types.ts';
+import { currentUser } from '../users.ts';
 
 export const wrapRoutes = new Hono();
 
@@ -70,7 +71,7 @@ async function collectDay(day: string): Promise<{
     ),
     readiness().github
       ? fetchGitHubDay(day, {
-          username: config.github.username,
+          username: currentUser(),
           timezone: config.timezone,
         }).catch((err: unknown) => {
           errors.push(`github: ${err instanceof Error ? err.message : String(err)}`);

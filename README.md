@@ -20,6 +20,9 @@ agent until it merged in here; see [The Wrap tab](#the-wrap-tab).
 **Notifications** lists every time someone @-mentioned you; see
 [The Notifications tab](#the-notifications-tab).
 
+One deploy serves a whole team. Each person signs in with GitHub and sees only
+their own plate, Slack items, notifications and wrap; see [The team](#the-team).
+
 Three sources feed the plate:
 
 - **The boards.** Every card assigned to you on Astro Kanban, read through
@@ -73,8 +76,8 @@ whole, and the filters are remembered in this browser.
 ## The boards
 
 `GITHUB_PROJECTS` lists `owner/number` pairs, `astropods/1` (Astro Kanban)
-by default. Each board is read whole and filtered to cards assigned to
-`GITHUB_USERNAME`. Archived cards are skipped. A card on both boards appears
+by default. Each board is read whole and filtered to cards assigned to each
+member in turn. Archived cards are skipped. A card on both boards appears
 once, and it is done only when both boards say Done.
 
 Deployed, Daily Plate reads GitHub as a GitHub App installed on the org,
@@ -120,7 +123,42 @@ attempts and never chosen. The board read stays light; this lookup runs once
 per sync for your cards only.
 
 The date line also says whose plate it is ("Assigned to me · Sohum Dalal"),
-with the name read once from `GITHUB_USERNAME`'s GitHub profile.
+with the name read once from your GitHub profile.
+
+## The team
+
+`TEAM` in the deploy form lists everyone who may sign in, comma-separated,
+each as `github-login:SLACK_MEMBER_ID`:
+
+```
+sohumdalal:U08TSB1BZ5H, jessye:U0123ABCD
+```
+
+The first is the owner: rows from before there was a team are theirs. Every
+row in the database belongs to one member, by GitHub login, and every request,
+sync pass and Slack event runs as that member (`agent/users.ts`), so nothing
+reads or writes anyone else's.
+
+- **Signing in.** The GitHub App that reads the boards is also the OAuth
+  client. Put its Client ID and a client secret in `GITHUB_APP_CLIENT_ID` and
+  `GITHUB_APP_CLIENT_SECRET`, and `<app url>/api/auth/callback` in the App's
+  callback URLs. Someone not on `TEAM` is turned away. The session is a signed
+  cookie good for 7 days; Sign out is in the account menu. Signing in only
+  says who you are: the App's own token still reads everyone's GitHub work, so
+  nothing outside `GITHUB_ORGS` shows up.
+- **GitHub.** Each member's cards, PRs, issues and mentions are read as
+  theirs, one member after another.
+- **Slack.** A 🍽️ reaction plates onto the plate of whoever reacted, and 🧠
+  goes into their wrap. A mention of a member plates onto theirs; one naming
+  three members plates onto all three. The assistant works on the plate of
+  whoever talks to it. Someone not on `TEAM` has no plate, and their reactions
+  are ignored.
+- **The Wrap's Claude half** still comes from each member's own laptop: run
+  `bun run nightly` with `DAILY_PLATE_USER` set to your GitHub login.
+
+Without the client id and secret there is no sign-in, and everyone is the
+first member. Without `TEAM`, `GITHUB_USERNAME` and `SLACK_USER_ID` make a team
+of one, as before. Locally, `DEV_USER=<login>` skips signing in.
 
 ## Slack
 
@@ -134,11 +172,12 @@ the messages you react to, and there are no pictures.
 |---|---|---|
 | Reaction 🍽️ | Any message you react `:knife_fork_plate:` to goes on the plate; removing the reaction takes it off | "Actionable Reactions" includes `knife_fork_plate` at deploy |
 | Reaction 🧠 | Any message reacted `:brain:` to is recorded as feedback for that day's wrap | "Actionable Reactions" includes `brain` at deploy |
-| Mention of you | A message containing `<@SLACK_USER_ID>` goes on the plate | `SLACK_USER_ID`, and the channel under "Observe Channels" at deploy |
+| Mention of you | A message containing your `<@U…>` goes on your plate | Your Slack id on `TEAM`, and the channel under "Observe Channels" at deploy |
 | `@Daily Plate`, or a DM to it | The assistant answers (see below) | The `default` gateway model entry in `astropods.yml` |
 
-With `SLACK_USER_ID` set, only your own reactions count. Without it, mention
-capture is off and anyone's reaction counts.
+Each reaction counts for whoever made it, and only for members on `TEAM`. On a
+team with no Slack ids at all, mention capture is off and anyone's reaction
+goes on the owner's plate.
 
 The bot only sees channels it has been invited to, and Slack never shows a
 bot the DMs between people. A mention in a DM, or in a channel the app is not
@@ -237,13 +276,13 @@ unread until you open it or mark it read. The tab carries the unread count on
 every page.
 
 - **GitHub.** A comment, a review, a comment on a line of a PR, or the body
-  of a new issue or PR that names `@GITHUB_USERNAME`, in any repo of
+  of a new issue or PR that names your `@login`, in any repo of
   `GITHUB_ORGS`. Read every two minutes, or on Refresh. A quoted line or code
   that names you does not count, nor does anything you wrote yourself.
   GitHub's own notifications API answers only a person's token, and the
   deployed agent is a GitHub App, so the issues and PRs that mention you are
   searched instead. After a restart the first read looks back seven days.
-- **Slack.** A message that mentions `SLACK_USER_ID` in an observed channel,
+- **Slack.** A message that mentions your Slack id in an observed channel,
   as it arrives. It still goes on the plate as well; clearing it there leaves
   it here.
 
@@ -290,7 +329,9 @@ a deploy-form control with no flag.
    tab. The assistant's gateway model needs nothing in the form
 5. Under the Slack toggle: "Actionable Reactions" = `knife_fork_plate, brain`,
    and "Observe Channels" = the channel ids to watch for mentions
-6. `SLACK_USER_ID` = your Slack member id
+6. `TEAM` = everyone, as `github-login:SLACK_MEMBER_ID` (see [The team](#the-team))
+7. `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` from the same GitHub
+   App, with `<app url>/api/auth/callback` added to its callback URLs
 
 ## Design
 

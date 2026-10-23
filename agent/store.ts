@@ -3,8 +3,7 @@
  */
 
 import { db } from './db/client.ts';
-
-const USER = 'default';
+import { currentUser } from './users.ts';
 
 export type Source = 'board' | 'pr' | 'issue' | 'mention' | 'reaction' | 'task';
 
@@ -114,7 +113,7 @@ export async function plate(today: string, timezone: string): Promise<Item[]> {
   const rows = await sql<ItemRow[]>`
     SELECT ${sql.unsafe(COLUMNS)}
       FROM items
-     WHERE user_id = ${USER}
+     WHERE user_id = ${currentUser()}
        AND (done_at IS NULL OR (done_at AT TIME ZONE ${timezone})::date = ${today}::date)
      ORDER BY done_at IS NOT NULL, added_at DESC
   `;
@@ -127,7 +126,7 @@ export async function history(today: string, timezone: string): Promise<Item[]> 
   const rows = await sql<ItemRow[]>`
     SELECT ${sql.unsafe(COLUMNS)}
       FROM items
-     WHERE user_id = ${USER}
+     WHERE user_id = ${currentUser()}
        AND done_at IS NOT NULL
        AND (done_at AT TIME ZONE ${timezone})::date < ${today}::date
      ORDER BY done_at DESC
@@ -174,7 +173,7 @@ export async function syncSource(
                  updated_at = now(),
                  done_at = coalesce(done_at, now()),
                  done_by = coalesce(done_by, 'board')
-           WHERE user_id = ${USER} AND source = ${source} AND external_id = ${card.externalId}
+           WHERE user_id = ${currentUser()} AND source = ${source} AND external_id = ${card.externalId}
         `;
         continue;
       }
@@ -182,7 +181,7 @@ export async function syncSource(
       const [row] = await tx<{ inserted: boolean }[]>`
         INSERT INTO items (user_id, source, external_id, title, url, context, status, boards,
                            state, work)
-        VALUES (${USER}, ${source}, ${card.externalId}, ${card.title}, ${card.url},
+        VALUES (${currentUser()}, ${source}, ${card.externalId}, ${card.title}, ${card.url},
                 ${card.context}, ${card.status}, ${tx.json(card.boards)},
                 ${card.state}, ${card.work ? tx.json(card.work) : null})
         ON CONFLICT (user_id, source, external_id) DO UPDATE
@@ -205,7 +204,7 @@ export async function syncSource(
     const gone = await tx`
       UPDATE items
          SET done_at = now(), done_by = 'board', updated_at = now()
-       WHERE user_id = ${USER} AND source = ${source} AND done_at IS NULL
+       WHERE user_id = ${currentUser()} AND source = ${source} AND done_at IS NULL
          AND NOT (external_id = ANY(${ids}::text[]))
     `;
     return { added, cleared: gone.count };
@@ -224,7 +223,7 @@ export async function addSlackItem(input: {
   const sql = db();
   const rows = await sql<(ItemRow & { inserted: boolean })[]>`
     INSERT INTO items (user_id, source, external_id, title, url, context, author)
-    VALUES (${USER}, ${input.source}, ${input.externalId}, ${input.title}, ${input.url},
+    VALUES (${currentUser()}, ${input.source}, ${input.externalId}, ${input.title}, ${input.url},
             ${input.context}, ${input.author})
     ON CONFLICT (user_id, source, external_id) DO UPDATE
        SET title = EXCLUDED.title,
@@ -243,7 +242,7 @@ export async function addTask(title: string): Promise<Item> {
   const sql = db();
   const rows = await sql<ItemRow[]>`
     INSERT INTO items (user_id, source, external_id, title)
-    VALUES (${USER}, 'task', ${crypto.randomUUID()}, ${title})
+    VALUES (${currentUser()}, 'task', ${crypto.randomUUID()}, ${title})
     RETURNING ${sql.unsafe(COLUMNS)}
   `;
   return toItem(rows[0]!);
@@ -254,7 +253,7 @@ export async function addNote(id: number, text: string): Promise<Item | null> {
   const note: Note = { id: crypto.randomUUID(), text, at: new Date().toISOString() };
   const rows = await sql<ItemRow[]>`
     UPDATE items SET notes = notes || ${sql.json([note])}, updated_at = now()
-     WHERE id = ${id} AND user_id = ${USER}
+     WHERE id = ${id} AND user_id = ${currentUser()}
     RETURNING ${sql.unsafe(COLUMNS)}
   `;
   return rows[0] ? toItem(rows[0]) : null;
@@ -268,7 +267,7 @@ export async function deleteNote(id: number, noteId: string): Promise<Item | nul
              (SELECT jsonb_agg(n) FROM jsonb_array_elements(notes) n WHERE n->>'id' <> ${noteId}),
              '[]'::jsonb),
            updated_at = now()
-     WHERE id = ${id} AND user_id = ${USER}
+     WHERE id = ${id} AND user_id = ${currentUser()}
     RETURNING ${sql.unsafe(COLUMNS)}
   `;
   return rows[0] ? toItem(rows[0]) : null;
@@ -276,7 +275,7 @@ export async function deleteNote(id: number, noteId: string): Promise<Item | nul
 
 /** Every row, as stored, for GET /api/export and scripts/import-plate.ts. */
 export async function exportItems(): Promise<Record<string, unknown>[]> {
-  return db()`SELECT * FROM items WHERE user_id = ${USER} ORDER BY id`;
+  return db()`SELECT * FROM items WHERE user_id = ${currentUser()} ORDER BY id`;
 }
 
 /** What came off the plate on one day, for that day's wrap. */
@@ -285,7 +284,7 @@ export async function clearedOn(day: string, timezone: string): Promise<Item[]> 
   const rows = await sql<ItemRow[]>`
     SELECT ${sql.unsafe(COLUMNS)}
       FROM items
-     WHERE user_id = ${USER}
+     WHERE user_id = ${currentUser()}
        AND done_at IS NOT NULL
        AND (done_at AT TIME ZONE ${timezone})::date = ${day}::date
      ORDER BY done_at
@@ -298,7 +297,7 @@ export async function findSlackItem(externalId: string): Promise<Item | null> {
   const sql = db();
   const rows = await sql<ItemRow[]>`
     SELECT ${sql.unsafe(COLUMNS)} FROM items
-     WHERE user_id = ${USER} AND source IN ('mention', 'reaction') AND external_id = ${externalId}
+     WHERE user_id = ${currentUser()} AND source IN ('mention', 'reaction') AND external_id = ${externalId}
      ORDER BY added_at LIMIT 1
   `;
   return rows[0] ? toItem(rows[0]) : null;
@@ -308,7 +307,7 @@ export async function renameItem(id: number, title: string): Promise<Item | null
   const sql = db();
   const rows = await sql<ItemRow[]>`
     UPDATE items SET title = ${title}, updated_at = now()
-     WHERE id = ${id} AND user_id = ${USER}
+     WHERE id = ${id} AND user_id = ${currentUser()}
     RETURNING ${sql.unsafe(COLUMNS)}
   `;
   return rows[0] ? toItem(rows[0]) : null;
@@ -322,7 +321,7 @@ export async function setDone(id: number, done: boolean): Promise<Item | null> {
        SET done_at = ${done ? sql`now()` : null},
            done_by = ${done ? 'you' : null},
            updated_at = now()
-     WHERE id = ${id} AND user_id = ${USER}
+     WHERE id = ${id} AND user_id = ${currentUser()}
     RETURNING ${sql.unsafe(COLUMNS)}
   `;
   return rows[0] ? toItem(rows[0]) : null;
@@ -337,7 +336,7 @@ export async function deleteItems(ids: number[]): Promise<number[]> {
   const sql = db();
   const rows = await sql<{ id: string }[]>`
     DELETE FROM items
-     WHERE user_id = ${USER} AND id IN ${sql(ids)} AND source IN ${sql(DELETABLE)}
+     WHERE user_id = ${currentUser()} AND id IN ${sql(ids)} AND source IN ${sql(DELETABLE)}
     RETURNING id
   `;
   return rows.map((r) => Number(r.id));
@@ -350,7 +349,7 @@ export async function removeSlackItem(
 ): Promise<boolean> {
   const rows = await db()`
     DELETE FROM items
-     WHERE user_id = ${USER} AND source IN ${db()(sources)} AND external_id = ${externalId}
+     WHERE user_id = ${currentUser()} AND source IN ${db()(sources)} AND external_id = ${externalId}
     RETURNING id
   `;
   return rows.length > 0;
@@ -358,7 +357,7 @@ export async function removeSlackItem(
 
 export async function openCount(): Promise<number> {
   const [row] = await db()<{ n: number }[]>`
-    SELECT count(*)::int AS n FROM items WHERE user_id = ${USER} AND done_at IS NULL
+    SELECT count(*)::int AS n FROM items WHERE user_id = ${currentUser()} AND done_at IS NULL
   `;
   return row?.n ?? 0;
 }

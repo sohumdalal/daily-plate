@@ -32,6 +32,7 @@ const { fetchClaudeDay } = await import('../agent/wrap/sources/claude.ts');
 const { fetchGitHubDay } = await import('../agent/wrap/sources/github.ts');
 const { hasActivity, writeDayWrap } = await import('../agent/wrap/wrap.ts');
 const { addDays, daysBetween, today } = await import('../agent/time.ts');
+const { asUser, memberByLogin } = await import('../agent/users.ts');
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
@@ -75,63 +76,71 @@ async function chooseDays(): Promise<string[]> {
   return candidates.filter((day) => day === todayKey || !wrapped.has(day));
 }
 
-const days = await chooseDays();
-log(`${days.length} day(s) to consider: ${days.join(', ') || 'none'}`);
+// Every row this run writes is this person's: whoever runs it, on their own laptop.
+const login = process.env.DAILY_PLATE_USER || config.github.username;
+if (!login) fail('set DAILY_PLATE_USER (or GITHUB_USERNAME) to your GitHub login');
+const member = memberByLogin(login) ?? { login: login.toLowerCase(), slackId: '' };
+log(`wrapping as ${member.login}`);
 
 let wrapped = 0;
 let quiet = 0;
 let failed = 0;
 
-for (const day of days) {
-  try {
-    const [claude, github] = await Promise.all([
-      fetchClaudeDay(day, { home: config.claude.home, timezone: config.timezone }).catch(
-        (err: unknown) => {
-          log(`  ${day} claude read failed: ${String(err)}`);
-          return null;
-        },
-      ),
-      readiness().github
-        ? fetchGitHubDay(day, {
-            username: config.github.username,
-            timezone: config.timezone,
-          }).catch((err: unknown) => {
-            log(`  ${day} github read failed: ${String(err)}`);
+await asUser(member, async () => {
+  const days = await chooseDays();
+  log(`${days.length} day(s) to consider: ${days.join(', ') || 'none'}`);
+
+  for (const day of days) {
+    try {
+      const [claude, github] = await Promise.all([
+        fetchClaudeDay(day, { home: config.claude.home, timezone: config.timezone }).catch(
+          (err: unknown) => {
+            log(`  ${day} claude read failed: ${String(err)}`);
             return null;
-          })
-        : Promise.resolve(null),
-    ]);
+          },
+        ),
+        readiness().github
+          ? fetchGitHubDay(day, {
+              username: member.login,
+              timezone: config.timezone,
+            }).catch((err: unknown) => {
+              log(`  ${day} github read failed: ${String(err)}`);
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
 
-    if (!hasActivity(claude, github)) {
-      log(`  ${day} nothing recorded, skipping`);
-      quiet += 1;
-      continue;
-    }
+      if (!hasActivity(claude, github)) {
+        log(`  ${day} nothing recorded, skipping`);
+        quiet += 1;
+        continue;
+      }
 
-    if (dryRun) {
-      log(
-        `  ${day} would wrap — ${claude?.totals.prompts ?? 0} prompts, ` +
-          `${github?.totals.commits ?? 0} commits`,
-      );
+      if (dryRun) {
+        log(
+          `  ${day} would wrap — ${claude?.totals.prompts ?? 0} prompts, ` +
+            `${github?.totals.commits ?? 0} commits`,
+        );
+        wrapped += 1;
+        continue;
+      }
+
+      const stored = await store.saveDay(day, claude, github, { force });
+      const wrap = await writeDayWrap({
+        day,
+        claude: stored.claude,
+        github: stored.github,
+        reflection: await store.getReflection('day', day),
+      });
+      log(`  ${day} wrapped: ${wrap.headline}`);
       wrapped += 1;
-      continue;
+    } catch (err) {
+      // One bad day must not stop the rest of the window.
+      log(`  ${day} failed: ${err instanceof Error ? err.message : String(err)}`);
+      failed += 1;
     }
-
-    const stored = await store.saveDay(day, claude, github, { force });
-    const wrap = await writeDayWrap({
-      day,
-      claude: stored.claude,
-      github: stored.github,
-      reflection: await store.getReflection('day', day),
-    });
-    log(`  ${day} wrapped: ${wrap.headline}`);
-    wrapped += 1;
-  } catch (err) {
-    // One bad day must not stop the rest of the window.
-    log(`  ${day} failed: ${err instanceof Error ? err.message : String(err)}`);
-    failed += 1;
   }
-}
+});
 
 log(`done — ${wrapped} wrapped, ${quiet} quiet, ${failed} failed`);
 await shutdown();

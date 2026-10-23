@@ -10,10 +10,15 @@
  *             feedback for the Wrap tab instead (wrap/feedback.ts).
  *             `actionable_reactions` decides which emoji are forwarded, and
  *             the adapter fetches the message text before handing it over.
- *   Mention   A message that mentions SLACK_USER_ID, in a channel listed in
+ *   Mention   A message that mentions someone on TEAM, in a channel listed in
  *             `observe_channel_ids` (or in a thread the app can see). The
- *             adapter forwards those messages whole; this file keeps the ones
- *             naming you, on the plate and on the Notifications tab.
+ *             adapter forwards those messages whole; this file keeps each one
+ *             on the plate and the Notifications tab of everyone it names.
+ *
+ * Everything lands on one person's plate: a reaction on the plate of whoever
+ * reacted, :brain: in their wrap, a mention with each member it names, and
+ * the assistant works on the plate of whoever is talking to it. Someone not
+ * on TEAM has no plate, and their reactions are ignored.
  *
  * `serve()` from @astropods/adapter-mastra owns the connection, and traces
  * each assistant turn. It would hand every message to the model, so the
@@ -38,6 +43,7 @@ import { setTurn } from './assistant/turns.ts';
 import { config } from './config.ts';
 import * as notifications from './notifications.ts';
 import * as store from './store.ts';
+import { asUser, memberForSlack, team } from './users.ts';
 import { captureFeedback, FEEDBACK_EMOJI } from './wrap/feedback.ts';
 
 /**
@@ -138,7 +144,6 @@ function isTalk(message: Message): boolean {
  * the message's thread.
  */
 async function handle(message: Message, reply: (text: string) => void): Promise<void> {
-  const me = config.slack.userId;
   const ctx = message.platformContext ?? ({} as NonNullable<Message['platformContext']>);
   const content = message.content ?? '';
   const channel = ctx.channelName ? `#${ctx.channelName}` : ctx.channelId ?? '';
@@ -150,10 +155,12 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
     if (removal) {
       // Taking feedback back is not a thing the wrap does; only a plate reaction undoes.
       if (FEEDBACK_EMOJI.has(removal[1]!)) return;
-      const reactor = ctx.userId || removal[2]!;
-      if (me && reactor !== me) return;
-      const removed = await store.removeSlackItem(`${ctx.channelId}:${ctx.messageId}`, ['reaction']);
-      console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} reaction from ${channel || '?'}`);
+      const member = memberForSlack(ctx.userId || removal[2]!);
+      if (!member) return;
+      const removed = await asUser(member, () =>
+        store.removeSlackItem(`${ctx.channelId}:${ctx.messageId}`, ['reaction']),
+      );
+      console.log(`[slack] ${removed ? 'unplated' : 'nothing to unplate for'} ${member.login}'s reaction from ${channel || '?'}`);
       return;
     }
     const parsed = parseReaction(content);
@@ -161,33 +168,37 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
       console.warn('[slack] reaction arrived with no readable message text');
       return;
     }
+    // platformContext.userId is always the raw U…; message.user.id may be
+    // rewritten to a WorkOS id once a Slack account is linked.
+    const member = memberForSlack(ctx.userId || parsed.reactor);
+    if (!member) {
+      console.log(`[slack] ignored :${parsed.emoji}: from ${ctx.userId || parsed.reactor}, who is not on TEAM`);
+      return;
+    }
     if (FEEDBACK_EMOJI.has(parsed.emoji)) {
       reply(
-        await captureFeedback(message, parsed, link).catch((err) => {
+        await asUser(member, () => captureFeedback(message, parsed, link)).catch((err) => {
           console.error('[slack] could not store the feedback:', err);
           return 'Could not record that one. It is still in Slack, so react again later.';
         }),
       );
       return;
     }
-    // platformContext.userId is always the raw U…; message.user.id may be
-    // rewritten to a WorkOS id once a Slack account is linked.
-    const reactor = ctx.userId || parsed.reactor;
-    if (me && reactor !== me) return;
-
     // A reaction needs a visible result, or it is indistinguishable from a
     // channel the app was never invited to.
     try {
-      const { item, isNew } = await store.addSlackItem({
-        source: 'reaction',
-        externalId: `${ctx.channelId}:${ctx.messageId}`,
-        title: titleOf(parsed.text),
-        url: link,
-        context: channel,
-        author: authorOf(extra),
+      await asUser(member, async () => {
+        const { item, isNew } = await store.addSlackItem({
+          source: 'reaction',
+          externalId: `${ctx.channelId}:${ctx.messageId}`,
+          title: titleOf(parsed.text),
+          url: link,
+          context: channel,
+          author: authorOf(extra),
+        });
+        console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} ${member.login}'s reaction from ${item.context || '?'}`);
+        if (isNew) reply(platedReply(isNew, await store.openCount()));
       });
-      console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} reaction from ${item.context || '?'}`);
-      if (isNew) reply(platedReply(isNew, await store.openCount()));
     } catch (err) {
       console.error('[slack] could not store the message:', err);
       reply('Could not plate that one. React again later.');
@@ -199,42 +210,42 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
   // mentions intact as <@U…>. Replying in somebody else's thread to say you
   // were mentioned is noise, so these get none. Mentioning yourself is a
   // note to self: it plates, but it is not a notification.
-  if (
-    me &&
-    (ctx.eventKind === 'EVENT_KIND_OBSERVED' || ctx.eventKind === 'EVENT_KIND_THREAD_REPLY') &&
-    content.includes(`<@${me}>`)
-  ) {
-    const externalId = `${ctx.channelId}:${ctx.messageId}`;
-    try {
-      const { item, isNew } = await store.addSlackItem({
-        source: 'mention',
-        externalId,
-        title: titleOf(content),
-        url: link,
-        context: channel,
-        author: ctx.userId ? `<@${ctx.userId}>` : '',
-      });
-      console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} mention from ${item.context || '?'}`);
-    } catch (err) {
-      console.error('[slack] could not store the message:', err);
-    }
-    if (ctx.userId === me) return;
-    // The Notifications tab keeps it too, read or not, after the plate clears it.
-    await notifications
-      .add([
-        {
-          source: 'slack',
-          kind: 'mention',
+  if (ctx.eventKind !== 'EVENT_KIND_OBSERVED' && ctx.eventKind !== 'EVENT_KIND_THREAD_REPLY') return;
+  const externalId = `${ctx.channelId}:${ctx.messageId}`;
+  for (const member of team()) {
+    if (!member.slackId || !content.includes(`<@${member.slackId}>`)) continue;
+    await asUser(member, async () => {
+      try {
+        const { item, isNew } = await store.addSlackItem({
+          source: 'mention',
           externalId,
-          title: channel,
-          body: titleOf(content.replaceAll(`<@${me}>`, '@you')),
+          title: titleOf(content),
           url: link,
           context: channel,
           author: ctx.userId ? `<@${ctx.userId}>` : '',
-          at: new Date(Number(ctx.messageId) * 1000 || Date.now()).toISOString(),
-        },
-      ])
-      .catch((err) => console.error('[slack] could not store the notification:', err));
+        });
+        console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} a mention of ${member.login} from ${item.context || '?'}`);
+      } catch (err) {
+        console.error(`[slack] could not store ${member.login}'s mention:`, err);
+      }
+      if (ctx.userId === member.slackId) return;
+      // The Notifications tab keeps it too, read or not, after the plate clears it.
+      await notifications
+        .add([
+          {
+            source: 'slack',
+            kind: 'mention',
+            externalId,
+            title: channel,
+            body: titleOf(content.replaceAll(`<@${member.slackId}>`, '@you')),
+            url: link,
+            context: channel,
+            author: ctx.userId ? `<@${ctx.userId}>` : '',
+            at: new Date(Number(ctx.messageId) * 1000 || Date.now()).toISOString(),
+          },
+        ])
+        .catch((err) => console.error(`[slack] could not store ${member.login}'s notification:`, err));
+    });
   }
 }
 
@@ -283,10 +294,12 @@ export function patchBridge(): void {
   proto.start = async function (this: typeof proto) {
     await start.call(this);
     connected = true;
-    const me = config.slack.userId;
+    const ids = team().filter((m) => m.slackId);
     console.log(
       `[slack] registered with the sidecar via ${SIDECAR} — ` +
-        (me ? `capturing reactions and mentions of <@${me}>` : 'capturing reactions; set SLACK_USER_ID for mentions'),
+        (ids.length
+          ? `capturing reactions and mentions of ${ids.map((m) => `${m.login} <@${m.slackId}>`).join(', ')}`
+          : 'capturing reactions for the owner; put Slack ids on TEAM for mentions'),
     );
     this.stream?.on('error', (err: Error) => {
       connected = false;

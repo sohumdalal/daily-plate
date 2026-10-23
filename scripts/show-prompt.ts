@@ -14,15 +14,21 @@ const { shutdown } = await import('../agent/db/client.ts');
 const store = await import('../agent/wrap/store.ts');
 const { buildDayPrompt } = await import('../agent/wrap/wrap.ts');
 const { today } = await import('../agent/time.ts');
+const { asUser, memberByLogin } = await import('../agent/users.ts');
 
 const day = process.argv[2] ?? today(config.timezone);
-const record = await store.getDay(day);
+// Whose day: DAILY_PLATE_USER, or the GitHub login the local env sets.
+const login = process.env.DAILY_PLATE_USER || config.github.username;
+const member = memberByLogin(login) ?? { login: login.toLowerCase(), slackId: '' };
 
-const { system, user } = await buildDayPrompt({
-  day,
-  claude: record?.claude ?? null,
-  github: record?.github ?? null,
-  reflection: await store.getReflection('day', day),
+const { system, user } = await asUser(member, async () => {
+  const record = await store.getDay(day);
+  return buildDayPrompt({
+    day,
+    claude: record?.claude ?? null,
+    github: record?.github ?? null,
+    reflection: await store.getReflection('day', day),
+  });
 });
 
 console.log(`=== SYSTEM (${system.length} chars) ===\n${system}`);

@@ -12,7 +12,8 @@
  */
 
 import { config } from './config.ts';
-import { assignee } from './sync.ts';
+import { profileOf } from './sync.ts';
+import { team } from './users.ts';
 import { slackAuthorNames } from './wrap/store.ts';
 
 const SLACK_ID = /^[UW][A-Z0-9]{6,}$/;
@@ -84,8 +85,11 @@ export async function slackPeople(ids: string[] = []): Promise<Map<string, strin
     }
   }
   const names = await slackAuthorNames();
-  const owner = assignee()?.name.split(' ')[0];
-  if (config.slack.userId && owner && !names.has(config.slack.userId)) names.set(config.slack.userId, owner);
+  // Each member by their GitHub name, where Slack has not named them.
+  for (const member of team()) {
+    const first = profileOf(member.login)?.name.split(' ')[0];
+    if (member.slackId && first && !names.has(member.slackId)) names.set(member.slackId, first);
+  }
   for (const [id, profile] of profiles) if (profile?.name) names.set(id, profile.name);
   return names;
 }

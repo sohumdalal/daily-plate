@@ -20,6 +20,7 @@
 import { getOrCreateAstroTracerProvider } from '@astropods/adapter-core';
 import { SpanStatusCode, trace, type Attributes, type Span } from '@opentelemetry/api';
 import { config } from './config.ts';
+import { maybeMember } from './users.ts';
 
 const NAME = 'daily-plate';
 
@@ -53,7 +54,7 @@ export function traced<T>(name: string, session: string, fn: () => Promise<T>): 
     {
       'langfuse.trace.name': name,
       'langfuse.session.id': session,
-      'langfuse.user.id': config.github.username || 'anonymous',
+      'langfuse.user.id': maybeMember()?.login || 'anonymous',
     },
     () => fn(),
   );
