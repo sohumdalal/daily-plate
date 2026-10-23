@@ -88,33 +88,62 @@ export function currentUser(): string {
   return currentMember().login;
 }
 
-/** Tables keyed by user_id. Rows from before the team are the owner's. */
-const USER_TABLES = [
-  'items',
-  'notifications',
-  'days',
-  'wraps',
-  'wrap_versions',
-  'reflections',
-  'reflection_turns',
-  'feedback',
-  'goals',
-  'slack_feedback',
-];
+/**
+ * Tables keyed by user_id, each with the columns that make a row unique for
+ * one user. Rows from before the team are the owner's.
+ */
+const USER_TABLES: Record<string, string[]> = {
+  items: ['source', 'external_id'],
+  notifications: ['source', 'external_id'],
+  days: ['day'],
+  wraps: ['period', 'key'],
+  wrap_versions: ['period', 'key', 'version'],
+  reflections: ['period', 'key'],
+  reflection_turns: [],
+  feedback: [],
+  goals: [],
+  slack_feedback: ['channel_id', 'message_ts', 'emoji', 'reactor_id'],
+};
 
 /**
  * Hand every `default` row to the owner, once there is one. Idempotent: after
- * the first boot there are none left. A row the owner already has under their
- * login (same key) stays where it is rather than failing the boot.
+ * the first boot there are none left. Where the owner already has the same
+ * row, theirs is kept and the `default` copy goes: during a rollout the old
+ * build still syncs for a minute, as `default`, after this ran.
  */
 export async function claimDefaultRows(): Promise<void> {
   const first = owner();
   if (!first) return;
   const sql = db();
-  for (const table of USER_TABLES) {
+  for (const [table, key] of Object.entries(USER_TABLES)) {
     try {
-      const moved = await sql.unsafe(`UPDATE ${table} SET user_id = $1 WHERE user_id = 'default'`, [first.login]);
-      if (moved.count) console.log(`[team] ${moved.count} ${table} rows are now ${first.login}'s`);
+      await sql.begin(async (tx) => {
+        let dropped = 0;
+        if (key.length) {
+          const same = key.map((k) => `o.${k} = d.${k}`).join(' AND ');
+          // A copy's notes are kept on the owner's row; nothing else on a copy is the owner's own.
+          if (table === 'items') {
+            await tx.unsafe(
+              `UPDATE items o SET notes = o.notes || d.notes FROM items d
+                WHERE o.user_id = $1 AND d.user_id = 'default' AND ${same} AND jsonb_array_length(d.notes) > 0`,
+              [first.login],
+            );
+          }
+          const gone = await tx.unsafe(
+            `DELETE FROM ${table} d USING ${table} o
+              WHERE d.user_id = 'default' AND o.user_id = $1 AND ${same}`,
+            [first.login],
+          );
+          dropped = gone.count;
+        }
+        const moved = await tx.unsafe(`UPDATE ${table} SET user_id = $1 WHERE user_id = 'default'`, [first.login]);
+        if (moved.count || dropped) {
+          console.log(
+            `[team] ${moved.count} ${table} rows are now ${first.login}'s` +
+              (dropped ? `; ${dropped} copies they already had were dropped` : ''),
+          );
+        }
+      });
     } catch (err) {
       console.error(`[team] could not hand ${table} rows to ${first.login}:`, err);
     }
