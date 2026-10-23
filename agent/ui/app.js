@@ -1126,8 +1126,9 @@ function render() {
     day: 'numeric',
   });
   // Pull requests are listed but not counted: the plate is issues, tasks and Slack.
-  setCount($('n-open'), all.board.length + all.issues.length + all.tasks.length + all.slack.length);
-  document.title = `(all.board.length + all.issues.length + all.tasks.length + all.slack.length) Plate — Daily Plate`;
+  const onPlate = all.board.length + all.issues.length + all.tasks.length + all.slack.length;
+  setCount($('n-open'), onPlate);
+  document.title = `(${onPlate}) Plate — Daily Plate`;
   setCount($('n-github'), all.board.length + all.issues.length);
   setCount($('n-slack'), all.slack.length);
   setCount($('n-done'), allDone.length);
