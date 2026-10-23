@@ -97,6 +97,17 @@ export const config = {
     home: process.env.CLAUDE_HOME || join(homedir(), '.claude'),
   },
   llm: {
+    /**
+     * Deployed, the Astro AI gateway: the `default` model entry in
+     * astropods.yml injects its URL, key and model. Both the wraps and the
+     * Slack assistant use it.
+     */
+    gateway: {
+      url: process.env.ASTRO_GATEWAY_URL ?? '',
+      key: process.env.ASTRO_GATEWAY_API_KEY ?? '',
+      model: process.env.MODEL_DEFAULT || 'claude-sonnet-4-6',
+    },
+    /** On a laptop, with no gateway: Anthropic itself. */
     anthropicKey: process.env.ANTHROPIC_API_KEY ?? '',
     model: resolveModel(process.env.ANTHROPIC_MODEL ?? ''),
   },
@@ -125,8 +136,8 @@ export function readiness() {
     orgs: config.github.orgs,
     signIn: Boolean(config.auth.clientId && config.auth.clientSecret),
     claudeHome: config.claude.home,
-    llm: Boolean(config.llm.anthropicKey),
-    model: config.llm.model,
+    llm: Boolean(config.llm.gateway.url || config.llm.anthropicKey),
+    model: config.llm.gateway.url ? config.llm.gateway.model : config.llm.model,
     database: describeTarget(),
     databaseIsLocal: targetIsLocal(),
   };

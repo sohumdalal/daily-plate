@@ -77,22 +77,10 @@ agent:
       description: >-
         IANA timezone that decides what "cleared today" means, and where one
         day ends and the next begins for the wrap.
-    - name: ANTHROPIC_MODEL
-      datatype: string
-      display-as: select
-      options:
-        - claude-opus-5
-        - claude-sonnet-5
-        - claude-haiku-4-5
-      default: "claude-sonnet-5"
-      description: Claude model that writes the wraps.
 
-# → ANTHROPIC_API_KEY, for the Wrap tab.
+# → ASTRO_GATEWAY_URL, ASTRO_GATEWAY_API_KEY and MODEL_DEFAULT. The wraps and
+# the Slack assistant both talk through the Astro AI gateway, as Capcom does.
 models:
-  anthropic:
-    provider: anthropic
-  # → ASTRO_GATEWAY_URL, ASTRO_GATEWAY_API_KEY and MODEL_DEFAULT, for the Slack
-  # assistant, which talks through the Astro AI gateway as Capcom does.
   default:
     provider: gateway
     models: [claude-sonnet-4-6]

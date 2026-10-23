@@ -208,7 +208,8 @@ want before it acts:
 It changes the plate only through its tools (`agent/assistant/tools.ts`), and
 says only what a tool confirmed. It talks through the Astro AI gateway, which
 the `default` model entry in `astropods.yml` turns on; without the gateway, as
-on a laptop, it uses `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. It remembers
+on a laptop, it uses `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. The wraps go
+through the same gateway, the same way. It remembers
 the last turns of each thread, in a local file that a restart clears.
 
 `serve()` from `@astropods/adapter-mastra` holds the connection to the
@@ -305,7 +306,8 @@ bun run prompt [day]   # print the prompt a day would be wrapped with; reads onl
 
 Secrets, in precedence order: your shell, then `.env.local` (gitignored), then
 `~/.ast/project-configs.json`. `GITHUB_TOKEN` comes from `gh auth token` unless
-your shell sets one. The Wrap tab also needs `ANTHROPIC_API_KEY`.
+your shell sets one. The Wrap tab and `bun run nightly` also need
+`ANTHROPIC_API_KEY`, since a laptop has no AI gateway.
 
 `bun run import-plate <export.json | postgres://…>` copies plate items into
 the database this checkout points at. It only adds: an item already there keeps
@@ -326,8 +328,8 @@ a deploy-form control with no flag.
 2. `daily-plate-db` → **Shared** → the store the laptop's `POSTGRES_URL` names
 3. `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `GITHUB_APP_INSTALLATION_ID`
    from a GitHub App installed on the org (see [The boards](#the-boards))
-4. `ANTHROPIC_API_KEY` from the vault, and `ANTHROPIC_MODEL`, for the Wrap
-   tab. The assistant's gateway model needs nothing in the form
+4. Nothing for the model: the wraps and the assistant both use the gateway
+   model, `default` in `astropods.yml`
 5. Under the Slack toggle: "Actionable Reactions" = `knife_fork_plate, brain`,
    and "Observe Channels" = the channel ids to watch for mentions
 6. `TEAM` = everyone, as `github-login:SLACK_MEMBER_ID` (see [The team](#the-team))

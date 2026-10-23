@@ -1515,7 +1515,7 @@ window.Mova?.skeleton(el.slackLoading, 'feedback');
   try {
     const server = await api('/api/state');
     state.today = server.today;
-    if (!server.llm) note('ANTHROPIC_API_KEY is not set — wraps cannot be written.', true);
+    if (!server.llm) note('No model is set up (the AI gateway, or ANTHROPIC_API_KEY on a laptop) — wraps cannot be written.', true);
     else if (!server.github) note('GitHub is not configured — the day will be Claude only.', true);
   } catch (err) {
     note(`Cannot reach the agent: ${err.message}`, true);

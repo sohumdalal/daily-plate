@@ -73,12 +73,12 @@ Rules:
  * laptop, the Wrap tab's own Anthropic key and model.
  */
 function chatModel() {
-  const url = process.env.ASTRO_GATEWAY_URL;
+  const { url, key, model } = config.llm.gateway;
   if (url) {
-    const gateway = createOpenAI({ apiKey: process.env.ASTRO_GATEWAY_API_KEY, baseURL: `${url}/v1` });
+    const gateway = createOpenAI({ apiKey: key, baseURL: `${url}/v1` });
     // Chat Completions, not the SDK's default Responses API, which the gateway
     // mistranslates for multi-step tool calls (Capcom found this).
-    return gateway.chat(process.env.MODEL_DEFAULT ?? 'claude-sonnet-4-6');
+    return gateway.chat(model);
   }
   return createAnthropic({ apiKey: config.llm.anthropicKey })(config.llm.model);
 }
