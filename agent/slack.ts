@@ -188,12 +188,12 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
 
   // Observed top-level messages and thread replies both carry the raw text,
   // mentions intact as <@U…>. Replying in somebody else's thread to say you
-  // were mentioned is noise, so these get none.
+  // were mentioned is noise, so these get none. Mentioning yourself is a
+  // note to self: it plates, but it is not a notification.
   if (
     me &&
     (ctx.eventKind === 'EVENT_KIND_OBSERVED' || ctx.eventKind === 'EVENT_KIND_THREAD_REPLY') &&
-    content.includes(`<@${me}>`) &&
-    ctx.userId !== me
+    content.includes(`<@${me}>`)
   ) {
     const externalId = `${ctx.channelId}:${ctx.messageId}`;
     try {
@@ -209,6 +209,7 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
     } catch (err) {
       console.error('[slack] could not store the message:', err);
     }
+    if (ctx.userId === me) return;
     // The Notifications tab keeps it too, read or not, after the plate clears it.
     await notifications
       .add([
