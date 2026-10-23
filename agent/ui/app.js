@@ -20,6 +20,8 @@ const GITHUB_SOURCES = new Set(['board', 'pr', 'issue']);
 
 /** Sources read from Slack. A task is neither: you typed it in. */
 const SLACK_SOURCES = new Set(['mention', 'reaction']);
+/** What a row's X or a section's Clear all can delete for good. */
+const DELETABLE = new Set(['task', ...SLACK_SOURCES]);
 
 const TASKS_SECTION = 'Tasks';
 
@@ -486,18 +488,18 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
 
   body.append(meta, title);
   if (item.work?.kind === 'pr' && item.work.comments?.length) body.append(commentChip(item.work.comments));
-  // A task can also go for good. Anything synced would only come back.
+  // A task or Slack message can also go for good. Anything synced would only come back.
   const actions = document.createElement('div');
   actions.className = 'row-actions';
   actions.append(notesToggle(item));
-  if (item.source === 'task') {
+  if (DELETABLE.has(item.source)) {
     const cross = document.createElement('button');
     cross.className = 'cross';
     cross.type = 'button';
     cross.innerHTML = CROSS_SVG;
     cross.title = 'Delete it';
     cross.setAttribute('aria-label', `Delete: ${item.title}`);
-    cross.addEventListener('click', () => removeTask(item.id));
+    cross.addEventListener('click', () => removeItems([item.id]));
     actions.append(cross);
   }
   li.append(check, body, actions);
@@ -782,7 +784,32 @@ function emptyState(flipKey, { title, caption }) {
   return box;
 }
 
-function section({ key, iconName, name, href, sub, warn: isWarn, count, items, empty, rowOpts }) {
+/** Clear all. The first press asks again, so one stray click deletes nothing. */
+function clearAll(items) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'clear-all';
+  button.textContent = 'Clear all';
+  button.title = 'Delete every row here for good. Ticked rows stay in Cleared today.';
+  let armed = null;
+  button.addEventListener('click', () => {
+    if (armed) {
+      clearTimeout(armed);
+      removeItems(items.map((i) => i.id));
+      return;
+    }
+    button.textContent = `Delete ${items.length}?`;
+    button.classList.add('armed');
+    armed = setTimeout(() => {
+      armed = null;
+      button.textContent = 'Clear all';
+      button.classList.remove('armed');
+    }, 3000);
+  });
+  return button;
+}
+
+function section({ key, iconName, name, href, sub, warn: isWarn, count, items, empty, rowOpts, clearable }) {
   const group = document.createElement('section');
   group.className = 'group';
 
@@ -807,6 +834,7 @@ function section({ key, iconName, name, href, sub, warn: isWarn, count, items, e
 
   if (count !== undefined) {
     const stat = span('group-stat', '');
+    if (clearable && items.length) stat.append(clearAll(items));
     stat.append(countNode(key, count), span('label', 'open'));
     head.append(stat);
   }
@@ -953,6 +981,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
         sub: sub('Added by you'),
         count: tasks.length,
         items: tasks,
+        clearable: true,
         empty: { title: 'No tasks of your own.', caption: 'Type one in the box above, or press N.' },
       }),
     );
@@ -975,6 +1004,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
       ),
       count: slack.length,
       items: slack,
+      clearable: true,
       empty: {
         title: 'Nothing from Slack.',
         caption: 'React <span class="kbd">:knife_fork_plate:</span> to a message, or mention @Daily Plate, to put it here.',
@@ -1320,21 +1350,28 @@ function replaceItem(fresh) {
   render();
 }
 
-/** Delete a task for good. A failure puts it back where it was. */
-async function removeTask(id) {
-  const lists = [data.items, data.history ?? []];
-  const list = lists.find((l) => l.some((i) => i.id === id));
-  if (!list) return;
-  const at = list.findIndex((i) => i.id === id);
-  const [item] = list.splice(at, 1);
+/** Delete tasks and Slack messages for good. A failure puts them back where they were. */
+async function removeItems(ids) {
+  const gone = new Set(ids);
+  const before = [data.items, data.history ?? []].map((list) => [...list]);
+  data.items = data.items.filter((i) => !gone.has(i.id));
+  if (data.history) data.history = data.history.filter((i) => !gone.has(i.id));
   edits++;
   render();
   try {
-    await request(`/api/items/${id}`, { method: 'DELETE' });
+    if (ids.length === 1) await request(`/api/items/${ids[0]}`, { method: 'DELETE' });
+    else {
+      await request('/api/items/clear', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+    }
   } catch (err) {
-    list.splice(at, 0, item);
+    [data.items] = before;
+    if (data.history) data.history = before[1];
     render();
-    warn(`Could not delete that task: ${err.message}`);
+    warn(`Could not delete ${ids.length === 1 ? 'that' : 'those'}: ${err.message}`);
   }
 }
 

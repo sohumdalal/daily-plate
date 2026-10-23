@@ -328,12 +328,19 @@ export async function setDone(id: number, done: boolean): Promise<Item | null> {
   return rows[0] ? toItem(rows[0]) : null;
 }
 
-/** Delete a task for good. Only tasks: a synced item would come back. */
-export async function deleteTask(id: number): Promise<boolean> {
-  const rows = await db()`
-    DELETE FROM items WHERE id = ${id} AND user_id = ${USER} AND source = 'task' RETURNING id
+/** What you can delete for good: anything synced from GitHub would only come back. */
+const DELETABLE = ['task', 'mention', 'reaction'];
+
+/** Delete tasks and Slack messages for good, so they are not cleared but gone. */
+export async function deleteItems(ids: number[]): Promise<number[]> {
+  if (!ids.length) return [];
+  const sql = db();
+  const rows = await sql<{ id: string }[]>`
+    DELETE FROM items
+     WHERE user_id = ${USER} AND id IN ${sql(ids)} AND source IN ${sql(DELETABLE)}
+    RETURNING id
   `;
-  return rows.length > 0;
+  return rows.map((r) => Number(r.id));
 }
 
 /** Takes a Slack message off the plate, as the given sources put it there. */

@@ -45,6 +45,11 @@ Tick an item to clear it. What you cleared today stays visible beneath the
 plate until the day ends. A card you clear yourself stays cleared, even if the
 board still has it open.
 
+A task or Slack message can also go for good: click × at its right edge, or
+"Clear all" in the Tasks or Slack header (it asks once more before it deletes).
+A deleted row is not cleared, so it is not in Cleared today or the wrap. GitHub
+items have no ×, because a sync would only bring them back.
+
 ## Sections
 
 Each board gets its own section, headed by its name (a link to the board),

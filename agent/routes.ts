@@ -7,7 +7,8 @@
  *   POST  /api/sync         re-read GitHub now
  *   POST  /api/items        { title: string } — put a task of your own on the plate
  *   PATCH /api/items/:id    { done: boolean } — clear an item, or put it back
- *   DELETE /api/items/:id   delete a task of your own
+ *   DELETE /api/items/:id   delete a task or Slack message for good
+ *   POST  /api/items/clear  { ids: number[] } — delete those tasks and Slack messages
  *   POST  /api/items/:id/notes      { text: string } — add a note to an item
  *   DELETE /api/items/:id/notes/:n  remove that note
  *   GET   /api/unfurl?url=          { url, title, site, icon } — a link's preview card
@@ -96,8 +97,20 @@ routes.patch('/api/items/:id', async (c) => {
 
 routes.delete('/api/items/:id', async (c) => {
   const id = Number(c.req.param('id'));
-  const deleted = Number.isInteger(id) && (await store.deleteTask(id));
+  const deleted = Number.isInteger(id) && (await store.deleteItems([id])).length > 0;
   return deleted ? c.json({ id }) : c.json({ error: 'not found' }, 404);
+});
+
+/** Most rows one Clear all deletes. */
+const MAX_CLEAR = 500;
+
+routes.post('/api/items/clear', async (c) => {
+  const body = await c.req.json<{ ids?: unknown }>().catch(() => ({}) as { ids?: unknown });
+  const ids = Array.isArray(body.ids) ? body.ids : null;
+  if (!ids || ids.length > MAX_CLEAR || !ids.every((id) => Number.isInteger(id))) {
+    return c.json({ error: `expected { ids: number[] }, at most ${MAX_CLEAR}` }, 400);
+  }
+  return c.json({ ids: await store.deleteItems(ids as number[]) });
 });
 
 routes.post('/api/items/:id/notes', async (c) => {
