@@ -97,6 +97,15 @@ function titleOf(text: string): string {
   return flat.length > MAX_TITLE ? `${flat.slice(0, MAX_TITLE - 1)}…` : flat;
 }
 
+/**
+ * Who wrote a reacted message, as `<@U…|Name>`: the id finds their picture,
+ * and the name holds when Slack cannot be asked.
+ */
+function authorOf(extra: Record<string, string>): string {
+  if (!extra.author_id) return extra.author_name || '';
+  return extra.author_name ? `<@${extra.author_id}|${extra.author_name}>` : `<@${extra.author_id}>`;
+}
+
 /** `Added to Sohum's plate for Monday, October 19. 5 open.` */
 function platedReply(isNew: boolean, open: number): string {
   const who = `${ownerName()}'s`;
@@ -175,7 +184,7 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
         title: titleOf(parsed.text),
         url: link,
         context: channel,
-        author: extra.author_name || extra.author_id || '',
+        author: authorOf(extra),
       });
       console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} reaction from ${item.context || '?'}`);
       if (isNew) reply(platedReply(isNew, await store.openCount()));
@@ -203,7 +212,7 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
         title: titleOf(content),
         url: link,
         context: channel,
-        author: ctx.userId ?? '',
+        author: ctx.userId ? `<@${ctx.userId}>` : '',
       });
       console.log(`[slack] ${isNew ? 'plated' : 'refreshed'} mention from ${item.context || '?'}`);
     } catch (err) {
@@ -221,7 +230,7 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
           body: titleOf(content.replaceAll(`<@${me}>`, '@you')),
           url: link,
           context: channel,
-          author: extra.author_name || '',
+          author: ctx.userId ? `<@${ctx.userId}>` : '',
           at: new Date(Number(ctx.messageId) * 1000 || Date.now()).toISOString(),
         },
       ])

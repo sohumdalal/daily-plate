@@ -53,6 +53,15 @@ agent:
         Your Slack member id (U…). A message in an observed channel that
         mentions it lands on the plate, and only your own reactions count.
         Without it, mention capture is off and anyone's reaction counts.
+    - name: SLACK_BOT_TOKEN
+      datatype: string
+      secret: true
+      optional: true
+      description: >-
+        The Slack app's Bot User OAuth Token (xoxb-…), the same one the Slack
+        adapter uses. With it the plate shows each Slack person's picture and
+        real name. Needs the users:read scope. Without it, names come from
+        the messages you react to, and there are no pictures.
     - name: TIMEZONE
       datatype: string
       default: "America/New_York"

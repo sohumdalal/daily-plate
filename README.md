@@ -125,7 +125,10 @@ with the name read once from `GITHUB_USERNAME`'s GitHub profile.
 ## Slack
 
 Every path rides the Astro messaging sidecar. The agent needs no Slack token
-of its own.
+of its own. Give it one anyway, as `SLACK_BOT_TOKEN` (the same `xoxb-` token
+the adapter uses), and the plate shows each Slack person's picture and real
+name, read once per person through `users.info`. Without it, names come from
+the messages you react to, and there are no pictures.
 
 | Path | What it does | Needs |
 |---|---|---|

@@ -25,7 +25,7 @@ import { Hono } from 'hono';
 import ogs from 'open-graph-scraper';
 import { config, readiness } from './config.ts';
 import * as notifications from './notifications.ts';
-import { mentionsIn, personName, slackPeople, withNames } from './people.ts';
+import { idsIn, mentionsIn, personAvatar, personName, slackPeople, withNames } from './people.ts';
 import * as store from './store.ts';
 import { slackConnected } from './slack.ts';
 import { assignee, lastSync, syncBoards } from './sync.ts';
@@ -35,14 +35,24 @@ export const routes = new Hono();
 
 routes.get('/healthz', (c) => c.json({ ok: true }));
 
-/** A Slack item with its people named rather than shown by id, and those names listed. */
+function isSlack(item: store.Item): boolean {
+  return item.source === 'mention' || item.source === 'reaction';
+}
+
+/** The people these Slack items name, looked up in Slack when it can be. */
+function peopleOf(items: store.Item[]) {
+  return slackPeople(idsIn(...items.filter(isSlack).flatMap((i) => [i.title, i.author])));
+}
+
+/** A Slack item with its people named rather than shown by id, those names listed, and its author's picture. */
 function named(people: Map<string, string>) {
-  return (item: store.Item): store.Item & { mentions?: string[] } =>
-    item.source === 'mention' || item.source === 'reaction'
+  return (item: store.Item): store.Item & { mentions?: string[]; authorAvatar?: string } =>
+    isSlack(item)
       ? {
           ...item,
           title: withNames(item.title, people),
           author: personName(item.author, people),
+          authorAvatar: personAvatar(item.author),
           mentions: mentionsIn(item.title, people),
         }
       : item;
@@ -50,14 +60,16 @@ function named(people: Map<string, string>) {
 
 async function plateBody() {
   const today = dayOf(new Date(), config.timezone);
-  const people = await slackPeople();
+  const items = await store.plate(today, config.timezone);
+  const history = await store.history(today, config.timezone);
+  const people = await peopleOf([...items, ...history]);
   return {
     today,
     state: { ...readiness(), slackConnected: slackConnected() },
     sync: lastSync(),
     assignee: assignee(),
-    items: (await store.plate(today, config.timezone)).map(named(people)),
-    history: (await store.history(today, config.timezone)).map(named(people)),
+    items: items.map(named(people)),
+    history: history.map(named(people)),
   };
 }
 
@@ -97,7 +109,7 @@ routes.patch('/api/items/:id', async (c) => {
     return c.json({ error: 'expected { done: boolean }' }, 400);
   }
   const item = await store.setDone(id, body.done);
-  return item ? c.json(named(await slackPeople())(item)) : c.json({ error: 'not found' }, 404);
+  return item ? c.json(named(await peopleOf([item]))(item)) : c.json({ error: 'not found' }, 404);
 });
 
 routes.delete('/api/items/:id', async (c) => {
@@ -126,14 +138,14 @@ routes.post('/api/items/:id/notes', async (c) => {
     return c.json({ error: `expected { text: string }, 1 to ${MAX_TEXT} characters` }, 400);
   }
   const item = await store.addNote(id, text);
-  return item ? c.json(named(await slackPeople())(item), 201) : c.json({ error: 'not found' }, 404);
+  return item ? c.json(named(await peopleOf([item]))(item), 201) : c.json({ error: 'not found' }, 404);
 });
 
 routes.delete('/api/items/:id/notes/:note', async (c) => {
   const id = Number(c.req.param('id'));
   if (!Number.isInteger(id)) return c.json({ error: 'not found' }, 404);
   const item = await store.deleteNote(id, c.req.param('note'));
-  return item ? c.json(named(await slackPeople())(item)) : c.json({ error: 'not found' }, 404);
+  return item ? c.json(named(await peopleOf([item]))(item)) : c.json({ error: 'not found' }, 404);
 });
 
 /** Link previews, read once per URL for the life of the process. */
@@ -162,12 +174,15 @@ routes.get('/api/unfurl', async (c) => {
 });
 
 async function notificationsBody() {
-  const people = await slackPeople();
+  const list = await notifications.list();
+  const people = await slackPeople(idsIn(...list.filter((n) => n.source === 'slack').flatMap((n) => [n.body, n.author])));
   return {
     state: { ...readiness(), slackConnected: slackConnected() },
     sync: notifications.lastMentionSync(),
-    items: (await notifications.list()).map((n) =>
-      n.source === 'slack' ? { ...n, body: withNames(n.body, people), author: personName(n.author, people) } : n,
+    items: list.map((n) =>
+      n.source === 'slack'
+        ? { ...n, body: withNames(n.body, people), author: personName(n.author, people), authorAvatar: personAvatar(n.author) }
+        : n,
     ),
     unread: await notifications.unreadCount(),
   };

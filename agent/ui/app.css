@@ -239,6 +239,20 @@ body:not(.ready) .shell {
   padding-bottom: var(--lg);
 }
 
+/* A Slack author, with their picture when Slack gave one. */
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.author-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-full);
+  background: var(--surface-soft);
+}
+
 /* An @-mention in a Slack title, as Slack sets one apart. */
 .mention {
   font-style: italic;

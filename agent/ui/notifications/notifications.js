@@ -109,10 +109,14 @@ function row(n) {
   link.target = '_blank';
   link.rel = 'noopener';
   const who = el('span', 'notice-who');
-  if (n.source === 'github' && n.author) {
+  // A Slack person has a picture only once SLACK_BOT_TOKEN has looked them up.
+  const picture =
+    n.source === 'github' && n.author ? `https://github.com/${encodeURIComponent(n.author)}.png?size=40` : n.authorAvatar;
+  if (picture) {
     const avatar = el('img', 'notice-avatar');
     avatar.alt = '';
-    avatar.src = `https://github.com/${encodeURIComponent(n.author)}.png?size=40`;
+    avatar.src = picture;
+    avatar.onerror = () => avatar.remove();
     who.append(avatar);
   }
   who.append(el('strong', '', n.author || 'Someone'), ` ${VERBS[n.kind] || VERBS.mention}`);

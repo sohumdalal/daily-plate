@@ -473,7 +473,20 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   } else {
     meta.append(span('status', SOURCE_LABEL[item.source]));
     if (item.source !== 'task') meta.append(span('where', item.context || 'Slack'));
-    if (item.author) meta.append(span('', item.author));
+    if (item.author) {
+      const who = span('author', item.author);
+      // A picture only once SLACK_BOT_TOKEN has looked them up.
+      if (item.authorAvatar) {
+        const img = document.createElement('img');
+        img.className = 'author-avatar';
+        img.src = item.authorAvatar;
+        img.alt = '';
+        img.loading = 'lazy';
+        img.onerror = () => img.remove();
+        who.prepend(img);
+      }
+      meta.append(who);
+    }
     meta.append(span('', ago(item.addedAt)));
   }
 
