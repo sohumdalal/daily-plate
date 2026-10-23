@@ -31,6 +31,7 @@ import { slackConnected } from './slack.ts';
 import { assignee, lastSync, syncBoards } from './sync.ts';
 import { dayOf } from './time.ts';
 import { currentMember } from './users.ts';
+import { slackLinkOf } from './slack-link.ts';
 
 /** What the screen may say about this member's Slack: whether their mentions are kept. */
 function memberState() {
@@ -56,6 +57,7 @@ function named(people: Map<string, string>) {
     isSlack(item)
       ? {
           ...item,
+          url: item.url || slackLinkOf(item.externalId),
           title: withNames(item.title, people),
           author: personName(item.author, people),
           authorAvatar: personAvatar(item.author),

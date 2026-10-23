@@ -18,6 +18,7 @@ import type {
   WrapVersion,
 } from './types.ts';
 import { currentUser } from '../users.ts';
+import { slackLink } from '../slack-link.ts';
 
 type DayRow = {
   day: Date;
@@ -454,7 +455,7 @@ function toSlackFeedback(row: SlackFeedbackRow): SlackFeedback {
     authorName: row.author_name,
     emoji: row.emoji,
     text: row.text,
-    permalink: row.permalink,
+    permalink: row.permalink || slackLink(row.channel_id, row.message_ts, row.thread_root),
     createdAt: row.created_at.toISOString(),
   };
 }

@@ -7,6 +7,7 @@
  */
 
 import type { RequestContext } from '@mastra/core/request-context';
+import { slackLink } from '../slack-link.ts';
 
 export type Turn = {
   channelId: string;
@@ -36,6 +37,6 @@ export function turnOf(requestContext: RequestContext | undefined): Turn | null 
 }
 
 export function permalink(turn: Turn, messageId: string): string {
-  if (!turn.workspaceId || !turn.channelId || !messageId) return '';
-  return `https://${turn.workspaceId}.slack.com/archives/${turn.channelId}/p${messageId.replace('.', '')}`;
+  // The thread root is the thread itself; a reply opens inside it.
+  return slackLink(turn.channelId, messageId, messageId === turn.threadRootId ? '' : turn.threadRootId);
 }

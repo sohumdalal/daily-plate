@@ -45,6 +45,7 @@ import * as notifications from './notifications.ts';
 import * as store from './store.ts';
 import { asUser, memberForSlack, team } from './users.ts';
 import { captureFeedback, FEEDBACK_EMOJI } from './wrap/feedback.ts';
+import { slackLink } from './slack-link.ts';
 
 /**
  * Astro injects the sidecar's address as GRPC_SERVER_ADDR, deployed and under
@@ -91,11 +92,6 @@ function parseReaction(content: string): { emoji: string; reactor: string; text:
   const match = content.match(REACTION_HEADER);
   if (!match) return null;
   return { emoji: match[1]!, reactor: match[2]!, text: content.slice(match[0].length).trim() };
-}
-
-function permalink(workspace: string, channelId: string, messageTs: string): string {
-  if (!workspace || !channelId || !messageTs) return '';
-  return `https://${workspace}.slack.com/archives/${channelId}/p${messageTs.replace('.', '')}`;
 }
 
 function titleOf(text: string): string {
@@ -147,7 +143,7 @@ async function handle(message: Message, reply: (text: string) => void): Promise<
   const ctx = message.platformContext ?? ({} as NonNullable<Message['platformContext']>);
   const content = message.content ?? '';
   const channel = ctx.channelName ? `#${ctx.channelName}` : ctx.channelId ?? '';
-  const link = permalink(ctx.workspaceId ?? '', ctx.channelId ?? '', ctx.messageId ?? '');
+  const link = slackLink(ctx.channelId ?? '', ctx.messageId ?? '', ctx.threadRootId ?? '');
   const extra = ctx.platformData ?? {};
 
   if (ctx.eventKind === 'EVENT_KIND_REACTION') {

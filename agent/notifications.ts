@@ -12,6 +12,7 @@ import { config, readiness } from './config.ts';
 import { db } from './db/client.ts';
 import { fetchMentions, type MentionKind } from './sources/mentions.ts';
 import { gh } from './sources/github.ts';
+import { slackLinkOf } from './slack-link.ts';
 import { asUser, currentUser, team } from './users.ts';
 
 const READ_EVERY_MS = 2 * 60_000;
@@ -41,6 +42,7 @@ export type Notification = {
 type Row = {
   id: string;
   source: NotificationSource;
+  external_id: string;
   kind: Notification['kind'];
   title: string;
   body: string;
@@ -58,7 +60,8 @@ function toNotification(row: Row): Notification {
     kind: row.kind,
     title: row.title,
     body: row.body,
-    url: row.url,
+    // Slack rows from before there was a link: rebuilt from `channel:ts`.
+    url: row.url || (row.source === 'slack' ? slackLinkOf(row.external_id) : ''),
     context: row.context,
     author: row.author,
     at: row.at.toISOString(),
@@ -66,7 +69,7 @@ function toNotification(row: Row): Notification {
   };
 }
 
-const COLUMNS = 'id, source, kind, title, body, url, context, author, at, read_at';
+const COLUMNS = 'id, source, external_id, kind, title, body, url, context, author, at, read_at';
 
 type Input = Omit<Notification, 'id' | 'readAt'> & { externalId: string };
 
