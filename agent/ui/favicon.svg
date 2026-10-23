@@ -1,1 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#da291c"/><g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M11.5 5.5v5.5a4.5 4.5 0 0 0 9 0V5.5M16 5.5v6"/></g><rect x="14.6" y="14" width="2.8" height="13" rx="1.4" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Daily Plate</title>
+  <defs>
+    <!-- Fork and knife, pointing up, centred on x = 0. Thick enough to hold at 32 px. -->
+    <g id="fork">
+      <rect x="-30" y="-150" width="12" height="62" rx="6"/>
+      <rect x="-6" y="-150" width="12" height="62" rx="6"/>
+      <rect x="18" y="-150" width="12" height="62" rx="6"/>
+      <path d="M-30 -96 H30 V-88 C30 -64 18 -54 13 -44 V-20 H-13 V-44 C-18 -54 -30 -64 -30 -88 Z"/>
+      <rect x="-16" y="-26" width="32" height="176" rx="16"/>
+    </g>
+    <g id="knife">
+      <path d="M-15 -144 C-15 -150 -10 -153 -4 -150 C20 -136 22 -84 16 -26 H-15 Z"/>
+      <rect x="-16" y="-26" width="32" height="176" rx="16"/>
+    </g>
+  </defs>
+
+  <rect width="512" height="512" fill="#002FA7"/>
+
+  <!-- Plate, with one bold bistro band -->
+  <circle cx="256" cy="256" r="226" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="194" fill="none" stroke="#002FA7" stroke-width="16"/>
+
+  <g transform="translate(260 260) rotate(-36) scale(1.02)" fill="#002FA7">
+    <use href="#fork" x="-34"/>
+    <use href="#knife" x="36"/>
+  </g>
+</svg>
