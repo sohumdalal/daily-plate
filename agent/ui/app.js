@@ -480,7 +480,7 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   const title = item.url ? document.createElement('a') : linked('title', item.title);
   if (item.url) {
     title.className = 'title';
-    title.textContent = item.title;
+    title.append(...withMentions(item.title, item.mentions));
     title.href = item.url;
     title.target = '_blank';
     title.rel = 'noopener';
@@ -505,6 +505,15 @@ function row(item, { key = `item-${item.id}`, withSource = false } = {}) {
   li.append(check, body, actions);
   if (openNotes.has(item.id)) li.append(notesPanel(item));
   return li;
+}
+
+/** A Slack title, its @-mentions set in italics so they read as mentions. */
+function withMentions(text, mentions) {
+  if (!mentions?.length) return [text];
+  const escaped = mentions.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return text.split(new RegExp(`(${escaped.join('|')})`)).map((part) =>
+    mentions.includes(part) ? span('mention', part) : part,
+  );
 }
 
 const CHEVRON_SVG =

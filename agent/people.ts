@@ -27,6 +27,11 @@ export function withNames(text: string, people: Map<string, string>): string {
   return text.replace(MENTION, (_, id: string, label?: string) => `@${label || people.get(id) || 'someone'}`);
 }
 
+/** The `@Name`s withNames writes into `text`, so the screen can set them apart. */
+export function mentionsIn(text: string, people: Map<string, string>): string[] {
+  return [...new Set([...text.matchAll(MENTION)].map(([, id, label]) => `@${label || people.get(id!) || 'someone'}`))];
+}
+
 /** An author as stored: a name passes through, an id becomes the name, or nothing. */
 export function personName(author: string, people: Map<string, string>): string {
   return SLACK_ID.test(author) ? (people.get(author) ?? '') : author;

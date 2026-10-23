@@ -25,7 +25,7 @@ import { Hono } from 'hono';
 import ogs from 'open-graph-scraper';
 import { config, readiness } from './config.ts';
 import * as notifications from './notifications.ts';
-import { personName, slackPeople, withNames } from './people.ts';
+import { mentionsIn, personName, slackPeople, withNames } from './people.ts';
 import * as store from './store.ts';
 import { slackConnected } from './slack.ts';
 import { assignee, lastSync, syncBoards } from './sync.ts';
@@ -35,11 +35,16 @@ export const routes = new Hono();
 
 routes.get('/healthz', (c) => c.json({ ok: true }));
 
-/** A Slack item with its people named rather than shown by id. */
+/** A Slack item with its people named rather than shown by id, and those names listed. */
 function named(people: Map<string, string>) {
-  return (item: store.Item): store.Item =>
+  return (item: store.Item): store.Item & { mentions?: string[] } =>
     item.source === 'mention' || item.source === 'reaction'
-      ? { ...item, title: withNames(item.title, people), author: personName(item.author, people) }
+      ? {
+          ...item,
+          title: withNames(item.title, people),
+          author: personName(item.author, people),
+          mentions: mentionsIn(item.title, people),
+        }
       : item;
 }
 

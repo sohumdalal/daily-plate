@@ -239,6 +239,11 @@ body:not(.ready) .shell {
   padding-bottom: var(--lg);
 }
 
+/* An @-mention in a Slack title, as Slack sets one apart. */
+.mention {
+  font-style: italic;
+}
+
 /* ── Section headers: the source, named ───────────────────────────────── */
 
 .group-head {
