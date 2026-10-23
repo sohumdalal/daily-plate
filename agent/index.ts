@@ -9,6 +9,7 @@ import { describeTarget, ping } from './db/client.ts';
 import { runMigrations } from './db/migrations.ts';
 import { startMentionSync } from './notifications.ts';
 import { routes } from './routes.ts';
+import { learnWorkspace } from './slack-link.ts';
 import { startSlack } from './slack.ts';
 import { startBoardSync } from './sync.ts';
 import { claimDefaultRows, team } from './users.ts';
@@ -116,6 +117,7 @@ void (async () => {
         await claimDefaultRows();
         console.log('[db] connected — migrations applied');
         // All three write to the database, so they wait for the schema.
+        await learnWorkspace();
         startBoardSync();
         startMentionSync();
         void startSlack();

@@ -69,8 +69,9 @@ agent:
       description: >-
         The Slack app's Bot User OAuth Token (xoxb-…), the same one the Slack
         adapter uses. With it the plate shows each Slack person's picture and
-        real name. Needs the users:read scope. Without it, names come from
-        the messages you react to, and there are no pictures.
+        real name, and Slack links open in the right workspace. Needs the
+        users:read scope. Without it, names come from the messages you react
+        to, there are no pictures, and links open in your last workspace.
     - name: TIMEZONE
       datatype: string
       default: "America/New_York"
