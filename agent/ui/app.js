@@ -331,61 +331,99 @@ function setFilter(key, value) {
 }
 
 /**
- * The chip rows. Each chip counts what it would leave on screen with the
- * other filters as they are, so a dead end shows before it is clicked.
+ * What each value along `key` would leave on screen with the other filters as
+ * they are, so a dead end never shows: a value with nothing left is left out.
+ */
+function filterCounts(key, open) {
+  const values = new Map();
+  for (const item of open) {
+    // A section counts all its rows: picking one starts its narrowing over.
+    if (key !== 'section' && !passes(item, key)) continue;
+    for (const value of facets(item)[key]) values.set(value, (values.get(value) ?? 0) + 1);
+  }
+  // A stale filter (its last row cleared) still shows, so it can be turned off.
+  if (filters[key] && !values.has(filters[key])) values.set(filters[key], 0);
+  const order = FILTER_ORDER[key]?.() ?? null;
+  return [...values].sort(([a, n], [b, m]) =>
+    order ? orderOf(order, a) - orderOf(order, b) : m - n || a.localeCompare(b),
+  );
+}
+
+function filterLabel(key, value) {
+  return key === 'state' ? (PR_STATE[value]?.label ?? value) : value;
+}
+
+/** The rows filterCounts last saw, for a redraw once the Mova bundle arrives. */
+let filterRows = [];
+
+/**
+ * The filters: Mova's FilterTagPill for the section, then Mova's
+ * CategorySelect for Repo and State under Pull requests. Without the Mova
+ * bundle, plain buttons and a native select do the same work.
  */
 function renderFilters(open) {
-  const rows = liveDims().map(({ key, label }) => {
-    const values = new Map();
-    for (const item of open) {
-      for (const value of facets(item)[key]) values.set(value, 0);
-    }
-    for (const item of open) {
-      // A section counts all its rows: picking one starts its narrowing over.
-      if (key !== 'section' && !passes(item, key)) continue;
-      for (const value of facets(item)[key]) values.set(value, values.get(value) + 1);
-    }
-    // A stale filter (its last row cleared) still shows, so it can be turned off.
-    if (filters[key] && !values.has(filters[key])) values.set(filters[key], 0);
-    if (!values.size) return null;
+  filterRows = open;
+  const tags = filterCounts('section', open).map(([value, count]) => ({ value, label: value, count }));
+  const pick = (value) => setFilter('section', value);
+  if (window.Mova) window.Mova.filterPill($('filter-section'), { tags, selected: filters.section, onSelect: pick });
+  else $('filter-section').replaceChildren(...tags.map((tag) => plainTag(tag, pick)));
 
-    const order = FILTER_ORDER[key]?.() ?? null;
-    const sorted = [...values].sort(([a, n], [b, m]) =>
-      order ? orderOf(order, a) - orderOf(order, b) : m - n || a.localeCompare(b),
-    );
-
-    const row = document.createElement('div');
-    row.className = revealRows && key !== 'section' ? 'filter-row filter-row-enter' : 'filter-row';
-    row.append(span('label filter-label', label));
-    const chips = document.createElement('div');
-    chips.className = 'chips';
-    for (const [value, count] of sorted) {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip';
-      const on = filters[key] === value;
-      chip.setAttribute('aria-pressed', String(on));
-      chip.disabled = !on && count === 0;
-      chip.append(span('', key === 'state' ? (PR_STATE[value]?.label ?? value) : value), span('chip-count', String(count)));
-      chip.addEventListener('click', () => setFilter(key, value));
-      chips.append(chip);
-    }
-    row.append(chips);
-    return row;
-  }).filter(Boolean);
-
-  if (filtering()) {
-    const clear = document.createElement('button');
-    clear.type = 'button';
-    clear.className = 'filter-clear';
-    clear.textContent = 'Clear filters';
-    clear.title = 'Clear filters (Esc)';
-    clear.addEventListener('click', clearFilters);
-    rows.push(clear);
+  const bar = $('filter-bar');
+  const live = liveDims().filter(({ key }) => key !== 'section');
+  for (const { key, label } of FILTER_DIMS.filter(({ key }) => key !== 'section')) {
+    const counts = live.some((d) => d.key === key) ? filterCounts(key, open) : [];
+    const mount = filterMount(bar, key);
+    mount.hidden = !counts.length;
+    if (!counts.length) continue;
+    const options = [
+      { value: null, label: 'All', count: null },
+      ...counts.map(([value, count]) => ({ value, label: filterLabel(key, value), count })),
+    ];
+    // Picking the one that is on, or All, turns it off.
+    const choose = (value) => setFilter(key, value ?? filters[key]);
+    const props = { label, options, selected: filters[key] ?? null, onSelect: choose };
+    if (window.Mova) window.Mova.categorySelect(mount, props);
+    else mount.replaceChildren(plainSelect(props));
   }
-  $('filters').replaceChildren(...rows);
+  bar.querySelector('.filter-clear').hidden = !filtering();
+  bar.hidden = !live.length;
+  bar.classList.toggle('filter-bar-enter', revealRows && !reduced);
   revealRows = false;
 }
+
+/** Each filter's own element in the bar, made once, so Mova keeps its menu state. */
+function filterMount(bar, key) {
+  let mount = bar.querySelector(`[data-filter="${key}"]`);
+  if (!mount) {
+    mount = document.createElement('div');
+    mount.dataset.filter = key;
+    bar.querySelector('.filter-clear').before(mount);
+  }
+  return mount;
+}
+
+function plainTag({ value, label, count }, onSelect) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.setAttribute('aria-pressed', String(filters.section === value));
+  button.append(span('', label), span('filter-count', String(count)));
+  button.addEventListener('click', () => onSelect(value));
+  return button;
+}
+
+function plainSelect({ label, options, selected, onSelect }) {
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', label);
+  for (const { value, label: text, count } of options) {
+    const option = new Option(count === null ? `${label}: ${text}` : `${text} (${count})`, value ?? '');
+    option.selected = value === selected;
+    select.append(option);
+  }
+  select.addEventListener('change', () => onSelect(select.value || null));
+  return select;
+}
+
+$('filter-bar').querySelector('.filter-clear').addEventListener('click', () => clearFilters());
 
 function clearFilters() {
   if (animating) return;
@@ -1446,6 +1484,8 @@ document.addEventListener('keydown', (e) => {
 // after this script; the first frame without it is blank, as it always was.
 addEventListener('DOMContentLoaded', () => {
   if (!document.body.classList.contains('ready')) window.Mova?.skeleton($('plate-skeleton'), 'plate');
+  // A plate drawn before the bundle arrived takes Mova's filters now.
+  if (data) renderFilters(filterRows);
 });
 
 load();

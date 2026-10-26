@@ -14,6 +14,8 @@ import { SubmitState } from './ui/submit-state.jsx';
 import { TypingIndicator } from './ui/typing.jsx';
 import { TextShimmer } from './ui/shimmer.jsx';
 import { TabIndicator } from './ui/tab-indicator.jsx';
+import { FilterTagPill } from './ui/filter-tag-pill.jsx';
+import { CategorySelect } from './ui/category-select.jsx';
 import { ShimmerLine } from './ui/shimmer-line.jsx';
 import { PageSkeleton } from './ui/skeletons.jsx';
 
@@ -93,6 +95,16 @@ function tabs(container) {
   );
 }
 
+/** The section filter: tags with their counts, the chosen one's backdrop sliding to the next. */
+function filterPill(el, props) {
+  render(el, <FilterTagPill {...props} />);
+}
+
+/** A filter's dropdown: `Repo All ▾`, with what each choice would leave. */
+function categorySelect(el, props) {
+  render(el, <CategorySelect {...props} />);
+}
+
 /** A week, month or year's charts. The chart code loads on first use. */
 let rollups;
 const latest = new WeakMap();
@@ -111,4 +123,4 @@ async function rollup(el, stats) {
   render(el, <Rollup stats={stats} />);
 }
 
-window.Mova = { button, typing, shimmer, tabs, rollup, skeleton, progress, release };
+window.Mova = { button, typing, shimmer, tabs, filterPill, categorySelect, rollup, skeleton, progress, release };

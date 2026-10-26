@@ -42,6 +42,20 @@
 .dp-seg { border-color: var(--hairline); }
 .dp-seg-on { background: var(--ink); color: var(--canvas); font-weight: 600; }
 
+/* The filters: FilterTagPill and CategorySelect. */
+.dp-pill { background: var(--surface-soft); border-color: var(--hairline); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.dp-pill-on { background: var(--ink); }
+.dp-pill-text { color: var(--body); }
+.dp-pill-text-on { color: var(--canvas); }
+.dp-select { background: var(--canvas); border-color: var(--hairline); color: var(--ink); }
+.dp-select:hover,
+.dp-select[aria-expanded='true'] { border-color: var(--muted); }
+.dp-select-on.dp-select-on { border-color: var(--ink); }
+.dp-menu { background: var(--canvas); border-color: var(--hairline); }
+.dp-option { color: var(--body); background: transparent; }
+.dp-option:hover { color: var(--ink); background: var(--surface-soft); }
+.dp-option-on { color: var(--ink); background: var(--surface-soft); }
+
 /* ── A rollup's charts ──────────────────────────────────────────────────── */
 
 .mova-rollup .grid2 {

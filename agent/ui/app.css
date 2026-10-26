@@ -136,89 +136,66 @@ body:not(.ready) .shell {
   }
 }
 
-/* ── Filters: one row per dimension, chips drawn like the Refresh button ── */
+/* ── Filters: Mova's FilterTagPill, then a CategorySelect each (mova.css) ── */
 
 .filters {
   display: grid;
+  justify-items: start;
   gap: var(--xxs);
   padding-top: var(--xs);
 }
 
-.filters:empty {
-  display: none;
+.filter-section {
+  max-width: 100%;
 }
 
-.filter-row {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  align-items: start;
-  gap: var(--xs);
+/* Repo, State and Clear, in one row under the pill. */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--xxs);
 }
 
-.filter-label {
-  line-height: 28px;
-}
-
-/* Repo and State rise in under the Section row when Pull requests is picked. */
-.filter-row-enter {
+.filter-bar-enter {
   animation: rise 420ms var(--ease) backwards;
 }
 
-.filter-row-enter + .filter-row-enter {
-  animation-delay: 60ms;
-}
-
-.chips {
+/* Without the Mova bundle: plain buttons and native selects. */
+.filter-section:not(.mova) {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--xxs);
+  gap: var(--xxxs);
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--xxs);
-  height: 28px;
+.filter-section:not(.mova) button,
+.filter-bar select {
+  height: 30px;
   padding: 0 10px;
   background: var(--canvas);
   border: 1px solid var(--hairline);
   border-radius: var(--r-none);
   color: var(--body);
-  cursor: pointer;
   font: inherit;
   font-size: 12px;
-  font-weight: 500;
-  transition: color 200ms var(--ease), background 200ms var(--ease), border-color 200ms var(--ease);
 }
 
-/* Not the pressed chip: this rule outranks it, and would draw ink on ink. */
-.chip:hover:not(:disabled, [aria-pressed='true']) {
-  color: var(--ink);
-  border-color: var(--muted);
-}
-
-.chip[aria-pressed='true'] {
+.filter-section:not(.mova) button[aria-pressed='true'] {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--canvas);
 }
 
-.chip:disabled {
-  color: var(--muted-soft);
+.filter-count {
+  margin-left: 6px;
   opacity: 0.6;
-  cursor: default;
-}
-
-.chip-count {
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.7;
 }
 
 .filter-clear {
-  justify-self: start;
-  margin-left: calc(72px + var(--xs));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: var(--xxs);
   padding: 0;
   background: none;
   border: 0;
@@ -233,6 +210,14 @@ body:not(.ready) .shell {
 
 .filter-clear:hover {
   color: var(--ink);
+}
+
+.filter-clear kbd {
+  padding: 1px 4px;
+  border: 1px solid var(--hairline);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.5px;
 }
 
 .group {
@@ -1079,19 +1064,6 @@ a.title:hover {
 
   .specs {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .filter-row {
-    grid-template-columns: 1fr;
-    gap: var(--xxxs);
-  }
-
-  .filter-label {
-    line-height: 1.4;
-  }
-
-  .filter-clear {
-    margin-left: 0;
   }
 
   .spec-cell:nth-child(3) {

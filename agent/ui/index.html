@@ -72,9 +72,14 @@
                  placeholder="Add a task to the plate (N)" aria-label="New task" />
           <button class="line-button" id="add-submit" type="submit">Add</button>
         </form>
-        <!-- Repo, section and state chips. One of each can be on at a time,
-             and they combine. -->
-        <div class="filters" id="filters"></div>
+        <!-- One section is always on. Under Pull requests, a repo and a state
+             can narrow it too. -->
+        <div class="filters" id="filters">
+          <div class="filter-section" id="filter-section"></div>
+          <div class="filter-bar" id="filter-bar" hidden>
+            <button class="filter-clear" type="button" title="Clear filters (Esc)" hidden>Clear <kbd>Esc</kbd></button>
+          </div>
+        </div>
         <p class="note warn" id="provenance" role="status" aria-live="polite" hidden></p>
       </header>
 
