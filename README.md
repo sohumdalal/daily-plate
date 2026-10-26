@@ -340,8 +340,33 @@ a deploy-form control with no flag.
 
 ## Design
 
-Both tabs use the shared Ferrari design system in `../DESIGN.md` (linked here
-as `DESIGN.md`), from one set of tokens in `agent/ui/theme.css`. Light is the
+The design system is [Mova](https://mova-ui.com), skinned with a little
+Ferrari. Mova supplies the components and their motion; Ferrari supplies the
+tokens they are drawn in.
+
+**Mova first.** Before writing a control, a loader, a chart or a motion of
+your own, look for one in Mova's catalog and use it. Each one is vendored the
+same way, so the pages stay plain DOM:
+
+1. Copy its source from `@mova-ui/react` 0.4.6 (MIT) into `agent/mova/src/`,
+   `ui/` for components and `charts/` for charts, with a header that names
+   where it came from and what changed.
+2. Re-skin it, and change nothing else: its colour and theme literals become
+   `dp-*` classes in `agent/mova/src/mova.css`, drawn from the theme tokens,
+   and its corners go square. Its layout, spacing and motion stay Mova's.
+3. Make its demo data props, so the page passes the real values and owns the
+   state.
+4. Mount it from `agent/mova/src/index.jsx` as a `window.Mova` call, and give
+   the page a plain-DOM stand-in for when the bundle does not load.
+
+`bun run build:ui` writes the bundle to `agent/ui/mova/dist/`, which is not in
+git. The filters (`FilterTagPill`, `CategorySelect`), the buttons' states, the
+loading shapes, the progress line and the Wrap charts are all Mova.
+
+**Ferrari underneath.** The tokens come from the shared Ferrari design file in
+`../DESIGN.md` (linked here as `DESIGN.md`), as one set in
+`agent/ui/theme.css`: its palette, Inter, the spacing ladder, sharp corners
+and hairlines, and the Rosso Corsa accent. Light is the
 default. The account menu at the top right (`agent/ui/shell.js`) switches to the
 design file's dark palette, or to System, remembered per browser, and links to
 Settings at `/settings/`. Same Inter, sharp corners, hairlines and spacing. The
