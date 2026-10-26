@@ -254,6 +254,10 @@ body:not(.ready) .shell {
   padding-bottom: var(--lg);
 }
 
+.show-more {
+  margin-top: var(--xs);
+}
+
 /* A Slack author, with their picture when Slack gave one. */
 .author {
   display: inline-flex;

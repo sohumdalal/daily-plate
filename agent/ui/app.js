@@ -938,6 +938,27 @@ function clearAll(items) {
   return button;
 }
 
+/** The button under a long list: the rest of its rows, or back to the first LIST_LIMIT. */
+function showMore(key, hidden, open) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'line-button show-more';
+  button.dataset.flip = `more-${key}`;
+  button.setAttribute('aria-expanded', String(open));
+  button.textContent = open ? 'Show less' : `Show ${hidden} more`;
+  button.addEventListener('click', () => {
+    if (open) expanded.delete(key);
+    else expanded.add(key);
+    render();
+  });
+  return button;
+}
+
+/** Rows a list shows before its Show more. Its counts are always of every row. */
+const LIST_LIMIT = 15;
+/** Lists opened past LIST_LIMIT, by section key. They stay open across renders. */
+const expanded = new Set();
+
 function section({ key, iconName, name, href, sub, warn: isWarn, count, items, empty, rowOpts, clearable }) {
   const group = document.createElement('section');
   group.className = 'group';
@@ -971,9 +992,12 @@ function section({ key, iconName, name, href, sub, warn: isWarn, count, items, e
   const list = document.createElement('ul');
   list.className = 'items';
   list.id = `list-${key}`;
-  list.append(...items.map((item) => row(item, rowOpts?.(item))));
+  const open = expanded.has(key);
+  const drawn = open ? items : items.slice(0, LIST_LIMIT);
+  list.append(...drawn.map((item) => row(item, rowOpts?.(item))));
 
   group.append(head, list);
+  if (items.length > LIST_LIMIT) group.append(showMore(key, items.length - LIST_LIMIT, open));
   if (!items.length && empty) {
     // Under a filter, an empty list says so rather than claiming a clear plate.
     group.append(emptyState(`e-${key}`, filtering() ? { title: 'Nothing here matches the filters.' } : empty));
