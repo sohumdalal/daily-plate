@@ -76,8 +76,13 @@ const PR_SECTION = 'Pull requests';
 /** The last section: every board card, PR and issue that was closed, today or before. */
 const CLOSED_SECTION = 'Closed';
 
-/** The sources the Closed section holds. Tasks and Slack rows are cleared, not closed. */
-const CLOSED_SOURCES = new Set(['board', 'pr', 'issue']);
+/** The Closed section's parts, in order. Issues sit with the board cards: both are Kanban work. */
+const CLOSED_PARTS = [
+  { key: 'kanban', name: 'Kanban', sources: ['board', 'issue'] },
+  { key: 'pr', name: 'Pull requests', sources: ['pr'] },
+  { key: 'task', name: 'Tasks', sources: ['task'] },
+  { key: 'slack', name: 'Slack', sources: [...SLACK_SOURCES] },
+];
 
 /**
  * The filter rows, in the order they are drawn. Section is always on, one at a
@@ -93,6 +98,8 @@ let data = null;
 let busy = false;
 /** One section, and at most one repo and state, as { section, repo, state }. Remembered per browser. */
 let filters = readFilters();
+/** What the search box holds, as typed. It lasts across sections, not visits. */
+let query = '';
 /** Set when a section switch brings in its Repo and State rows, so they rise in once. */
 let revealRows = false;
 /** Set while a completion plays, so a poll cannot re-render under it. */
@@ -296,15 +303,47 @@ function liveDims() {
   return FILTER_DIMS.filter(({ under }) => !under || under === filters.section);
 }
 
-/** Whether a row passes every filter that is on, leaving out `skip`. */
+/** Whether a row passes every filter that is on, and the search, leaving out `skip`. */
 function passes(item, skip) {
   const of = facets(item);
-  return liveDims().every(({ key }) => key === skip || !filters[key] || of[key].includes(filters[key]));
+  return (
+    matches(item) && liveDims().every(({ key }) => key === skip || !filters[key] || of[key].includes(filters[key]))
+  );
 }
 
-/** Whether a filter narrows the section that is on. */
+/** Whether a filter or the search narrows the section that is on. */
 function filtering() {
-  return liveDims().some(({ key }) => key !== 'section' && filters[key]);
+  return Boolean(query.trim()) || liveDims().some(({ key }) => key !== 'section' && filters[key]);
+}
+
+/** Each row's searchable text, lower-cased once per load rather than per keystroke. */
+const haystacks = new WeakMap();
+function haystack(item) {
+  let text = haystacks.get(item);
+  if (text === undefined) {
+    const state = PR_STATE[item.state]?.label ?? '';
+    const notes = (item.notes ?? []).map((n) => n.text).join(' ');
+    text = [item.title, item.context, item.author, item.status, state, ...(item.boards ?? []), notes]
+      .join(' ')
+      .toLowerCase();
+    haystacks.set(item, text);
+  }
+  return text;
+}
+
+/** Every word of the search appears somewhere in the row, in any order. */
+function matches(item) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const text = haystack(item);
+  return words.every((word) => text.includes(word));
+}
+
+function setQuery(value) {
+  if (value === query) return;
+  query = value;
+  // Typing redraws at once and without motion, so the list keeps up with the keys.
+  if (data) render({ still: true });
 }
 
 /** The section to show: the one last picked, or the first with rows in it. Closed is only ever picked. */
@@ -339,9 +378,11 @@ function setFilter(key, value) {
  */
 function filterCounts(key, open) {
   const values = new Map();
+  // Every section stays while the search narrows, at 0 if need be, so the pill holds still.
+  if (key === 'section') for (const item of open) for (const value of facets(item).section) values.set(value, 0);
   for (const item of open) {
-    // A section counts all its rows: picking one starts its narrowing over.
-    if (key !== 'section' && !passes(item, key)) continue;
+    // A section counts all its rows that match the search: picking one starts its narrowing over.
+    if (key === 'section' ? !matches(item) : !passes(item, key)) continue;
     for (const value of facets(item)[key]) values.set(value, (values.get(value) ?? 0) + 1);
   }
   // A stale filter (its last row cleared) still shows, so it can be turned off.
@@ -370,11 +411,18 @@ function renderFilters(open) {
   const tags = filterCounts('section', open)
     .filter(([value]) => value !== CLOSED_SECTION)
     .map(([value, count]) => ({ value, label: value, count }));
-  const closed = closedRows().length;
-  if (closed || filters.section === CLOSED_SECTION) tags.push({ value: CLOSED_SECTION, label: CLOSED_SECTION, count: closed });
+  const closed = closedRows();
+  if (closed.length || filters.section === CLOSED_SECTION) {
+    tags.push({ value: CLOSED_SECTION, label: CLOSED_SECTION, count: closed.filter(matches).length });
+  }
   const pick = (value) => setFilter('section', value);
   if (window.Mova) window.Mova.filterPill($('filter-section'), { tags, selected: filters.section, onSelect: pick });
   else $('filter-section').replaceChildren(...tags.map((tag) => plainTag(tag, pick)));
+
+  const placeholder = `Search ${filters.section === CLOSED_SECTION ? 'everything closed' : filters.section}`;
+  const searchProps = { value: query, placeholder, onChange: setQuery };
+  if (window.Mova) window.Mova.search($('filter-search'), searchProps);
+  else plainSearch($('filter-search'), searchProps);
 
   const bar = $('filter-bar');
   const live = liveDims().filter(({ key }) => key !== 'section');
@@ -417,6 +465,19 @@ function plainTag({ value, label, count }, onSelect) {
   button.append(span('', label), span('filter-count', String(count)));
   button.addEventListener('click', () => onSelect(value));
   return button;
+}
+
+function plainSearch(mount, { value, placeholder, onChange }) {
+  let input = mount.querySelector('input');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'search';
+    input.setAttribute('aria-label', 'Search');
+    input.addEventListener('input', () => onChange(input.value));
+    mount.append(input);
+  }
+  input.placeholder = placeholder;
+  if (input.value !== value) input.value = value;
 }
 
 function plainSelect({ label, options, selected, onSelect }) {
@@ -1082,61 +1143,47 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
   return sections;
 }
 
-/** Every board card, PR and issue that was closed, today or before, newest first. */
+/** Every row that was closed or cleared, today or before, newest first. */
 function closedRows() {
-  return [...data.items.filter((i) => i.doneAt), ...(data.history ?? [])]
-    .filter((i) => CLOSED_SOURCES.has(i.source))
-    .sort((a, b) => b.doneAt.localeCompare(a.doneAt));
+  return [...data.items.filter((i) => i.doneAt), ...(data.history ?? [])].sort((a, b) =>
+    b.doneAt.localeCompare(a.doneAt),
+  );
 }
 
 /**
- * The Closed section: what was closed, under the title of the board, or of
- * Pull requests or Issues. A part with nothing closed in it is left out.
+ * The Closed section: Kanban, Pull requests, Tasks and Slack, each with what
+ * was closed or cleared in it that matches the search. An empty part is left out.
  */
 function closedSections() {
-  const closed = closedRows();
-  const drawn = new Set();
-  // A card on two boards appears under both; the second copy needs a key of its own.
-  const rowOpts = (name) => (item) => {
-    if (!drawn.has(item.id)) {
-      drawn.add(item.id);
-      return undefined;
-    }
-    return { key: `item-${item.id}@${name}` };
-  };
-  const part = ({ key, name, href, items }) =>
-    items.length
-      ? section({
-          key: `closed-${key}`,
-          iconName: 'github',
-          name,
-          href,
-          sub: sub(`${items.length} closed`),
-          items,
-          rowOpts: rowOpts(name),
-        })
-      : null;
-
-  const boards = boardList(closed.filter((i) => i.source === 'board')).map((b) =>
-    part({
-      key: `board-${b.owner}-${b.number}-${b.title}`,
-      name: b.title,
-      href: b.url,
-      items: closed.filter((c) => c.source === 'board' && c.boards.includes(b.title)),
+  const closed = closedRows().filter(matches);
+  const parts = CLOSED_PARTS.map(({ key, name, sources }) => {
+    const items = closed.filter((i) => sources.includes(i.source));
+    if (!items.length) return null;
+    const github = key === 'kanban' || key === 'pr';
+    return section({
+      key: `closed-${key}`,
+      iconName: github ? 'github' : key === 'slack' ? 'slack' : undefined,
+      name,
+      href: key === 'pr' ? searchUrl('pr') : key === 'kanban' && boardList([]).length === 1 ? boardList([])[0].url : undefined,
+      sub: sub(`${items.length} ${github ? 'closed' : 'cleared'}`),
+      items,
+      // Kanban mixes cards and issues, so each says where it is from.
+      rowOpts: key === 'kanban' ? () => ({ withSource: true }) : undefined,
+    });
+  }).filter(Boolean);
+  if (parts.length) return parts;
+  return [
+    section({
+      key: 'closed',
+      name: CLOSED_SECTION,
+      items: [],
+      empty: filtering() ? { title: 'Nothing closed matches the search.' } : { title: 'Nothing closed yet.' },
     }),
-  );
-  const parts = [
-    ...boards,
-    part({ key: 'pr', name: PR_SECTION, href: searchUrl('pr'), items: closed.filter((i) => i.source === 'pr') }),
-    part({ key: 'issue', name: 'Issues', href: searchUrl('issue'), items: closed.filter((i) => i.source === 'issue') }),
-  ].filter(Boolean);
-  return parts.length
-    ? parts
-    : [section({ key: 'closed', name: CLOSED_SECTION, items: [], empty: { title: 'Nothing closed yet.' } })];
+  ];
 }
 
-function render() {
-  const before = snapshot();
+function render({ still = false } = {}) {
+  const before = still ? null : snapshot();
   // A note box being typed in is rebuilt with its row; it keeps the focus.
   const typing = document.activeElement?.classList.contains('note-input') ? document.activeElement.dataset.id : null;
 
@@ -1179,7 +1226,7 @@ function render() {
     $('lists').replaceChildren(...closedSections());
     refocus(typing);
     renderChrome();
-    play(before);
+    if (before) play(before);
     if (first) document.body.classList.add('ready');
     first = false;
     return;
@@ -1201,7 +1248,7 @@ function render() {
   refocus(typing);
 
   renderChrome();
-  play(before);
+  if (before) play(before);
 
   if (first) document.body.classList.add('ready');
   first = false;

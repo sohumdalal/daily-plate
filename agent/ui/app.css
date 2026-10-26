@@ -145,8 +145,38 @@ body:not(.ready) .shell {
   padding-top: var(--xs);
 }
 
+/* The section pill, with the search beside it; the search drops under on a phone. */
+.filter-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xxs) var(--xs);
+  width: 100%;
+}
+
 .filter-section {
+  min-width: 0;
   max-width: 100%;
+}
+
+.filter-search {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.filter-search:not(.mova) input {
+  width: 220px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-none);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
 }
 
 /* Repo, State and Clear, in one row under the pill. */

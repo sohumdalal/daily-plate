@@ -360,7 +360,7 @@ same way, so the pages stay plain DOM:
    the page a plain-DOM stand-in for when the bundle does not load.
 
 `bun run build:ui` writes the bundle to `agent/ui/mova/dist/`, which is not in
-git. The filters (`FilterTagPill`, `CategorySelect`), the buttons' states, the
+git. The filters (`FilterTagPill`, `CategorySelect`), the search (`search-expand`), the buttons' states, the
 loading shapes, the progress line and the Wrap charts are all Mova.
 
 **Ferrari underneath.** The tokens come from the shared Ferrari design file in

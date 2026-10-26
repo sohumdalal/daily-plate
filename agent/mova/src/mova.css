@@ -55,6 +55,10 @@
 .dp-option { color: var(--body); background: transparent; }
 .dp-option:hover { color: var(--ink); background: var(--surface-soft); }
 .dp-option-on { color: var(--ink); background: var(--surface-soft); }
+.dp-search { background: var(--canvas); border-color: var(--hairline); }
+.dp-search:focus-within { border-color: var(--ink); }
+.dp-search input::placeholder { color: var(--muted-soft); }
+.dp-search input::-webkit-search-cancel-button { display: none; }
 
 /* ── A rollup's charts ──────────────────────────────────────────────────── */
 

@@ -75,7 +75,10 @@
         <!-- One section is always on. Under Pull requests, a repo and a state
              can narrow it too. -->
         <div class="filters" id="filters">
-          <div class="filter-section" id="filter-section"></div>
+          <div class="filter-top">
+            <div class="filter-section" id="filter-section"></div>
+            <div class="filter-search" id="filter-search"></div>
+          </div>
           <div class="filter-bar" id="filter-bar" hidden>
             <button class="filter-clear" type="button" title="Clear filters (Esc)" hidden>Clear <kbd>Esc</kbd></button>
           </div>
@@ -90,6 +93,7 @@
       <div class="keys">
         <span><kbd>N</kbd> new task</span>
         <span><kbd>R</kbd> refresh</span>
+        <span><kbd>/</kbd> search</span>
         <span><kbd>Esc</kbd> clear filters</span>
       </div>
     </main>
