@@ -955,7 +955,7 @@ function showMore(key, hidden, open) {
 }
 
 /** Rows a list shows before its Show more. Its counts are always of every row. */
-const LIST_LIMIT = 15;
+const LIST_LIMIT = 10;
 /** Lists opened past LIST_LIMIT, by section key. They stay open across renders. */
 const expanded = new Set();
 
