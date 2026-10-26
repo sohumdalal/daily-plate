@@ -1053,6 +1053,16 @@ function sub(text, { live = false } = {}) {
   return node;
 }
 
+/** A board's line under its title, then whose cards it shows, with their picture. */
+function assignedLine(node) {
+  const me = data.assignee;
+  if (!me) return node;
+  const who = span('assignee', '');
+  who.append(avatar(me.login, 'assignee-avatar'), span('', `Assigned to ${me.name}`));
+  node.append(span('', ' · '), who);
+  return node;
+}
+
 function splitSections({ board, pulls, issues, tasks, slack }) {
   const sync = data.sync;
   const failed = Boolean(sync && !sync.ok);
@@ -1070,7 +1080,7 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
       iconName: 'github',
       name: b.title,
       href: b.url,
-      sub: sub(line),
+      sub: assignedLine(sub(line)),
       warn: failed,
       count: items.length,
       items,
@@ -1285,12 +1295,8 @@ function refocus(id) {
   input.setSelectionRange(input.value.length, input.value.length);
 }
 
-/** The read time, whose plate it is, and a failed read's reason. */
+/** The read time, and a failed read's reason. */
 function renderChrome() {
-  const me = data.assignee;
-  $('assignee').hidden = !me;
-  if (me) $('assignee').replaceChildren(avatar(me.login, 'assignee-avatar'), span('', `Assigned to ${me.name}`));
-
   const sync = data.sync;
   $('read-at').textContent = sync ? `Read ${ago(sync.at)}` : '';
 

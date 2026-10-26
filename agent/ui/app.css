@@ -37,19 +37,16 @@
   padding-bottom: var(--lg);
 }
 
-#assignee {
+.assignee {
   display: inline-flex;
   align-items: center;
-  gap: var(--xxs);
-}
-
-#assignee[hidden] {
-  display: none;
+  gap: 6px;
+  vertical-align: middle;
 }
 
 .assignee-avatar {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: var(--r-full);
   background: var(--surface-soft);
 }
