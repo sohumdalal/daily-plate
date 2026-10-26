@@ -120,7 +120,7 @@ export async function plate(today: string, timezone: string): Promise<Item[]> {
   return rows.map(toItem);
 }
 
-/** Everything cleared before today, newest first, for All activity. */
+/** Everything cleared before today, newest first, for the Closed section. */
 export async function history(today: string, timezone: string): Promise<Item[]> {
   const sql = db();
   const rows = await sql<ItemRow[]>`

@@ -73,8 +73,11 @@ const FILTER_KEY = 'daily-plate:filters';
 /** The section whose rows the Repo and State filters narrow. */
 const PR_SECTION = 'Pull requests';
 
-/** The section that holds every row, open and cleared, under its own section's title. */
-const ALL_SECTION = 'All';
+/** The last section: every board card, PR and issue that was closed, today or before. */
+const CLOSED_SECTION = 'Closed';
+
+/** The sources the Closed section holds. Tasks and Slack rows are cleared, not closed. */
+const CLOSED_SOURCES = new Set(['board', 'pr', 'issue']);
 
 /**
  * The filter rows, in the order they are drawn. Section is always on, one at a
@@ -276,7 +279,7 @@ function facets(item) {
   const fromGitHub = GITHUB_SOURCES.has(item.source);
   return {
     repo: fromGitHub && item.context.includes('#') ? [item.context.split('#')[0]] : [],
-    section: [ALL_SECTION, ...(SECTION_OF[item.source]?.(item) ?? ['Slack'])],
+    section: SECTION_OF[item.source]?.(item) ?? ['Slack'],
     state: item.state ? [item.state] : [],
   };
 }
@@ -304,12 +307,12 @@ function filtering() {
   return liveDims().some(({ key }) => key !== 'section' && filters[key]);
 }
 
-/** The section to show: the one last picked, or the first with rows in it. All is only ever picked. */
+/** The section to show: the one last picked, or the first with rows in it. Closed is only ever picked. */
 function pickSection(open) {
   const order = FILTER_ORDER.section();
   if (order.includes(filters.section)) return filters.section;
   const present = new Set(open.flatMap((i) => facets(i).section));
-  return order.find((name) => name !== ALL_SECTION && present.has(name)) ?? order[1];
+  return order.find((name) => present.has(name)) ?? order[0];
 }
 
 function setFilter(key, value) {
@@ -363,7 +366,12 @@ let filterRows = [];
  */
 function renderFilters(open) {
   filterRows = open;
-  const tags = filterCounts('section', open).map(([value, count]) => ({ value, label: value, count }));
+  // Closed counts what is closed, not what is open, so it is added on its own.
+  const tags = filterCounts('section', open)
+    .filter(([value]) => value !== CLOSED_SECTION)
+    .map(([value, count]) => ({ value, label: value, count }));
+  const closed = closedRows().length;
+  if (closed || filters.section === CLOSED_SECTION) tags.push({ value: CLOSED_SECTION, label: CLOSED_SECTION, count: closed });
   const pick = (value) => setFilter('section', value);
   if (window.Mova) window.Mova.filterPill($('filter-section'), { tags, selected: filters.section, onSelect: pick });
   else $('filter-section').replaceChildren(...tags.map((tag) => plainTag(tag, pick)));
@@ -438,7 +446,7 @@ function clearFilters() {
 
 /** Sections in plate order, states in lifecycle order; repos by count. */
 const FILTER_ORDER = {
-  section: () => [ALL_SECTION, ...boardList([]).map((b) => b.title), PR_SECTION, 'Issues', TASKS_SECTION, 'Slack'],
+  section: () => [...boardList([]).map((b) => b.title), PR_SECTION, 'Issues', TASKS_SECTION, 'Slack', CLOSED_SECTION],
   state: () => Object.keys(STATE),
 };
 
@@ -1074,16 +1082,19 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
   return sections;
 }
 
+/** Every board card, PR and issue that was closed, today or before, newest first. */
+function closedRows() {
+  return [...data.items.filter((i) => i.doneAt), ...(data.history ?? [])]
+    .filter((i) => CLOSED_SOURCES.has(i.source))
+    .sort((a, b) => b.doneAt.localeCompare(a.doneAt));
+}
+
 /**
- * All activity: every row there is, open and cleared, under the title of the
- * section it belongs to. Open rows lead in each, then cleared, newest first.
- * A section with nothing in it ever is left out.
+ * The Closed section: what was closed, under the title of the board, or of
+ * Pull requests or Issues. A part with nothing closed in it is left out.
  */
-function activitySections(open) {
-  const cleared = [...data.items.filter((i) => i.doneAt), ...(data.history ?? [])].sort((a, b) =>
-    b.doneAt.localeCompare(a.doneAt),
-  );
-  const of = (source) => cleared.filter((i) => (source === 'slack' ? SLACK_SOURCES.has(i.source) : i.source === source));
+function closedSections() {
+  const closed = closedRows();
   const drawn = new Set();
   // A card on two boards appears under both; the second copy needs a key of its own.
   const rowOpts = (name) => (item) => {
@@ -1093,43 +1104,35 @@ function activitySections(open) {
     }
     return { key: `item-${item.id}@${name}` };
   };
-  const part = ({ key, name, href, iconName, openItems, doneItems }) =>
-    section({
-      key: `all-${key}`,
-      iconName,
-      name,
-      href,
-      sub: sub(`${doneItems.length} cleared`),
-      count: openItems.length,
-      items: [...openItems, ...doneItems],
-      rowOpts: rowOpts(name),
-    });
+  const part = ({ key, name, href, items }) =>
+    items.length
+      ? section({
+          key: `closed-${key}`,
+          iconName: 'github',
+          name,
+          href,
+          sub: sub(`${items.length} closed`),
+          items,
+          rowOpts: rowOpts(name),
+        })
+      : null;
 
-  const boards = boardList(open.board).map((b) =>
+  const boards = boardList(closed.filter((i) => i.source === 'board')).map((b) =>
     part({
       key: `board-${b.owner}-${b.number}-${b.title}`,
       name: b.title,
       href: b.url,
-      iconName: 'github',
-      openItems: open.board.filter((c) => c.boards.includes(b.title)),
-      doneItems: of('board').filter((c) => c.boards.includes(b.title)),
+      items: closed.filter((c) => c.source === 'board' && c.boards.includes(b.title)),
     }),
   );
   const parts = [
     ...boards,
-    part({ key: 'pr', name: 'Pull requests', href: searchUrl('pr'), iconName: 'github', openItems: open.pulls, doneItems: of('pr') }),
-    part({ key: 'issue', name: 'Issues', href: searchUrl('issue'), iconName: 'github', openItems: open.issues, doneItems: of('issue') }),
-    part({ key: 'task', name: TASKS_SECTION, openItems: open.tasks, doneItems: of('task') }),
-    part({ key: 'slack', name: 'Slack', iconName: 'slack', openItems: open.slack, doneItems: of('slack') }),
-  ].filter((group) => group.querySelector('.item'));
-
-  const head = section({
-    key: 'all-activity',
-    name: 'All activity',
-    sub: sub('Everything open and everything cleared, by section'),
-    items: [],
-  });
-  return [head, ...parts];
+    part({ key: 'pr', name: PR_SECTION, href: searchUrl('pr'), items: closed.filter((i) => i.source === 'pr') }),
+    part({ key: 'issue', name: 'Issues', href: searchUrl('issue'), items: closed.filter((i) => i.source === 'issue') }),
+  ].filter(Boolean);
+  return parts.length
+    ? parts
+    : [section({ key: 'closed', name: CLOSED_SECTION, items: [], empty: { title: 'Nothing closed yet.' } })];
 }
 
 function render() {
@@ -1172,8 +1175,8 @@ function render() {
   setCount($('n-done'), allDone.length);
   renderFilters(open);
 
-  if (filters.section === ALL_SECTION) {
-    $('lists').replaceChildren(...activitySections(lists));
+  if (filters.section === CLOSED_SECTION) {
+    $('lists').replaceChildren(...closedSections());
     refocus(typing);
     renderChrome();
     play(before);
@@ -1384,7 +1387,7 @@ async function addTask(e) {
     });
     if (!data.items.some((i) => i.id === item.id)) data.items.push(item);
     input.value = '';
-    if (filters.section !== ALL_SECTION && filters.section !== TASKS_SECTION) setFilter('section', TASKS_SECTION);
+    if (filters.section !== TASKS_SECTION) setFilter('section', TASKS_SECTION);
     else render();
   } catch (err) {
     warn(`Could not add that task: ${err.message}`);
