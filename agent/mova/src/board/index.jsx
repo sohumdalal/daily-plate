@@ -580,8 +580,8 @@ function IssueRow({ issue: i, badges, llm, api, onJudged }) {
           </div>
         )}
         {j?.thought && <p className="issue-thought">{j.thought}</p>}
-        {/* The deeper thought is for closed issues: did the code really get what was asked. */}
-        {llm && i.state === 'closed' && (
+        {/* The deeper thought is for open issues: how far along, and can it close. */}
+        {llm && i.state === 'open' && (
           <div className="issue-actions">
             {j?.deep ? (
               <button className="link-button" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>

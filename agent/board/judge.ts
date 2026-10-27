@@ -4,10 +4,10 @@
  * closable. Issues go in batches, and an issue is judged again only when it
  * changes (its digest), so a quiet board costs nothing.
  *
- * The deeper thought is asked for one closed issue at a time, from the
+ * The deeper thought is asked for one open issue at a time, from the
  * screen. It reads the issue's comments, searches the repo's code and commits
- * for it, and says whether the code really has what was asked, and what is
- * left if not.
+ * for it, and says how far along it is, whether it can be closed, and how to
+ * finish it.
  */
 
 import { createHash } from 'node:crypto';
@@ -289,16 +289,16 @@ async function commentsOf(issue: BoardIssue) {
 
 const PLAN_SYSTEM = `You are about to check a GitHub issue against its repository's code. Name up to four short GitHub code-search queries (one to three words each: identifiers, file names, UI strings or error text the fix would touch) that would find the relevant code. Reply with JSON only: {"queries":[...]}.`;
 
-const DEEP_SYSTEM = `You are a senior engineer checking one closed issue on your team's board, with its comments, the PRs and commits that reference it, and what a search of the code found. Decide whether the code really has what the issue asked for, or whether it was closed with work left.
+const DEEP_SYSTEM = `You are a senior engineer reviewing one open issue on your team's board, with its comments, the PRs and commits that reference it, and what a search of the code found. Decide how far along it is, and whether the code already has what it asks, so that it can be closed.
 
 Reply with JSON only:
 {
   "verdict": "done" | "partly-done" | "not-started" | "unclear",
-  "closable": "yes" when it was rightly closed, "maybe" when that is unproven, "no" when it should be reopened,
-  "summary": "two or three sentences: what the issue asked for, and whether the code delivers it",
-  "done": ["what the evidence shows is in place"],
-  "left": ["what is still missing, if anything"],
-  "plan": ["the steps to finish what is left, in order, naming files where the search found them"],
+  "closable": "yes" when the code already does what it asks, "maybe" when that is likely but unproven, "no" when work is left,
+  "summary": "two or three sentences: what the issue really is, and where it stands",
+  "done": ["what the evidence shows is already in place"],
+  "left": ["what is still missing"],
+  "plan": ["the steps to finish it, in order, naming files where the search found them"],
   "risks": ["what could go wrong, or what to confirm first"],
   "evidence": [{"label": "a PR, commit or file", "url": "its link from the input", "why": "what it shows"}]
 }
@@ -310,7 +310,7 @@ export async function thinkDeeper(issueId: string): Promise<Judgment> {
   const { issues } = await boardIssues();
   const issue = issues.find((i) => i.id === issueId);
   if (!issue) throw new Error('That issue is not on the board.');
-  if (issue.state !== 'closed') throw new Error('The deeper thought is for closed issues.');
+  if (issue.state !== 'open') throw new Error('The deeper thought is for open issues.');
 
   const facts = { ...quickInput(issue, 0), body: issue.body, url: issue.url, prs: issue.prs };
   const session = `board:issue:${issue.repo}#${issue.number}`;

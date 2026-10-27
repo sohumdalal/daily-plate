@@ -4,7 +4,7 @@
  *   GET   /                every issue on the boards, each with its judgment, and the metrics
  *   POST  /refresh         read the boards again now
  *   POST  /judge           start judging the issues that are new or changed; 202 at once
- *   POST  /think/:id       the deeper thought on one closed issue, by node id
+ *   POST  /think/:id       the deeper thought on one open issue, by node id
  */
 
 import { Hono } from 'hono';

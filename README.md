@@ -298,9 +298,9 @@ one-line thought, and whether the PRs that reference it say it can be closed.
 An issue is read again only when it changes. Deployed, this runs every 15
 minutes; locally, only from the Judge button, or with `BOARD_JUDGE=1`.
 
-**Think deeper**, on a closed issue, searches the repo's code and commits for
-it, reads its comments, and says whether the code really has what was asked,
-with what is left, a plan, risks and links. Judgments are kept in
+**Think deeper**, on an open issue, searches the repo's code and commits for
+it, reads its comments, and says how far along it is and whether it can be
+closed, with what is done, what is left, a plan, risks and links. Judgments are kept in
 `issue_judgments`.
 
 ## The Notifications tab
