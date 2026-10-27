@@ -4,6 +4,7 @@
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedBarChart.tsx
 import { REDUCED } from "../reduced.js";
+import { InfoTip } from "../ui/info-tip.jsx";
 import { useState as useState2 } from "react";
 import {
   ResponsiveContainer,
@@ -101,7 +102,7 @@ var MONO_BAR_DATA__DEMO = [
   { label: "Fri", primary: 88, secondary: 50 },
   { label: "Sat", primary: 54, secondary: 28 }
 ];
-function MonoRoundedBarChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint }) {
+function MonoRoundedBarChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint, info }) {
   const MONO_BAR_DATA = data ?? MONO_BAR_DATA__DEMO;
   const isDark = theme === "dark";
   const isMobile = useIsMobile();
@@ -117,7 +118,9 @@ function MonoRoundedBarChart({ theme = "dark", compact = false, data, title, bad
           /* @__PURE__ */ jsxs2("div", { children: [
             /* @__PURE__ */ jsxs2("div", { className: "flex items-center gap-2", children: [
               /* @__PURE__ */ jsx2("span", { className: `text-xs font-semibold tracking-wider uppercase ${"dp-muted"}`, children: title ?? "Mono Pill Pillars" }),
-              /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Full Radius" })
+              /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Full Radius" }),
+              // Daily Plate: what the chart shows, on hover or focus, beside its badge.
+              info ? /* @__PURE__ */ jsx2(InfoTip, { text: info }) : null
             ] }),
             /* @__PURE__ */ jsxs2("div", { className: "text-xl font-bold tracking-tight tabular-nums mt-0.5 font-sans", children: [...(value != null ? [value, " "] : [
               "422 ",

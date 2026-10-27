@@ -4,6 +4,7 @@
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedAreaChart.tsx
 import { REDUCED } from "../reduced.js";
+import { InfoTip } from "../ui/info-tip.jsx";
 import { useState as useState2, useId } from "react";
 import {
   ResponsiveContainer,
@@ -100,7 +101,7 @@ var MONO_AREA_DATA__DEMO = [
   { time: "18:00", volume: 64 },
   { time: "22:00", volume: 48 }
 ];
-function MonoRoundedAreaChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint }) {
+function MonoRoundedAreaChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint, info }) {
   const MONO_AREA_DATA = data ?? MONO_AREA_DATA__DEMO;
   const isDark = theme === "dark";
   const isMobile = useIsMobile();
@@ -117,7 +118,9 @@ function MonoRoundedAreaChart({ theme = "dark", compact = false, data, title, ba
           /* @__PURE__ */ jsxs2("div", { children: [
             /* @__PURE__ */ jsxs2("div", { className: "flex items-center gap-2", children: [
               /* @__PURE__ */ jsx2("span", { className: `text-xs font-semibold tracking-wider uppercase ${"dp-muted"}`, children: title ?? "Mono Curved Wave" }),
-              /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Soft Gradient" })
+              /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Soft Gradient" }),
+              // Daily Plate: what the chart shows, on hover or focus, beside its badge.
+              info ? /* @__PURE__ */ jsx2(InfoTip, { text: info }) : null
             ] }),
             /* @__PURE__ */ jsxs2("div", { className: "text-xl font-bold tracking-tight tabular-nums mt-0.5 font-sans", children: [...(value != null ? [value, " "] : [
               latestVal,

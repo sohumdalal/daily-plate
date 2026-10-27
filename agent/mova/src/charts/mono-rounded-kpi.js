@@ -4,6 +4,7 @@
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedKpiCardChart.tsx
 import { ResponsiveContainer, AreaChart, Area } from "recharts";
+import { InfoTip } from "../ui/info-tip.jsx";
 import { jsx, jsxs } from "react/jsx-runtime";
 var KPI_LINE_DATA__DEMO = [
   { v: 30 },
@@ -15,7 +16,7 @@ var KPI_LINE_DATA__DEMO = [
   { v: 75 },
   { v: 95 }
 ];
-function MonoRoundedKpiCardChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint }) {
+function MonoRoundedKpiCardChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint, info }) {
   const KPI_LINE_DATA = data ?? KPI_LINE_DATA__DEMO;
   const isDark = theme === "dark";
   return /* @__PURE__ */ jsxs(
@@ -26,7 +27,9 @@ function MonoRoundedKpiCardChart({ theme = "dark", compact = false, data, title,
         /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between mb-1", children: /* @__PURE__ */ jsxs("div", { children: [
           /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
             /* @__PURE__ */ jsx("span", { className: `text-xs font-semibold tracking-wider uppercase ${"dp-muted"}`, children: title ?? "KPI Stat Card" }),
-            /* @__PURE__ */ jsx("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Metric" })
+            /* @__PURE__ */ jsx("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Metric" }),
+              // Daily Plate: what the chart shows, on hover or focus, beside its badge.
+              info ? /* @__PURE__ */ jsx(InfoTip, { text: info }) : null
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "text-2xl font-extrabold tracking-tight tabular-nums mt-1 font-sans", children: [...(value != null ? [value, " "] : [
             "$48,920 ",

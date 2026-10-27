@@ -4,6 +4,7 @@
 // Mova catalog component. See LICENSE.mova and LICENSE.third-party.
 // src/components/mono-charts/MonoRoundedDonutChart.tsx
 import { REDUCED } from "../reduced.js";
+import { InfoTip } from "../ui/info-tip.jsx";
 import { useState as useState2 } from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 
@@ -91,7 +92,7 @@ var MONO_DONUT_DATA__DEMO = [
   { name: "Other", value: 10, shade: "#64748B" }
 ];
 const fillOf = (index) => index === 0 ? "var(--ink)" : `rgba(var(--ink-rgb),${[0.65, 0.4, 0.2][index - 1] ?? 0.12})`;
-function MonoRoundedDonutChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint }) {
+function MonoRoundedDonutChart({ theme = "dark", compact = false, data, title, badge, value, unit, footL, footR, names, highlight, tip, center, months, noun, hint, info }) {
   const MONO_DONUT_DATA = data ?? MONO_DONUT_DATA__DEMO;
   // Daily Plate: the centre shows the largest share until a segment is hovered,
   // and each legend dot wears its segment's tone.
@@ -108,7 +109,9 @@ function MonoRoundedDonutChart({ theme = "dark", compact = false, data, title, b
         /* @__PURE__ */ jsx2("div", { className: "flex items-center justify-between mb-1", children: /* @__PURE__ */ jsxs2("div", { children: [
           /* @__PURE__ */ jsxs2("div", { className: "flex items-center gap-2", children: [
             /* @__PURE__ */ jsx2("span", { className: `text-xs font-semibold tracking-wider uppercase ${"dp-muted"}`, children: title ?? "Mono Rounded Donut" }),
-            /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Soft Arc Caps" })
+            /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Soft Arc Caps" }),
+              // Daily Plate: what the chart shows, on hover or focus, beside its badge.
+              info ? /* @__PURE__ */ jsx2(InfoTip, { text: info }) : null
           ] }),
           /* @__PURE__ */ jsxs2("div", { className: "text-xl font-bold tracking-tight tabular-nums mt-0.5 font-sans", children: [...(value != null ? [value, " "] : [
             total,

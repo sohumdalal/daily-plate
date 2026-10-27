@@ -187,9 +187,7 @@ export function Board({ api }) {
       <Tabs view={view} onView={choose} counts={{ issues: data.issues.length }} />
       <header className="board-head">
         <div className="when">
-          <span className="label">
-            {data.metrics.open} open · {data.metrics.closed} closed
-          </span>
+          <span className="label">{data.metrics.open} open issues</span>
           <button className="line-button" type="button" onClick={() => load('refresh')} disabled={Boolean(busy)}>
             {busy === 'refresh' ? 'Reading…' : 'Refresh'}
           </button>
@@ -218,35 +216,35 @@ function Metrics({ m }) {
   const last = weeks[weeks.length - 1];
   const first = weeks[0];
   const grew = last.open - first.open;
+  const before = weeks[weeks.length - 2];
+  /** `+12%`, or '' with nothing to grow from. */
+  const pct = (now, was) => (was ? `${now >= was ? '+' : '−'}${Math.round((Math.abs(now - was) / was) * 100)}%` : '');
   const columns = m.byColumn.slice(0, 6);
   const colTotal = columns.reduce((n, c) => n + c.count, 0) || 1;
   const people = m.byAssignee.slice(0, 8);
 
   return (
     <section className="board-metrics">
-      <dl className="board-facts">
-        <div>
-          <dt className="label">Merged, still open</dt>
-          <dd>{m.mergedButOpen}</dd>
-        </div>
-        <div>
-          <dt className="label">Stale, 30 days</dt>
-          <dd>{m.stale}</dd>
-        </div>
-        <div>
-          <dt className="label">Unassigned</dt>
-          <dd>{m.unassigned}</dd>
-        </div>
-        <div>
-          <dt className="label">Oldest open</dt>
-          <dd>{m.oldestOpenDays === null ? '—' : `${m.oldestOpenDays} d`}</dd>
-        </div>
-      </dl>
+      {/* The Plate tab's spec cells (app.css), with the same hairlines. */}
+      <div className="specs">
+        {[
+          [m.mergedButOpen, 'Merged, still open'],
+          [m.stale, 'Stale, 30 days'],
+          [m.unassigned, 'Unassigned'],
+          [m.oldestOpenDays === null ? '—' : `${m.oldestOpenDays} d`, 'Oldest open'],
+        ].map(([value, label]) => (
+          <div key={label} className="spec-cell">
+            <span className="spec-value">{value}</span>
+            <span className="label">{label}</span>
+          </div>
+        ))}
+      </div>
       <div className="kpis">
         <MonoRoundedKpiCardChart
           theme={theme}
           compact
           title="Closed"
+          info="Issues closed since Monday, with the 12 weeks before under it. Against last week, so a slow Monday reads as a slow start, not a slow week."
           badge="This week"
           value={m.thisWeek.closed}
           unit={delta(m.thisWeek.closed, m.lastWeek.closed)}
@@ -258,6 +256,7 @@ function Metrics({ m }) {
           theme={theme}
           compact
           title="Opened"
+          info="Issues opened since Monday, with the 12 weeks before under it. New work arriving, whoever opened it."
           badge="This week"
           value={m.thisWeek.opened}
           unit={delta(m.thisWeek.opened, m.lastWeek.opened)}
@@ -269,6 +268,7 @@ function Metrics({ m }) {
           theme={theme}
           compact
           title="Close rate"
+          info="Issues closed for each one opened, over the last four weeks. Above 1×, the board is shrinking; below, more arrives than leaves."
           badge="4 weeks"
           value={m.closeRate === null ? '—' : `${m.closeRate}×`}
           unit={m.closeRate === null ? 'nothing opened' : m.closeRate >= 1 ? 'shrinking' : 'growing'}
@@ -280,6 +280,7 @@ function Metrics({ m }) {
           theme={theme}
           compact
           title="Time to close"
+          info="Days from opened to closed, for issues closed in the last 90 days. The median is the typical issue; a mean far above it means a few old ones were closed at last."
           badge="90 days"
           value={m.closeDays.median === null ? '—' : `${m.closeDays.median} d`}
           unit="median"
@@ -293,6 +294,7 @@ function Metrics({ m }) {
         <MonoRoundedBarChart
           theme={theme}
           title="Opened and closed"
+          info="Each week from Monday: issues closed (dark) beside issues opened (light). Where light stands above dark, the board grew that week. This week is red."
           badge="By week"
           value={weeks.reduce((n, w) => n + w.closed, 0)}
           unit={`closed in ${weeks.length} weeks`}
@@ -305,17 +307,19 @@ function Metrics({ m }) {
         <MonoRoundedAreaChart
           theme={theme}
           title="Board growth"
+          info="How many issues were open at the end of each week. The percent is against the first week shown, and against last week."
           badge="Open issues"
           value={last.open}
-          unit={`${grew >= 0 ? '+' : '−'}${Math.abs(grew)} in ${weeks.length} weeks`}
+          unit={`${grew >= 0 ? '+' : '−'}${Math.abs(grew)}${first.open ? ` (${pct(last.open, first.open)})` : ''} in ${weeks.length} weeks`}
           data={weeks.map((w) => ({ time: short(w.monday), volume: w.open }))}
           footL="Open at each week's end"
-          footR={grew > 0 ? 'Growing' : grew < 0 ? 'Shrinking' : 'Level'}
+          footR={before?.open ? `${pct(last.open, before.open)} on last week` : grew > 0 ? 'Growing' : grew < 0 ? 'Shrinking' : 'Level'}
         />
         {columns.length > 0 && (
           <MonoRoundedDonutChart
             theme={theme}
             title="Open by column"
+          info="Where the open issues sit on the board now, as a share of all of them. A large Backlog with little In progress is work waiting to start."
             badge="Now"
             value={m.open}
             unit="open"
@@ -327,7 +331,8 @@ function Metrics({ m }) {
           <MonoRoundedBarChart
             theme={theme}
             title="By person"
-            badge="Open · closed in 4 weeks"
+          info="Open issues assigned to each person (dark), beside what they closed in the last four weeks (light). An issue with two assignees counts for both. Unassigned issues are not shown."
+            badge="Now"
             value={m.unassigned}
             unit="unassigned"
             data={people.map((p) => ({ label: p.login, primary: p.open, secondary: p.closedRecently }))}

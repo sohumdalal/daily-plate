@@ -55,6 +55,8 @@
 .dp-option { color: var(--body); background: transparent; }
 .dp-option:hover { color: var(--ink); background: var(--surface-soft); }
 .dp-option-on { color: var(--ink); background: var(--surface-soft); }
+.dp-glance { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+.dp-glance-dot { background: var(--primary); }
 .dp-search { background: var(--canvas); border-color: var(--hairline); }
 .dp-search:focus-within { border-color: var(--ink); }
 .dp-search input::placeholder { color: var(--muted-soft); }

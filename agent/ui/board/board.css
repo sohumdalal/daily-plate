@@ -64,6 +64,33 @@
   gap: var(--xs);
 }
 
+/*
+ * The board is drawn inside a Mova root, whose border reset (mova.css)
+ * outranks the Plate tab's one-class rules. These put back the hairlines
+ * that the spec cells, rows and state pills borrow from app.css.
+ */
+.board .specs {
+  margin-top: 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.board .item {
+  border-top: 1px solid var(--hairline);
+}
+
+.board .item:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.board .state {
+  border: 1px solid var(--hairline);
+}
+
+.board .state-merged {
+  border-color: var(--merged);
+}
+
 /* ── Metrics ──────────────────────────────────────────────────────────── */
 
 .board-metrics {
@@ -86,35 +113,6 @@
 .board .grid2 > *,
 .kpis > * {
   min-width: 0;
-}
-
-.board-facts {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
-}
-
-.board-facts > div {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: var(--xxxs);
-  padding: var(--xs);
-  border-left: 1px solid var(--hairline);
-}
-
-.board-facts > div:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.board-facts dd {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
 }
 
 /* ── Issues ───────────────────────────────────────────────────────────── */
@@ -379,16 +377,4 @@
     grid-template-columns: 1fr;
   }
 
-  .board-facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .board-facts > div:nth-child(3) {
-    border-left: 0;
-    padding-left: 0;
-  }
-
-  .board-facts > div:nth-child(n + 3) {
-    border-top: 1px solid var(--hairline);
-  }
 }
