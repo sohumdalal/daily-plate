@@ -217,6 +217,7 @@ function Metrics({ m }) {
   const first = weeks[0];
   const grew = last.open - first.open;
   const before = weeks[weeks.length - 2];
+  const week = before ? last.open - before.open : 0;
   /** `+12%`, or '' with nothing to grow from. */
   const pct = (now, was) => (was ? `${now >= was ? '+' : '−'}${Math.round((Math.abs(now - was) / was) * 100)}%` : '');
   const columns = m.byColumn.slice(0, 6);
@@ -307,13 +308,13 @@ function Metrics({ m }) {
         <MonoRoundedAreaChart
           theme={theme}
           title="Board growth"
-          info="How many issues were open at the end of each week. The percent is against the first week shown, and against last week."
+          info="How many issues were open at the end of each week. The change and its percent are this week's, against the end of last week."
           badge="Open issues"
           value={last.open}
-          unit={`${grew >= 0 ? '+' : '−'}${Math.abs(grew)}${first.open ? ` (${pct(last.open, first.open)})` : ''} in ${weeks.length} weeks`}
+          unit={before ? `${week >= 0 ? '+' : '−'}${Math.abs(week)}${before.open ? ` (${pct(last.open, before.open)})` : ''} this week` : ''}
           data={weeks.map((w) => ({ time: short(w.monday), volume: w.open }))}
           footL="Open at each week's end"
-          footR={before?.open ? `${pct(last.open, before.open)} on last week` : grew > 0 ? 'Growing' : grew < 0 ? 'Shrinking' : 'Level'}
+          footR={`${grew >= 0 ? '+' : '−'}${Math.abs(grew)} in ${weeks.length} weeks`}
         />
         {columns.length > 0 && (
           <MonoRoundedDonutChart
