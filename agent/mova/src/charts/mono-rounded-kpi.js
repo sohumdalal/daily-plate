@@ -27,9 +27,8 @@ function MonoRoundedKpiCardChart({ theme = "dark", compact = false, data, title,
         /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between mb-1", children: /* @__PURE__ */ jsxs("div", { children: [
           /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
             /* @__PURE__ */ jsx("span", { className: `text-xs font-semibold tracking-wider uppercase ${"dp-muted"}`, children: title ?? "KPI Stat Card" }),
-            /* @__PURE__ */ jsx("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Metric" }),
-              // Daily Plate: what the chart shows, on hover or focus, beside its badge.
-              info ? /* @__PURE__ */ jsx(InfoTip, { text: info }) : null
+            // Daily Plate: the badge says what the chart shows, on hover or focus.
+              info ? /* @__PURE__ */ jsx(InfoTip, { text: info, children: /* @__PURE__ */ jsx("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Metric" }) }) : /* @__PURE__ */ jsx("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Metric" })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "text-2xl font-extrabold tracking-tight tabular-nums mt-1 font-sans", children: [...(value != null ? [value, " "] : [
             "$48,920 ",

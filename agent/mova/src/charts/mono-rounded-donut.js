@@ -109,9 +109,8 @@ function MonoRoundedDonutChart({ theme = "dark", compact = false, data, title, b
         /* @__PURE__ */ jsx2("div", { className: "flex items-center justify-between mb-1", children: /* @__PURE__ */ jsxs2("div", { children: [
           /* @__PURE__ */ jsxs2("div", { className: "flex items-center gap-2", children: [
             /* @__PURE__ */ jsx2("span", { className: `text-xs font-semibold tracking-wider uppercase ${"dp-muted"}`, children: title ?? "Mono Rounded Donut" }),
-            /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Soft Arc Caps" }),
-              // Daily Plate: what the chart shows, on hover or focus, beside its badge.
-              info ? /* @__PURE__ */ jsx2(InfoTip, { text: info }) : null
+            // Daily Plate: the badge says what the chart shows, on hover or focus.
+              info ? /* @__PURE__ */ jsx2(InfoTip, { text: info, children: /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Soft Arc Caps" }) }) : /* @__PURE__ */ jsx2("span", { className: "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] dp-badge", children: badge ?? "Soft Arc Caps" })
           ] }),
           /* @__PURE__ */ jsxs2("div", { className: "text-xl font-bold tracking-tight tabular-nums mt-0.5 font-sans", children: [...(value != null ? [value, " "] : [
             total,

@@ -30,7 +30,6 @@ const JUDGE_POLL_MS = 4000;
 const short = (iso) => new Date(iso).toLocaleDateString('en-GB', { timeZone: 'UTC', month: 'short', day: 'numeric' });
 const daysSince = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
 
-const delta = (now, was) => (was ? `${now >= was ? '+' : '−'}${Math.abs(now - was)} vs last week` : 'no week before');
 
 /** Age groups for a list sorted by when issues were opened. */
 const BUCKETS = [
@@ -193,7 +192,7 @@ export function Board({ api }) {
           </button>
           <span className="label read-at">Read {short(data.at)}</span>
         </div>
-        {data.llm && (
+        {data.llm && view === 'issues' && (
           <button className="line-button" type="button" onClick={judge} disabled={Boolean(busy) || data.judging}>
             {data.judging ? `Judging… ${unjudged} to go` : unjudged ? `Judge ${unjudged} new` : 'Judge changes'}
           </button>
@@ -248,10 +247,10 @@ function Metrics({ m }) {
           info="Issues closed since Monday, with the 12 weeks before under it. Against last week, so a slow Monday reads as a slow start, not a slow week."
           badge="This week"
           value={m.thisWeek.closed}
-          unit={delta(m.thisWeek.closed, m.lastWeek.closed)}
+          unit={`vs ${m.lastWeek.closed} last week`}
           data={weeks.map((w) => ({ v: w.closed }))}
-          footL={`${weeks.length} weeks`}
-          footR={`${m.lastWeek.closed} last week`}
+          footL="By week"
+          footR={`${weeks.reduce((n, w) => n + w.closed, 0)} in ${weeks.length} weeks`}
         />
         <MonoRoundedKpiCardChart
           theme={theme}
@@ -260,10 +259,10 @@ function Metrics({ m }) {
           info="Issues opened since Monday, with the 12 weeks before under it. New work arriving, whoever opened it."
           badge="This week"
           value={m.thisWeek.opened}
-          unit={delta(m.thisWeek.opened, m.lastWeek.opened)}
+          unit={`vs ${m.lastWeek.opened} last week`}
           data={weeks.map((w) => ({ v: w.opened }))}
-          footL={`${weeks.length} weeks`}
-          footR={`${m.lastWeek.opened} last week`}
+          footL="By week"
+          footR={`${weeks.reduce((n, w) => n + w.opened, 0)} in ${weeks.length} weeks`}
         />
         <MonoRoundedKpiCardChart
           theme={theme}
