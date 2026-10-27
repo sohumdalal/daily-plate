@@ -974,9 +974,13 @@ function section({ key, iconName, name, href, sub, warn: isWarn, count, items, e
   nameNode.textContent = name;
   if (href) {
     nameNode.href = href;
-    nameNode.target = '_blank';
-    nameNode.rel = 'noopener';
-    nameNode.append(span('go', '↗'));
+    // A page of this app opens here; anywhere else, in a new tab.
+    const away = !href.startsWith('/');
+    if (away) {
+      nameNode.target = '_blank';
+      nameNode.rel = 'noopener';
+    }
+    nameNode.append(span('go', away ? '↗' : '→'));
   }
   titles.append(nameNode);
   if (sub) titles.append(sub);
@@ -1053,9 +1057,23 @@ function sub(text, { live = false } = {}) {
   return node;
 }
 
+/** `astropods · #1`, linked to the board on GitHub once it has been read. */
+function boardLine(node, board) {
+  if (!board.url || !board.owner) return node;
+  const link = document.createElement('a');
+  link.className = 'board-ref';
+  link.href = board.url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.title = 'The board on GitHub';
+  link.textContent = node.textContent;
+  node.replaceChildren(link);
+  return node;
+}
+
 /**
  * A board's line under its title, then whose cards it shows, with their
- * picture, and the way to the Board tab: the whole board, not just yours.
+ * picture.
  */
 function assignedLine(node) {
   const me = data.assignee;
@@ -1064,12 +1082,6 @@ function assignedLine(node) {
     who.append(avatar(me.login, 'assignee-avatar'), span('', `Assigned to ${me.name}`));
     node.append(span('', ' · '), who);
   }
-  const board = document.createElement('a');
-  board.className = 'board-link';
-  board.href = '/board/';
-  board.textContent = 'Whole board →';
-  board.title = 'Every issue on the board, its numbers, and what Claude makes of each';
-  node.append(span('', ' · '), board);
   return node;
 }
 
@@ -1089,8 +1101,9 @@ function splitSections({ board, pulls, issues, tasks, slack }) {
       key,
       iconName: 'github',
       name: b.title,
-      href: b.url,
-      sub: assignedLine(sub(line)),
+      // The title opens the Board tab; the board itself is a link on the line under it.
+      href: '/board/',
+      sub: assignedLine(boardLine(sub(line), b)),
       warn: failed,
       count: items.length,
       items,

@@ -18,6 +18,7 @@ import MonoRoundedKpiCardChart from '../charts/mono-rounded-kpi.js';
 import { FilterTagPill } from '../ui/filter-tag-pill.jsx';
 import { CategorySelect } from '../ui/category-select.jsx';
 import { SearchExpand } from '../ui/search-expand.jsx';
+import { TabIndicator } from '../ui/tab-indicator.jsx';
 import { useTheme } from '../use-theme.js';
 
 /** Rows a list shows before its Show more, as on the Plate tab. */
@@ -84,7 +85,48 @@ function matcher(query) {
   };
 }
 
+/** The board's two views. Each has its own link: /board/ and /board/#issues. */
+const VIEWS = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'issues', label: 'All issues' },
+];
+const viewOf = () => (location.hash === '#issues' ? 'issues' : 'overview');
+
+/** The Wrap tab's tabs, with Mova's underline sliding to the one chosen. */
+function Tabs({ view, onView, counts }) {
+  const [bar, setBar] = useState(null);
+  return (
+    <div className="tabs mova-tabs" role="tablist" ref={setBar}>
+      {VIEWS.map((v) => (
+        <button
+          key={v.value}
+          type="button"
+          role="tab"
+          aria-selected={view === v.value}
+          aria-current={view === v.value}
+          onClick={() => onView(v.value)}
+        >
+          {v.label}
+          {counts[v.value] != null && <span className="tab-count">{counts[v.value]}</span>}
+        </button>
+      ))}
+      {bar && <TabIndicator container={bar} />}
+    </div>
+  );
+}
+
 export function Board({ api }) {
+  const [view, setView] = useState(viewOf);
+  useEffect(() => {
+    const follow = () => setView(viewOf());
+    addEventListener('hashchange', follow);
+    return () => removeEventListener('hashchange', follow);
+  }, []);
+  const choose = (next) => {
+    setView(next);
+    history.replaceState(null, '', next === 'issues' ? '#issues' : location.pathname);
+    scrollTo({ top: 0 });
+  };
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -142,6 +184,7 @@ export function Board({ api }) {
   const unjudged = data.issues.filter((i) => i.state === 'open' && !i.judgment).length;
   return (
     <div className="mova board">
+      <Tabs view={view} onView={choose} counts={{ issues: data.issues.length }} />
       <header className="board-head">
         <div className="when">
           <span className="label">
@@ -159,10 +202,10 @@ export function Board({ api }) {
         )}
       </header>
       {error && <p className="note warn">{error}</p>}
-      <Metrics m={data.metrics} />
-      <Issues issues={data.issues} badges={data.badges} llm={data.llm} api={api} onJudged={(id, j) =>
+      {view === 'overview' && <Metrics m={data.metrics} />}
+      {view === 'issues' && <Issues issues={data.issues} badges={data.badges} llm={data.llm} api={api} onJudged={(id, j) =>
         setData((d) => ({ ...d, issues: d.issues.map((i) => (i.id === id ? { ...i, judgment: j, _text: undefined } : i)) }))
-      } />
+      } />}
     </div>
   );
 }
@@ -181,6 +224,24 @@ function Metrics({ m }) {
 
   return (
     <section className="board-metrics">
+      <dl className="board-facts">
+        <div>
+          <dt className="label">Merged, still open</dt>
+          <dd>{m.mergedButOpen}</dd>
+        </div>
+        <div>
+          <dt className="label">Stale, 30 days</dt>
+          <dd>{m.stale}</dd>
+        </div>
+        <div>
+          <dt className="label">Unassigned</dt>
+          <dd>{m.unassigned}</dd>
+        </div>
+        <div>
+          <dt className="label">Oldest open</dt>
+          <dd>{m.oldestOpenDays === null ? '—' : `${m.oldestOpenDays} d`}</dd>
+        </div>
+      </dl>
       <div className="kpis">
         <MonoRoundedKpiCardChart
           theme={theme}
@@ -278,24 +339,6 @@ function Metrics({ m }) {
         )}
       </div>
 
-      <dl className="board-facts">
-        <div>
-          <dt className="label">Merged, still open</dt>
-          <dd>{m.mergedButOpen}</dd>
-        </div>
-        <div>
-          <dt className="label">Stale, 30 days</dt>
-          <dd>{m.stale}</dd>
-        </div>
-        <div>
-          <dt className="label">Unassigned</dt>
-          <dd>{m.unassigned}</dd>
-        </div>
-        <div>
-          <dt className="label">Oldest open</dt>
-          <dd>{m.oldestOpenDays === null ? '—' : `${m.oldestOpenDays} d`}</dd>
-        </div>
-      </dl>
     </section>
   );
 }
@@ -377,14 +420,6 @@ function Issues({ issues, badges, llm, api, onJudged }) {
 
   return (
     <section className="board-issues">
-      <header className="group-head">
-        <span className="group-titles">
-          <h2 className="group-name">All issues</h2>
-          <span className="group-sub">
-            {shown.length} of {inState.length} shown
-          </span>
-        </span>
-      </header>
       <div className="board-tools">
         <FilterTagPill
           tags={[
@@ -407,6 +442,9 @@ function Issues({ issues, badges, llm, api, onJudged }) {
           selected={sort}
           onSelect={(v) => setSort(v ?? 'newest')}
         />
+        <span className="label board-shown">
+          {shown.length} of {inState.length} shown
+        </span>
       </div>
 
       {!shown.length && (

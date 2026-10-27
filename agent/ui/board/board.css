@@ -5,7 +5,47 @@
 
 .board {
   display: grid;
-  gap: var(--lg);
+  gap: var(--md);
+}
+
+/* The board's two views, drawn as the Wrap tab's tabs, along a hairline. */
+.board > .tabs {
+  display: flex;
+  gap: var(--sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.board > .tabs button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  appearance: none;
+  margin-bottom: -1px;
+  padding: var(--xxs) 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.board > .tabs button:hover {
+  color: var(--body);
+}
+
+.board > .tabs button[aria-current='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--primary);
+}
+
+.tab-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .board-loading {
@@ -116,6 +156,10 @@
 
 .board-tools + .board-tools {
   justify-content: flex-start;
+}
+
+.board-shown {
+  margin-left: auto;
 }
 
 .issue-group {
