@@ -281,8 +281,8 @@ once and shared by the team (`agent/board/`).
 
 **Numbers.** Opened and closed this week, the close rate (closed per opened
 over four weeks), the median and mean days to close over 90 days, open issues
-week by week, open by column and by person, and counts of stale, unassigned
-and merged-but-open issues. All of it comes from each issue's opened and
+week by week, open by column and by person, and counts of issues open over 30 days, unassigned
+and open PRs on open issues. All of it comes from each issue's opened and
 closed dates, so no snapshot is kept. A board that archives its Done cards
 hides those from the history.
 

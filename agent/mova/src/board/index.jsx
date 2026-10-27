@@ -228,8 +228,8 @@ function Metrics({ m }) {
       {/* The Plate tab's spec cells (app.css), with the same hairlines. */}
       <div className="specs">
         {[
-          [m.mergedButOpen, 'Merged, still open'],
-          [m.stale, 'Stale, 30 days'],
+          [m.openPrs, 'Open PRs'],
+          [m.stale, 'Open over 30 days'],
           [m.unassigned, 'Unassigned'],
           [m.oldestOpenDays === null ? '—' : `${m.oldestOpenDays} d`, 'Oldest open'],
         ].map(([value, label]) => (

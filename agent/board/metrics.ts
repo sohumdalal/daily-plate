@@ -9,7 +9,7 @@ import type { BoardIssue } from './issues.ts';
 /** Weeks of history the charts show. */
 const WEEKS = 12;
 const DAY_MS = 864e5;
-/** An open issue untouched for this long is stale. */
+/** An issue open this long is stale. */
 const STALE_DAYS = 30;
 /** Close times are of issues closed within this many days. */
 const CLOSE_WINDOW_DAYS = 90;
@@ -31,8 +31,8 @@ export type BoardMetrics = {
   unassigned: number;
   stale: number;
   oldestOpenDays: number | null;
-  /** Open issues whose PR has merged: likely done, and worth closing. */
-  mergedButOpen: number;
+  /** Open PRs that close or mention an open issue on the board: the work in review now. */
+  openPrs: number;
 };
 
 const ms = (iso: string) => new Date(iso).getTime();
@@ -108,8 +108,8 @@ export function boardMetrics(issues: BoardIssue[], now = Date.now()): BoardMetri
     byColumn: [...columns].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
     byAssignee: [...people.values()].sort((a, b) => b.open - a.open || b.closedRecently - a.closedRecently),
     unassigned: open.filter((i) => !i.assignees.length).length,
-    stale: open.filter((i) => now - ms(i.updatedAt) > STALE_DAYS * DAY_MS).length,
+    stale: open.filter((i) => now - ms(i.createdAt) > STALE_DAYS * DAY_MS).length,
     oldestOpenDays: ages.length ? Math.floor(Math.max(...ages)) : null,
-    mergedButOpen: open.filter((i) => i.prs.some((p) => p.state === 'MERGED')).length,
+    openPrs: new Set(open.flatMap((i) => i.prs.filter((p) => p.state === 'OPEN').map((p) => p.url))).size,
   };
 }
