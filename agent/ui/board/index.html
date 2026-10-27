@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="How the board is moving, and every issue on it, read by Claude." />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#181818" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Board — Daily Plate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="/theme.css" />
+    <!-- The Plate tab's rows, meta lines and state pills, which the issues share. -->
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/board/board.css" />
+    <link rel="stylesheet" href="/mova/dist/mova.css" />
+    <script src="/shell.js"></script>
+    <script src="/mova/dist/index.js" type="module"></script>
+  </head>
+  <body class="ready">
+    <nav class="topnav">
+      <a class="wordmark" href="/"><span class="tick" aria-hidden="true"></span>Daily Plate</a>
+      <div class="apptabs">
+        <a class="apptab" href="/">Plate</a>
+        <a class="apptab" href="/wrap/">Wrap</a>
+      </div>
+      <div class="nav-right">
+        <a class="apptab" href="/notifications/">Notifications</a>
+        <div class="account" data-account></div>
+      </div>
+    </nav>
+
+    <main class="shell">
+      <h1 class="visually-hidden">Board</h1>
+      <!-- Mova draws the whole tab (agent/mova/src/board). Without its bundle
+           there is nothing to draw it with, and this says so. -->
+      <div id="board">
+        <noscript><p class="empty-title">The Board tab needs JavaScript.</p></noscript>
+      </div>
+    </main>
+
+    <script src="/board/board.js" type="module"></script>
+  </body>
+</html>

@@ -4,6 +4,8 @@ import { compress } from 'hono/compress';
 import { etag } from 'hono/etag';
 import { secureHeaders } from 'hono/secure-headers';
 import { authRoutes, requireMember, signInEnabled } from './auth.ts';
+import { startBoardJudge } from './board/judge.ts';
+import { boardRoutes } from './board/routes.ts';
 import { config, isDev } from './config.ts';
 import { describeTarget, ping } from './db/client.ts';
 import { runMigrations } from './db/migrations.ts';
@@ -48,9 +50,10 @@ app.route('/api/auth', authRoutes);
 app.use(requireMember);
 app.route('/', routes);
 app.route('/api/wrap', wrapRoutes);
+app.route('/api/board', boardRoutes);
 
-// Static pages: Plate at /, Wrap at /wrap/, Notifications at /notifications/
-// and Settings at /settings/, sharing theme.css and shell.js. The one build is
+// Static pages: Plate at /, Wrap at /wrap/, Board at /board/, Notifications
+// at /notifications/ and Settings at /settings/, sharing theme.css and shell.js. The one build is
 // the Mova bundle (agent/mova).
 //
 // Mova's chunks are named by content hash, so they are cached for good. Every
@@ -62,6 +65,7 @@ const cacheFor = (path: string) =>
     : 'no-cache';
 
 app.get('/wrap', (c) => c.redirect('/wrap/'));
+app.get('/board', (c) => c.redirect('/board/'));
 app.get('/settings', (c) => c.redirect('/settings/'));
 app.get('/notifications', (c) => c.redirect('/notifications/'));
 app.use(
@@ -75,6 +79,7 @@ app.use(
 );
 app.get('/', serveStatic({ root: './agent/ui', path: 'index.html' }));
 app.get('/wrap/', serveStatic({ root: './agent/ui', path: 'wrap/index.html' }));
+app.get('/board/', serveStatic({ root: './agent/ui', path: 'board/index.html' }));
 app.get('/settings/', serveStatic({ root: './agent/ui', path: 'settings/index.html' }));
 app.get('/notifications/', serveStatic({ root: './agent/ui', path: 'notifications/index.html' }));
 
@@ -116,10 +121,11 @@ void (async () => {
         await runMigrations();
         await claimDefaultRows();
         console.log('[db] connected — migrations applied');
-        // All three write to the database, so they wait for the schema.
+        // All of these write to the database, so they wait for the schema.
         await learnWorkspace();
         startBoardSync();
         startMentionSync();
+        startBoardJudge();
         void startSlack();
       } catch (err) {
         console.error('[boot] database initialization failed after connect:', err);

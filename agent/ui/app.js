@@ -1053,13 +1053,23 @@ function sub(text, { live = false } = {}) {
   return node;
 }
 
-/** A board's line under its title, then whose cards it shows, with their picture. */
+/**
+ * A board's line under its title, then whose cards it shows, with their
+ * picture, and the way to the Board tab: the whole board, not just yours.
+ */
 function assignedLine(node) {
   const me = data.assignee;
-  if (!me) return node;
-  const who = span('assignee', '');
-  who.append(avatar(me.login, 'assignee-avatar'), span('', `Assigned to ${me.name}`));
-  node.append(span('', ' · '), who);
+  if (me) {
+    const who = span('assignee', '');
+    who.append(avatar(me.login, 'assignee-avatar'), span('', `Assigned to ${me.name}`));
+    node.append(span('', ' · '), who);
+  }
+  const board = document.createElement('a');
+  board.className = 'board-link';
+  board.href = '/board/';
+  board.textContent = 'Whole board →';
+  board.title = 'Every issue on the board, its numbers, and what Claude makes of each';
+  node.append(span('', ' · '), board);
   return node;
 }
 

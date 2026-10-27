@@ -1,0 +1,350 @@
+/*
+ * The Board tab. Mova draws the charts and the controls (mova.css); this is
+ * the page's layout around them, and its issue rows, from the theme tokens.
+ */
+
+.board {
+  display: grid;
+  gap: var(--lg);
+}
+
+.board-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--xxs);
+  padding-block: var(--xxl);
+  color: var(--muted);
+}
+
+.board-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xs);
+}
+
+/* ── Metrics ──────────────────────────────────────────────────────────── */
+
+.board-metrics {
+  display: grid;
+  gap: var(--xs);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--xs);
+}
+
+.board .grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--xs);
+}
+
+.board .grid2 > *,
+.kpis > * {
+  min-width: 0;
+}
+
+.board-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.board-facts > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--xxxs);
+  padding: var(--xs);
+  border-left: 1px solid var(--hairline);
+}
+
+.board-facts > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.board-facts dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* ── Issues ───────────────────────────────────────────────────────────── */
+
+/* The list's head, drawn as the Plate tab draws a section's. */
+.board-issues .group-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.board-issues .group-name {
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.board-issues .group-sub {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.board-issues {
+  display: grid;
+  gap: var(--xs);
+}
+
+.board-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xxs);
+}
+
+.board-tools + .board-tools {
+  justify-content: flex-start;
+}
+
+.issue-group {
+  display: grid;
+}
+
+.issue-bucket {
+  padding-block: var(--sm) var(--xxs);
+}
+
+/* A row is the Plate tab's .item (app.css), with the issue's state in the
+   check box's place. */
+.issue.item {
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.issue-mark {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--pr);
+}
+
+.issue.done .issue-mark {
+  color: var(--merged);
+}
+
+.issue-people {
+  display: inline-flex;
+}
+
+.issue-people .author-avatar + .author-avatar {
+  margin-left: -5px;
+  box-shadow: 0 0 0 2px var(--canvas);
+}
+
+.issue .meta a {
+  text-decoration: none;
+}
+
+.issue .meta a:hover {
+  text-decoration: underline;
+}
+
+/* The judge's badges: one quiet pill each, with a mark of colour by kind. */
+.issue-badges {
+  display: flex;
+  margin-top: var(--xxs);
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  --tone: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  background: var(--surface-soft);
+  border-radius: var(--r-full);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--tone);
+}
+
+.b-one-shot,
+.b-quick-win,
+.close-yes,
+.verdict-done {
+  --tone: var(--pr);
+}
+
+.b-needs-design,
+.b-needs-spec,
+.b-research {
+  --tone: var(--merged);
+}
+
+.b-bigger-infra,
+.b-cross-team,
+.close-maybe,
+.verdict-partly-done {
+  --tone: var(--board);
+}
+
+.b-bug,
+.b-blocked {
+  --tone: var(--primary);
+}
+
+.b-feature,
+.b-polish {
+  --tone: var(--semantic-info);
+}
+
+.b-could-close {
+  --tone: var(--pr);
+}
+
+.close-yes,
+.close-maybe {
+  background: var(--canvas);
+  box-shadow: inset 0 0 0 1px var(--tone);
+}
+
+.issue-thought {
+  margin: var(--xxs) 0 0;
+  max-width: 72ch;
+  color: var(--body);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.issue-actions {
+  display: flex;
+  margin-top: var(--xxs);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--xs);
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.link-button:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.link-button:disabled {
+  cursor: default;
+}
+
+/* The deeper thought, under its issue. */
+.deep {
+  overflow: hidden;
+}
+
+.deep-body {
+  display: grid;
+  gap: var(--xs);
+  margin-top: var(--xxs);
+  padding: var(--xs);
+  background: var(--surface-soft);
+  font-size: 13px;
+  color: var(--body);
+}
+
+.deep-body p {
+  margin: 0;
+  max-width: 72ch;
+}
+
+.deep-verdict {
+  display: flex;
+  align-items: center;
+  gap: var(--xxs);
+}
+
+.deep-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--xs);
+}
+
+.deep-body h4 {
+  margin: 0 0 var(--xxxs);
+}
+
+.deep-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.deep-body li + li {
+  margin-top: var(--xxxs);
+}
+
+.deep-evidence a {
+  color: var(--ink);
+}
+
+.show-more {
+  justify-self: start;
+}
+
+@media (max-width: 900px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .board .grid2,
+  .deep-lists {
+    grid-template-columns: 1fr;
+  }
+
+  .board-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .board-facts > div:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .board-facts > div:nth-child(n + 3) {
+    border-top: 1px solid var(--hairline);
+  }
+}

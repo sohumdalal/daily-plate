@@ -6,7 +6,7 @@
  * Days are YYYY-MM-DD strings handled in UTC, so no timezone moves one.
  */
 
-import { useEffect, useState } from 'react';
+import { useTheme } from '../use-theme.js';
 import MonoRoundedBarChart from '../charts/mono-rounded-bar.js';
 import MonoRoundedHeatmapChart from '../charts/mono-rounded-heatmap.js';
 import MonoRoundedSparklineChart from '../charts/mono-rounded-sparkline.js';
@@ -49,17 +49,6 @@ const EMPTY = { minutes: 0, prompts: 0, sessions: 0, starts: [], github: null, g
 /** True when the period itself, not just the weeks around it, has any work in it. */
 export function hasActivity(stats) {
   return stats.days.some((d) => d.day >= stats.span.from && d.day <= stats.span.to && d.minutes > 0);
-}
-
-function useTheme() {
-  const read = () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
-  const [theme, set] = useState(read);
-  useEffect(() => {
-    const mo = new MutationObserver(() => set(read()));
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => mo.disconnect();
-  }, []);
-  return theme;
 }
 
 export function Rollup({ stats }) {

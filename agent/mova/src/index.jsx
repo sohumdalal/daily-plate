@@ -129,4 +129,19 @@ async function rollup(el, stats) {
   render(el, <Rollup stats={stats} />);
 }
 
-window.Mova = { button, typing, shimmer, tabs, filterPill, categorySelect, search, rollup, skeleton, progress, release };
+/**
+ * The Board tab, whole: its charts, its issues and their judgments. `api`
+ * is the page's: api('get' | 'refresh' | 'judge') and api('think', id). The
+ * code loads on first use, as the rollups' does.
+ */
+let boards;
+async function board(el, api) {
+  boards ??= import('./board/index.jsx').catch((err) => {
+    boards = null;
+    throw err;
+  });
+  const { Board } = await boards;
+  render(el, <Board api={api} />);
+}
+
+window.Mova = { button, typing, shimmer, tabs, filterPill, categorySelect, search, board, rollup, skeleton, progress, release };

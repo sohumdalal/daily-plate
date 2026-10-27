@@ -342,6 +342,29 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       );
     `,
   },
+  {
+    // The Board tab's read of each issue: badges, a one-line thought and
+    // whether it may be closed, judged again only when the issue changes
+    // (digest). A deeper thought, with what the code says, is asked for one
+    // issue at a time. Shared by the team, since the board is.
+    id: '0012_issue_judgments',
+    sql: `
+      CREATE TABLE IF NOT EXISTS issue_judgments (
+        issue_id     TEXT PRIMARY KEY,
+        url          TEXT NOT NULL,
+        digest       TEXT NOT NULL,
+        size         TEXT NOT NULL DEFAULT '',
+        badges       JSONB NOT NULL DEFAULT '[]'::jsonb,
+        thought      TEXT NOT NULL DEFAULT '',
+        closable     TEXT NOT NULL DEFAULT 'no' CHECK (closable IN ('yes','maybe','no')),
+        close_reason TEXT NOT NULL DEFAULT '',
+        model        TEXT NOT NULL DEFAULT '',
+        judged_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+        deep         JSONB,
+        deep_at      TIMESTAMPTZ
+      );
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

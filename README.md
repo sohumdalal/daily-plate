@@ -273,6 +273,36 @@ From cron, with an explicit `PATH`:
 Under `~/Desktop`, macOS may block cron from the folder until `/usr/sbin/cron`
 has Full Disk Access.
 
+## The Board tab
+
+`/board/`, linked from the Kanban section's line ("Whole board →"), is the
+whole board rather than your cards on it: every issue, whoever has it, read
+once and shared by the team (`agent/board/`).
+
+**Numbers.** Opened and closed this week, the close rate (closed per opened
+over four weeks), the median and mean days to close over 90 days, open issues
+week by week, open by column and by person, and counts of stale, unassigned
+and merged-but-open issues. All of it comes from each issue's opened and
+closed dates, so no snapshot is kept. A board that archives its Done cards
+hides those from the history.
+
+**Issues.** Open, closed or all; by person, column, badge; sorted newest,
+oldest, recently updated, longest untouched, most discussed, recently closed
+or smallest; and searched as you type. Sorted by age, they fall into groups:
+this week, this month, and so on.
+
+**The judge.** An LLM reads every open issue in batches of 8 and gives it a
+size, up to three badges from a fixed set (`one-shot`, `needs-design`,
+`bigger-infra`, `could-close` and others, in `agent/board/judge.ts`), a
+one-line thought, and whether the PRs that reference it say it can be closed.
+An issue is read again only when it changes. Deployed, this runs every 15
+minutes; locally, only from the Judge button, or with `BOARD_JUDGE=1`.
+
+**Think deeper**, on a closed issue, searches the repo's code and commits for
+it, reads its comments, and says whether the code really has what was asked,
+with what is left, a plan, risks and links. Judgments are kept in
+`issue_judgments`.
+
 ## The Notifications tab
 
 Every time someone @-mentions you, newest first and grouped by day, each one

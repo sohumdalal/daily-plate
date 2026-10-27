@@ -37,6 +37,16 @@
   padding-bottom: var(--lg);
 }
 
+.board-link {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.board-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .assignee {
   display: inline-flex;
   align-items: center;
