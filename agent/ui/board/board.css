@@ -75,6 +75,13 @@
   border-bottom: 1px solid var(--hairline);
 }
 
+/* Here the four counts stand alone, so each sits in the middle of its cell. */
+.board .spec-cell {
+  align-items: center;
+  padding-inline: var(--xs);
+  text-align: center;
+}
+
 .board .item {
   border-top: 1px solid var(--hairline);
 }
