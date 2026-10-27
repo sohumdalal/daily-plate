@@ -541,10 +541,11 @@ function IssueRow({ issue: i, badges, llm, api, onJudged }) {
               <span>{pill.label}</span>
             </Pill>
           )}
-          {i.state === 'open' && <span className="status">{i.column || 'No status'}</span>}
+          {/* As on the Plate tab, the column adds to the pill only while nothing has started. */}
+          {i.state === 'open' && !pill && <span className="status">{i.column || 'No status'}</span>}
           {j?.size && (
             <span className="status" title="The judge's size: S hours, M days, L a week, XL more">
-              Size {j.size}
+              {j.size}
             </span>
           )}
           {lead && (
@@ -558,7 +559,7 @@ function IssueRow({ issue: i, badges, llm, api, onJudged }) {
               {i.assignees.length > 1 ? ` +${i.assignees.length - 1}` : ''}
             </span>
           )}
-          <span title={`Opened ${short(i.createdAt)}, updated ${short(i.updatedAt)}`}>
+          <span className="issue-age" title={`Opened ${short(i.createdAt)}, updated ${short(i.updatedAt)}`}>
             {i.state === 'closed' && i.closedAt ? since('closed', i.closedAt) : since('opened', i.createdAt)}
           </span>
         </div>

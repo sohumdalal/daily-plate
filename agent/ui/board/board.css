@@ -196,6 +196,11 @@
   display: inline-flex;
 }
 
+/* When it was opened or closed, at the row's right edge. */
+.issue-age {
+  margin-left: auto;
+}
+
 .issue-people .author-avatar + .author-avatar {
   margin-left: -5px;
   box-shadow: 0 0 0 2px var(--canvas);
